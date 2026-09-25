@@ -1,0 +1,20 @@
+{
+ "pays": "MG",
+ "code": "MG_APB",
+ "libelle": "Convention collective de l'APB de Madagascar (banques)",
+ "statut": "valide",
+ "source": "Ariane IFC, feuille Coefficients (convention 1), tel qu'implémenté : paliers fixes",
+ "bareme": {
+  "forme": "paliers",
+  "sous_premier_palier_mois_par_annee": 0.20,
+  "paliers": [
+   {"a_partir_de": 10, "mois": 3},
+   {"a_partir_de": 15, "mois": 4},
+   {"a_partir_de": 20, "mois": 6},
+   {"a_partir_de": 25, "mois": 7},
+   {"a_partir_de": 30, "mois": 8},
+   {"a_partir_de": 35, "mois": 9},
+   {"a_partir_de": 40, "mois": 10}
+  ]
+ }
+}

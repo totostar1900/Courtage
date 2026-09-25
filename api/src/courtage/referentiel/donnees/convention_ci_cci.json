@@ -1,0 +1,15 @@
+{
+ "pays": "CI",
+ "code": "CI_CCI",
+ "libelle": "Convention collective interprofessionnelle de Côte d'Ivoire",
+ "statut": "valide",
+ "source": "Ariane IFC, feuille Coefficients (convention 2)",
+ "bareme": {
+  "forme": "tranches_cumulatives",
+  "tranches": [
+   {"jusqu_a": 5, "mois_par_annee": 0.30},
+   {"jusqu_a": 10, "mois_par_annee": 0.35},
+   {"jusqu_a": null, "mois_par_annee": 0.40}
+  ]
+ }
+}

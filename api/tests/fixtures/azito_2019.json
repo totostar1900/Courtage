@@ -1,0 +1,184 @@
+{
+ "organisation": "AZITO",
+ "pays": "CI",
+ "date_evaluation": "2019-12-31",
+ "fonds_disponible": 61550447,
+ "note": "Données réelles anonymes (sans nom) extraites du classeur Ariane IFC. Dépôt privé uniquement.",
+ "attendu": {
+  "classeur_ci": {
+   "vapf": 120347927,
+   "dette": 60976604,
+   "charge": 4483023,
+   "cotisation_totale": 4065547
+  },
+  "rapport_2023_apb": {
+   "vapf": 81804610,
+   "dette": 41404223,
+   "charge": 3042965,
+   "cotisation_totale": 0
+  }
+ },
+ "salaries": [
+  {
+   "matricule": "3",
+   "naissance": "1969-05-14",
+   "embauche": "1998-01-01",
+   "salaire_annuel": 19045846,
+   "presence_classeur": 0.83375
+  },
+  {
+   "matricule": "16",
+   "naissance": "1971-01-01",
+   "embauche": "1999-04-24",
+   "salaire_annuel": 3782922,
+   "presence_classeur": 0.80073
+  },
+  {
+   "matricule": "17",
+   "naissance": "1961-02-22",
+   "embauche": "1999-06-01",
+   "salaire_annuel": 4642761,
+   "presence_classeur": 0.98
+  },
+  {
+   "matricule": "27",
+   "naissance": "1967-11-27",
+   "embauche": "2002-11-14",
+   "salaire_annuel": 22911220,
+   "presence_classeur": 0.85076
+  },
+  {
+   "matricule": "32",
+   "naissance": "1969-03-20",
+   "embauche": "2004-05-21",
+   "salaire_annuel": 9793074,
+   "presence_classeur": 0.83375
+  },
+  {
+   "matricule": "33",
+   "naissance": "1965-02-19",
+   "embauche": "2005-04-11",
+   "salaire_annuel": 24976581,
+   "presence_classeur": 0.90392
+  },
+  {
+   "matricule": "38",
+   "naissance": "1966-10-01",
+   "embauche": "2009-02-02",
+   "salaire_annuel": 3678536,
+   "presence_classeur": 0.86813
+  },
+  {
+   "matricule": "39",
+   "naissance": "1977-08-09",
+   "embauche": "2010-08-30",
+   "salaire_annuel": 5755054,
+   "presence_classeur": 0.69514
+  },
+  {
+   "matricule": "40",
+   "naissance": "1982-05-14",
+   "embauche": "2013-01-01",
+   "salaire_annuel": 19029056,
+   "presence_classeur": 0.64117
+  },
+  {
+   "matricule": "41",
+   "naissance": "1984-04-17",
+   "embauche": "2013-03-01",
+   "salaire_annuel": 12671425,
+   "presence_classeur": 0.61578
+  },
+  {
+   "matricule": "42",
+   "naissance": "1984-12-25",
+   "embauche": "2013-03-01",
+   "salaire_annuel": 2050268,
+   "presence_classeur": 0.60346
+  },
+  {
+   "matricule": "43",
+   "naissance": "1955-12-04",
+   "embauche": "2013-05-13",
+   "salaire_annuel": 44191979,
+   "presence_classeur": 1
+  },
+  {
+   "matricule": "45",
+   "naissance": "1985-04-18",
+   "embauche": "2013-06-24",
+   "salaire_annuel": 11787738,
+   "presence_classeur": 0.60346
+  },
+  {
+   "matricule": "47",
+   "naissance": "1980-01-01",
+   "embauche": "2013-06-10",
+   "salaire_annuel": 3131600,
+   "presence_classeur": 0.66761
+  },
+  {
+   "matricule": "48",
+   "naissance": "1980-08-01",
+   "embauche": "2013-09-23",
+   "salaire_annuel": 1363505,
+   "presence_classeur": 0.65426
+  },
+  {
+   "matricule": "49",
+   "naissance": "1980-03-02",
+   "embauche": "2013-10-01",
+   "salaire_annuel": 3330990,
+   "presence_classeur": 0.66761
+  },
+  {
+   "matricule": "50",
+   "naissance": "1982-08-22",
+   "embauche": "2013-10-01",
+   "salaire_annuel": 7004972,
+   "presence_classeur": 0.62835
+  },
+  {
+   "matricule": "51",
+   "naissance": "1962-08-09",
+   "embauche": "2013-10-01",
+   "salaire_annuel": 3091280,
+   "presence_classeur": 0.94119
+  },
+  {
+   "matricule": "52",
+   "naissance": "1980-03-01",
+   "embauche": "2013-10-01",
+   "salaire_annuel": 3740736,
+   "presence_classeur": 0.66761
+  },
+  {
+   "matricule": "53",
+   "naissance": "1982-01-26",
+   "embauche": "2014-04-29",
+   "salaire_annuel": 3377335,
+   "presence_classeur": 0.64117
+  },
+  {
+   "matricule": "54",
+   "naissance": "1982-06-13",
+   "embauche": "2014-05-15",
+   "salaire_annuel": 11370554,
+   "presence_classeur": 0.64117
+  },
+  {
+   "matricule": "55",
+   "naissance": "1986-10-09",
+   "embauche": "2014-06-16",
+   "salaire_annuel": 3250000,
+   "presence_classeur": 0.57957
+  },
+  {
+   "matricule": "SANS-MATRICULE",
+   "naissance": "1975-01-01",
+   "embauche": "2011-01-01",
+   "salaire_annuel": 76373767,
+   "presence_classeur": 0.73857
+  }
+ ]
+}
