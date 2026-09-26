@@ -64,6 +64,26 @@ export const api = {
     appel<T>(chemin, { method: "POST", body: corps instanceof FormData ? corps : JSON.stringify(corps ?? {}) }),
   put: <T>(chemin: string, corps: unknown) => appel<T>(chemin, { method: "PUT", body: JSON.stringify(corps) }),
   del: (chemin: string) => appel<void>(chemin, { method: "DELETE" }),
+  /** Un fichier (xlsx) à enregistrer sous `nom` : le navigateur le télécharge. */
+  async telecharger(chemin: string, nom: string) {
+    if (DEMO) {
+      throw new ErreurApi(0, "demonstration",
+        "La démonstration ne télécharge pas de fichier : sur le site, ce bouton enregistre le classeur.");
+    }
+    const entetes = new Headers({ "X-Courtage": "1" });
+    const moi = utilisateurCourant();
+    if (moi) entetes.set("X-Utilisateur", moi);
+    const r = await fetch(`/api/v1${chemin}`, { headers: entetes });
+    if (!r.ok) throw new ErreurApi(r.status, "telechargement_impossible", "Le fichier n'a pas pu être téléchargé.");
+    const url = URL.createObjectURL(await r.blob());
+    const lien = document.createElement("a");
+    lien.href = url;
+    lien.download = nom;
+    document.body.appendChild(lien);
+    lien.click();
+    lien.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
   /** Un PDF : ouvert dans un nouvel onglet (dans la démonstration, ses pages s'affichent sur place). */
   async ouvrir(chemin: string) {
     if (DEMO) {

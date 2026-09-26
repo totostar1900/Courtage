@@ -262,3 +262,6 @@ button.lien { background: none; border: none; padding: 0; color: var(--indigo-vi
 .essais div { display: grid; grid-template-columns: 110px 1fr; gap: 12px; }
 .essais dt { font-weight: 600; }
 .essais dd { margin: 0; color: var(--encre-2); }
+
+/* Le canevas du personnel : une invitation, pas un formulaire. */
+.canevas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }

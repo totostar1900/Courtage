@@ -595,6 +595,18 @@ def lister_fichiers(a: Acces = Depends(acces(*TOUS))):
     return [fichiers.en_clair(f) for f in fichiers.lister(a.session)]
 
 
+@routeur.get("/organisations/{organisation_id}/fichiers/{fichier_id}/telechargement")
+def telecharger_fichier(fichier_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    """Le personnel déposé, tel que la plateforme le garde (sans nom), à corriger et redéposer."""
+    from courtage.fichier.canevas import exporter
+    f = fichiers.obtenir(a.session, fichier_id)
+    journaliser(a.session, a.organisation.id, a.utilisateur.id, "fichier.telecharge", f.id, {})
+    nom = f"personnel-{f.date_donnees.isoformat()}.xlsx"
+    return Response(exporter(f.lignes, f.anomalies, date_donnees=f.date_donnees, nom_fichier=f.nom_fichier),
+                    media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+
+
 # --- Études -------------------------------------------------------------------
 
 class ParametresEtude(_Corps):

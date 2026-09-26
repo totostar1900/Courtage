@@ -8,6 +8,7 @@ garde son ancienne version : une étude datée d'avant s'y réfère).
 from datetime import date
 
 from fastapi import APIRouter, Query
+from fastapi.responses import Response
 
 from courtage.actuariat.ifc import mois_d_ifc
 from courtage.erreurs import ErreurMetier
@@ -42,3 +43,14 @@ def modeles(pays: str = Query(pattern=r"^[A-Z]{2}$")):
     if pays not in CEMAC:
         raise ErreurMetier("pays_non_couvert", "La plateforme couvre pour l'instant les pays de la CEMAC.", 422)
     return {"pays": pays, "pays_libelle": CEMAC[pays], "modeles": modeles_du_pays(referentiel_courant(), pays, date.today())}
+
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+@routeur_referentiel.get("/referentiel/canevas-personnel")
+def canevas_personnel():
+    """Le classeur à remplir pour déposer son personnel : public, il ne porte aucune donnée."""
+    from courtage.fichier.canevas import canevas
+    return Response(canevas(), media_type=XLSX,
+                    headers={"Content-Disposition": 'attachment; filename="canevas-personnel.xlsx"'})

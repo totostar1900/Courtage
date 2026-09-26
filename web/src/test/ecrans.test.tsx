@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { dossier, etude, ORG, ouvrir, simulerApi } from "./outils";
 
@@ -783,5 +783,24 @@ describe("l'échéancier modulable", () => {
     simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }) });
     ouvrir(`/dossier/${ORG}/etudes/e1`);
     expect(await screen.findByRole("radio", { name: "Par catégorie" })).toBeDisabled();
+  });
+});
+
+describe("les fichiers du personnel", () => {
+  it("le canevas et un fichier déposé se téléchargent, avec leur nom", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"),
+      "/referentiel/canevas-personnel": new Response(new Blob(["xlsx"])),
+      [`/organisations/${ORG}/fichiers/f1/telechargement`]: new Response(new Blob(["xlsx"])) });
+    const noms: string[] = [];
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    URL.revokeObjectURL = vi.fn();
+    const clic = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      noms.push(this.download); });
+    ouvrir(`/dossier/${ORG}/personnel`);
+    await userEvent.click(await screen.findByRole("button", { name: "Télécharger le canevas" }));
+    await userEvent.click(screen.getByRole("button", { name: "Télécharger p.xlsx" }));
+    await waitFor(() => expect(noms).toEqual(["canevas-personnel.xlsx", "personnel-2019-12-31.xlsx"]));
+    expect(appels.map((a) => a.chemin)).toContain(`/organisations/${ORG}/fichiers/f1/telechargement`);
+    clic.mockRestore();
   });
 });
