@@ -644,6 +644,20 @@ def lire_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     return etudes.en_clair(a.session, a.organisation, etudes.obtenir(a.session, etude_id), date.today())
 
 
+@routeur.get("/organisations/{organisation_id}/etudes/{etude_id}/export")
+def exporter_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    """L'étude en Excel : synthèse, échéancier, catégories, sensibilités, salariés (par matricule)."""
+    from courtage import exports
+    e = etudes.en_clair(a.session, a.organisation, etudes.obtenir(a.session, etude_id), date.today())
+    journaliser(a.session, a.organisation.id, a.utilisateur.id, "etude.exportee", etude_id, {})
+    return _xlsx(exports.etude(e, a.organisation.nom), f"etude-ifc-{e['date_evaluation']}.xlsx")
+
+
+def _xlsx(contenu: bytes, nom: str) -> Response:
+    return Response(contenu, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+
+
 @routeur.put("/organisations/{organisation_id}/etudes/{etude_id}")
 def recalculer_etude(etude_id: uuid.UUID, corps: ParametresEtude, a: Acces = Depends(acces(*CLIENT))):
     e = etudes.recalculer(a.session, a.organisation, etudes.obtenir(a.session, etude_id), a.utilisateur.id,
@@ -786,6 +800,15 @@ async def _offre(offre: UploadFile | None):
 @routeur.get("/organisations/{organisation_id}/fiches/{fiche_id}/reponses")
 def lire_reponses(fiche_id: uuid.UUID, horizon: int = 10, amortissement: int = 3, a: Acces = Depends(acces(*TOUS))):
     return reponses.tout(a.session, reponses.obtenir_fiche(a.session, fiche_id), horizon, amortissement)
+
+
+@routeur.get("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/export")
+def exporter_reponses(fiche_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    """Les réponses des assureurs en Excel : comparaison, conformité, scénarios, cahier des charges."""
+    from courtage import exports
+    t = reponses.tout(a.session, reponses.obtenir_fiche(a.session, fiche_id))
+    journaliser(a.session, a.organisation.id, a.utilisateur.id, "reponses.exportees", fiche_id, {})
+    return _xlsx(exports.reponses(t, a.organisation.nom), "reponses-assureurs.xlsx")
 
 
 @routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses", status_code=201)

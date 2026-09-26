@@ -70,6 +70,9 @@ export default function EtudeDetail() {
           {e.rapport && (
             <button onClick={() => api.ouvrir(`/organisations/${d.org.id}/etudes/${e.id}/rapport`)}>Ouvrir le rapport PDF</button>
           )}
+          <button onClick={() => { setErreurAction(null);
+            api.telecharger(`/organisations/${d.org.id}/etudes/${e.id}/export`, `etude-ifc-${e.date_evaluation}.xlsx`)
+              .catch(setErreurAction); }}>Exporter en Excel</button>
           <Link to="financement"><button>Financer cet engagement</button></Link>
         </div>
         <Erreur erreur={erreurAction} />
