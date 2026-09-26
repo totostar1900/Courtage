@@ -6,6 +6,7 @@ import { Anomalies, Cle, Echeancier, Erreur, libelleMotif, useCharge } from "../
 import { dateFr, millions, montant, pct } from "../format";
 import type { Etude } from "../types";
 import { useDossier } from "./Dossier";
+import Rapprochement, { sousCotisation } from "../composants/Rapprochement";
 
 const SENSIBILITES: Record<string, string> = {
   taux_actualisation_moins_1pt: "Taux d'actualisation − 1 point",
@@ -41,10 +42,11 @@ export default function EtudeDetail() {
 
       <div className="grille g4 section">
         <Cle etiquette="Dette actuarielle" valeur={millions(e.totaux.dette)} sous={montant(e.totaux.dette)} />
-        <Cle etiquette="Charge annuelle" valeur={millions(e.totaux.charge)} />
-        <Cle etiquette="Fonds constitué" valeur={millions(e.fonds_disponible)} />
-        <Cle etiquette="Cotisation à verser" valeur={millions(e.totaux.cotisation_totale ?? 0)} sous="frais compris" />
+        <Cle etiquette="Charge annuelle" valeur={millions(e.totaux.charge)} sous={montant(e.totaux.charge)} />
+        <Cle etiquette="Fonds constitué" valeur={millions(e.fonds_disponible)} sous={montant(e.fonds_disponible)} />
+        <Cle etiquette="Cotisation à verser" valeur={millions(e.totaux.cotisation_totale ?? 0)} sous={sousCotisation(e)} />
       </div>
+      <div className="carte section"><Rapprochement etude={e} /></div>
       {e.totaux_convention && (
         <p className="section">Votre régime représente <strong>{montant(e.totaux.dette - e.totaux_convention.dette)}</strong> de
           dette au-delà de la seule convention ({montant(e.totaux_convention.dette)}).</p>

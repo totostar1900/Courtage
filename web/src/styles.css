@@ -126,3 +126,10 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .visionneuse img { width: 100%; border-radius: 6px; box-shadow: 0 8px 30px #0006; background: #fff; }
 .visionneuse .fermer { position: sticky; top: 0; margin: 0 auto 12px; display: block; }
 @media (max-width: 600px) { .entete .interieur { flex-wrap: wrap; } .entete .discret { display: none; } }
+
+/* Rapprochement : du passif à la cotisation */
+.rapprochement table td:first-child { width: 18px; color: var(--discret); font-weight: 700; }
+.rapprochement tr.total td { font-weight: 700; border-top: 2px solid var(--encre); }
+.rapprochement td .discret { font-weight: 400; }
+details.repli > summary { cursor: pointer; font-weight: 600; color: var(--indigo); }
+details.repli[open] > summary { margin-bottom: 8px; }

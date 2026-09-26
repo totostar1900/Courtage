@@ -4,6 +4,7 @@ import { api } from "../api";
 import { Cle, Constats, useCharge } from "../composants/communs";
 import { dateFr, millions, montant } from "../format";
 import { etapes } from "../parcours";
+import Rapprochement, { sousCotisation } from "../composants/Rapprochement";
 import type { Etude } from "../types";
 import { useDossier } from "./Dossier";
 
@@ -36,11 +37,15 @@ export default function TableauDeBord() {
           <h2>{etude.statut === "emise" ? "Votre engagement" : "Dernier brouillon"} au {dateFr(etude.date_evaluation)}</h2>
           <div className="grille g4">
             <Cle etiquette="Dette actuarielle" valeur={millions(etude.totaux.dette)} sous={montant(etude.totaux.dette)} />
-            <Cle etiquette="Charge annuelle" valeur={millions(etude.totaux.charge)} sous="ce que coûte une année de plus" />
-            <Cle etiquette="Fonds constitué" valeur={millions(etude.fonds_disponible)} />
+            <Cle etiquette="Charge annuelle" valeur={millions(etude.totaux.charge)} sous={`${montant(etude.totaux.charge)} · une année de plus`} />
+            <Cle etiquette="Fonds constitué" valeur={millions(etude.fonds_disponible)} sous={montant(etude.fonds_disponible)} />
             <Cle etiquette="Cotisation à verser" valeur={millions(etude.totaux.cotisation_totale ?? 0)}
-                 sous={etude.statut === "emise" ? `rapport ${etude.rapport?.numero}` : "brouillon"} />
+                 sous={sousCotisation(etude)} />
           </div>
+          <details className="carte section repli">
+            <summary>Comment on arrive à la cotisation</summary>
+            <Rapprochement etude={etude} titre={false} />
+          </details>
           <div className="section">
             <Constats constats={etude.anomalies.filter((a) => a.niveau === "avertissement").slice(0, 3).map((a) => ({
               niveau: "avertit", code: a.code, message: a.message }))} vide="" />
