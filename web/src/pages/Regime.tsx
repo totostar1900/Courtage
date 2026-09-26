@@ -4,7 +4,9 @@ import { api } from "../api";
 import { Constats, Erreur, Volet } from "../composants/communs";
 import { EditeurCategories, categorieVide, resumeBareme } from "../composants/EditeurCategories";
 import ExtractionTexte from "../composants/ExtractionTexte";
+import CatalogueRegimes from "../composants/CatalogueRegimes";
 import ModelesTypes from "../composants/ModelesTypes";
+import PartageCatalogue from "../composants/PartageCatalogue";
 import { dateFr } from "../format";
 import type { Categorie, Constat, Version, VersionProposee } from "../types";
 import { useDossier } from "./Dossier";
@@ -121,6 +123,7 @@ function CarteVersion({ version: v }: { version: Version }) {
           <button className="principal" onClick={adopter} disabled={nonConforme && !accepte}>Adopter cette version</button>
         </div>
       )}
+      {v.statut === "adoptee" && <PartageCatalogue version={v} />}
       {v.statut === "analyse" && d.role === "conseiller" && (
         <p className="discret">L'adoption appartient à l'entreprise.</p>
       )}
@@ -167,6 +170,7 @@ function NouveauRegime({ onFini, onFermer }: { onFini: () => void; onFermer: () 
   return (
     <Volet titre="Décrire un régime" onFermer={onFermer}>
       <ModelesTypes onReprendre={(v) => { setInitial({ v, n: (initial?.n ?? 0) + 1 }); if (!nom) setNom("Régime IFC"); }} />
+      <CatalogueRegimes onReprendre={(v) => { setInitial({ v, n: (initial?.n ?? 0) + 1 }); if (!nom) setNom("Régime IFC"); }} />
       <ExtractionTexte onReprendre={(v) => { setInitial({ v, n: (initial?.n ?? 0) + 1 }); if (!nom) setNom(v.document_reference); }} />
       <label style={{ marginBottom: 12 }}>Nom<input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Accord IFC 2015" /></label>
       <FormulaireVersion key={initial?.n ?? 0} initial={initial?.v} bouton="Enregistrer pour analyse" onValider={async (v) => {
@@ -186,6 +190,7 @@ function NouvelleVersion({ regimeId }: { regimeId: string }) {
   return (
     <Volet titre="Nouvelle version" onFermer={() => setOuvert(false)}>
       <ModelesTypes onReprendre={(v) => setInitial({ v, n: (initial?.n ?? 0) + 1 })} />
+      <CatalogueRegimes onReprendre={(v) => setInitial({ v, n: (initial?.n ?? 0) + 1 })} />
       <ExtractionTexte onReprendre={(v) => setInitial({ v, n: (initial?.n ?? 0) + 1 })} />
       <FormulaireVersion key={initial?.n ?? 0} initial={initial?.v} bouton="Enregistrer pour analyse" onValider={async (v) => {
         await api.post(`/organisations/${d.org.id}/regimes/${regimeId}/versions`, v);

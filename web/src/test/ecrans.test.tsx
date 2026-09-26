@@ -667,3 +667,73 @@ describe("l'échéancier des départs", () => {
     expect(screen.getByRole("tooltip")).toHaveTextContent("1 départ à la retraite");
   });
 });
+
+describe("le catalogue anonyme", () => {
+  const adoptee = { id: "v1", regime_id: "r1", nom: "Accord", numero: 1, en_vigueur_du: "2024-01-01", fondement: "accord_entreprise",
+    document_reference: "Accord 2024", statut: "adoptee", non_conformite_acceptee: false, constats: [],
+    categories: [{ categorie: "*", convention_code: "CM_COMMERCE", bareme: { forme: "tranches_cumulatives", tranches: [{ jusqu_a: null, mois_par_annee: 0.9 }] } }] };
+  const camerounais = (role: "admin_client" | "conseiller", extra: Record<string, unknown> = {}) => ({
+    ...dossier(role, { [`/organisations/${ORG}/regimes`]: [{ id: "r1", nom: "Accord", versions: [adoptee] }], ...extra }),
+    "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [{ id: ORG, nom: "Démo CM", pays: "CM", role }] } });
+  const vide = { seuil: 5, entreprises: 3, groupes: [], secteurs: { commerce: "Commerce et distribution", btp: "BTP" },
+    tailles: { moins_de_50: "moins de 50 salariés", "50_a_250": "50 à 250 salariés", plus_de_250: "plus de 250 salariés" } };
+
+  it("la DRH partage sa version adoptée, avec son accord, puis peut la retirer", async () => {
+    let partages: unknown[] = [];
+    const appels = simulerApi(camerounais("admin_client", {
+      [`/organisations/${ORG}/regimes/partages`]: () => partages, "/catalogue/regimes": vide,
+      [`POST /organisations/${ORG}/regimes/versions/v1/partage`]: () => {
+        partages = [{ partage_id: "c1", version_id: "v1", partage_le: "2026-09-26T10:00:00", actif: true, visible: false }];
+        return { partage_id: "c1", version_id: "v1" }; } }));
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Partager anonymement" }));
+    expect(screen.getByText(/le nom de l'entreprise, ni aucun nom de personne/)).toBeInTheDocument();
+    const bouton = screen.getByRole("button", { name: "Partager" });
+    expect(bouton).toBeDisabled();
+    await userEvent.selectOptions(await screen.findByLabelText("Secteur"), "btp");
+    await userEvent.selectOptions(screen.getByLabelText("Taille"), "moins_de_50");
+    await userEvent.click(screen.getByRole("checkbox", { name: /j'accepte de partager/ }));
+    await userEvent.click(bouton);
+    expect(await screen.findByText("Partagé anonymement")).toBeInTheDocument();
+    expect(screen.getByText(/en attente : un régime se montre/)).toBeInTheDocument();
+    const envoi = appels.find((a) => a.chemin.endsWith("/partage"))!;
+    expect(JSON.parse(envoi.init!.body as string)).toEqual({ secteur: "btp", taille: "moins_de_50", consentement: true });
+    expect(screen.getByRole("button", { name: "Retirer du catalogue" })).toBeInTheDocument();
+  });
+
+  it("le conseiller ne partage pas pour l'entreprise", async () => {
+    simulerApi(camerounais("conseiller", { [`/organisations/${ORG}/regimes/partages`]: [] }));
+    ouvrir(`/dossier/${ORG}/regime`);
+    expect(await screen.findByText("Adoptée")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Partager anonymement" })).not.toBeInTheDocument();
+  });
+
+  it("se consulte par groupes, et un régime se reprend avec la convention du pays", async () => {
+    const catalogue = { ...vide, entreprises: 5, groupes: [{ pays: "GA", secteur: null, taille: null, libelle: "Gabon",
+      entreprises: 5, regimes: [{ id: "c9", convention_code: null, ecart_convention_20_ans: 0.27,
+        illustration: [10, 20, 30].map((n) => ({ anciennete: n, par_categorie: { "*": n * 0.9, "Catégorie A": n * 1.2 } })),
+        categories: [{ categorie: "*", bareme: { forme: "tranches_cumulatives", tranches: [{ jusqu_a: null, mois_par_annee: 0.9 }] } },
+                     { categorie: "Catégorie A", bareme: { forme: "tranches_cumulatives", tranches: [{ jusqu_a: null, mois_par_annee: 1.2 }] } }] }] }] };
+    simulerApi(camerounais("admin_client", { [`/organisations/${ORG}/regimes`]: [], "/catalogue/regimes": catalogue,
+      "/referentiel/modeles": { pays: "CM", pays_libelle: "Cameroun", modeles: [] },
+      "/extraction/mode": { moteur: "regles", modele: null, envoie_a_un_tiers: false, pays_couverts: { CM: "Cameroun" } } }));
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Décrire un régime" }));
+    await userEvent.click(screen.getByRole("button", { name: "Partir du catalogue anonyme" }));
+    const groupe = (await screen.findByRole("heading", { name: "Gabon" })).closest("[data-groupe]") as HTMLElement;
+    expect(within(groupe).getByText("5 entreprises")).toBeInTheDocument();
+    expect(within(groupe).getByText(/27 % au-dessus de sa convention à 20 ans/)).toBeInTheDocument();
+    await userEvent.click(within(groupe).getByRole("button", { name: "Reprendre dans le formulaire" }));
+    expect(screen.getByLabelText("Document")).toHaveValue("Inspiré d'un régime du catalogue anonyme");
+    expect(screen.getAllByDisplayValue("Catégorie A").length).toBeGreaterThan(0);
+  });
+
+  it("vide, il dit combien d'entreprises il attend", async () => {
+    simulerApi(camerounais("admin_client", { [`/organisations/${ORG}/regimes`]: [], "/catalogue/regimes": vide,
+      "/extraction/mode": { moteur: "regles", modele: null, envoie_a_un_tiers: false, pays_couverts: { CM: "Cameroun" } } }));
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Décrire un régime" }));
+    await userEvent.click(screen.getByRole("button", { name: "Partir du catalogue anonyme" }));
+    expect(await screen.findByText(/s'ouvre quand au moins 5 entreprises.*Aujourd'hui : 3/)).toBeInTheDocument();
+  });
+});

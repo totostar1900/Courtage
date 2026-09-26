@@ -246,6 +246,19 @@ test le vérifie de 1 à 45 ans. Servis comme une `VersionProposee` : le formula
 enregistré sans relecture. Aucune donnée d'entreprise. Première étape de « consulter des régimes » ; le
 catalogue anonyme et la comparaison chiffrée viendront après (docs/specs/2026-09-26-modeles-types-design.md).
 
+## Catalogue anonyme
+
+`courtage/catalogue.py` (pur : `groupes_visibles`, `anonymiser_categories`), `services/catalogue.py`,
+migration 0015. `catalogue_regimes` est PUBLIC (hors RLS, sans `organisation_id`, append-only comme
+`sceaux`) : pays, secteur (liste fermée), taille, convention, année, catégories — jamais document, note,
+dates. Le lien est chez l'entreprise (`partages_regime`, RLS). Une empreinte `sha256("catalogue:"+org)`
+compte les entreprises distinctes, jamais servie. **Un régime ne se voit que dans un groupe d'au moins
+5 entreprises**, et le découpage CEMAC → pays → secteur → taille ne descend que si TOUS les sous-groupes
+atteignent 5 (sinon la soustraction désignerait la petite case). La convention n'est montrée que si le
+secteur l'est. Partager : la DRH (`admin_client`), version adoptée, accord explicite, CEMAC, un seul actif ;
+retrait par `catalogue_retraits`. Consulter : toute personne connectée (`GET /catalogue/regimes`).
+Conception : docs/specs/2026-09-26-catalogue-anonyme-design.md.
+
 ## Extraction assistée
 
 `courtage/extraction/` (module pur + deux moteurs) et `services/extractions.py`,

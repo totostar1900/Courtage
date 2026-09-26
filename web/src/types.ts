@@ -315,6 +315,24 @@ export interface ModeleType {
 
 export interface ModelesDuPays { pays: string; pays_libelle: string; modeles: ModeleType[] }
 
+export interface RegimeCatalogue {
+  id: string; convention_code: string | null; ecart_convention_20_ans: number | null;
+  illustration: { anciennete: number; par_categorie: Record<string, number> }[];
+  categories: Omit<Categorie, "convention_code">[];
+}
+
+export interface GroupeCatalogue {
+  pays: string | null; secteur: string | null; taille: string | null; libelle: string; entreprises: number;
+  regimes: RegimeCatalogue[];
+}
+
+export interface Catalogue {
+  seuil: number; entreprises: number; groupes: GroupeCatalogue[];
+  secteurs: Record<string, string>; tailles: Record<string, string>;
+}
+
+export interface PartageDossier { partage_id: string; version_id: string; partage_le: string; actif: boolean; visible: boolean }
+
 export interface ExtractionProposee extends ModeExtraction {
   id: string;
   version: VersionProposee | Record<string, never>;
