@@ -115,8 +115,31 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 
 /* Barres (échéancier) */
 .barres { display: flex; align-items: flex-end; gap: 3px; height: 140px; padding-top: 8px; }
-.barres .barre { flex: 1; background: var(--indigo-vif); border-radius: 4px 4px 0 0; min-height: 2px; position: relative; }
-.barres .barre:hover { background: var(--ocre); }
+.barres .barre { flex: 1; background: var(--indigo-vif); border-radius: 4px 4px 0 0; min-height: 2px; position: relative;
+  border: 0; padding: 0; cursor: pointer; transition: background .12s, opacity .12s; }
+.barres .barre:hover, .barres .barre.active { background: var(--ocre); }
+.barres .barre:focus-visible { outline: 2px solid var(--ocre); outline-offset: 2px; }
+.barres:has(.active) .barre:not(.active) { opacity: .45; }
+
+/* La bulle d'une barre : noire, au-dessus du graphique, une flèche vers sa barre. */
+.echeancier { position: relative; }
+.bulle-barre { position: absolute; z-index: 40; width: 270px; max-width: 86vw;
+  background: #0d0f14; color: #f3f1ec; border-radius: 12px; padding: 14px 16px 12px;
+  box-shadow: 0 14px 34px #0000004d, 0 0 0 1px #ffffff14 inset; font-size: 13px; line-height: 1.4;
+  pointer-events: none; animation: bulle-entre .14s ease-out; }
+.bulle-barre::after { content: ""; position: absolute; top: 100%; left: var(--fleche, 50%); translate: -50% 0;
+  border: 7px solid transparent; border-top-color: #0d0f14; }
+.bulle-barre strong { display: block; font-size: 20px; font-weight: 600; letter-spacing: -.01em; color: #fff; }
+.bulle-barre strong + div { color: #b9b6ad; margin-bottom: 10px; }
+.bulle-barre dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; margin: 0; padding-top: 10px;
+  border-top: 1px solid #ffffff1f; }
+.bulle-barre dt { color: #9d9a92; }
+.bulle-barre dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; color: #f3f1ec; }
+.bulle-barre dt:first-of-type, .bulle-barre dd:first-of-type { color: var(--ocre); font-weight: 600; }
+.bulle-barre p.discret { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #ffffff14; color: #8d8a82;
+  font-size: 11.5px; }
+@keyframes bulle-entre { from { opacity: 0; translate: 0 4px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .bulle-barre { animation: none; } }
 .axe { display: flex; justify-content: space-between; font-size: 12px; color: var(--discret); margin-top: 4px; }
 
 /* Démonstration et visionneuse de documents */
