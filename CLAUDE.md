@@ -191,3 +191,16 @@ constat, jamais un refus. Une ligne ne se modifie pas : une correction ou une
 annulation ajoute une ligne (`remplace_id`, unique). Les lignes « actives » sont celles
 qu'aucune autre ne remplace. L'import s'enregistre tout ou rien.
 
+## Dossiers de prise en charge (courtage)
+
+`services/dossiers.py`, migration 0011. **L'identité d'un bénéficiaire n'existe qu'en
+courtage** (le service à la date du départ), dans `beneficiaires`. Le PDF transmis et
+les pièces, qui la contiennent aussi, sont dans `pieces_dossier`. Ces deux tables sont
+les seules où `courtage_app` peut DELETE. Tout est effacé douze mois après le paiement
+(`effacer_echus`, appelé à chaque lecture, au démarrage, et par
+`python -m courtage.purge` chaque jour). Le `resume` d'un sceau est **public** :
+jamais d'identité dedans, pas même le matricule. Les étapes sont des lignes
+(`dossiers_evenements`) et `_SUITES` dit lesquelles se suivent. Un paiement
+constaté s'inscrit sur la prestation par une ligne de correction. Aucune liste ne
+porte l'identité, et un `lecteur_client` ne la lit jamais.
+

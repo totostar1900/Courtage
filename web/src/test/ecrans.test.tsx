@@ -273,3 +273,76 @@ describe("les départs", () => {
     expect(screen.queryByRole("button", { name: "Déclarer un départ" })).not.toBeInTheDocument();
   });
 });
+
+describe("la prise en charge", () => {
+  const calcul = { anciennete: 20, mois: 7.25, plancher_applique: false,
+                   source: { type: "convention" as const, convention_code: "CI_CCI", libelle: "la CCI" } };
+  const depart = (service: string, dossier: unknown = null) => ({ id: "p1", matricule: "A-017", categorie: null, motif: "retraite",
+    date_naissance: null, date_embauche: "2000-01-01", date_depart: "2020-01-01", salaire_mensuel_reference: 500000, du: 3625000,
+    calcul, verse: 3625000, part_fonds_demandee: null, part_fonds_payee: null, payee_le: null, soldee: false, origine: "saisie",
+    import_id: null, note: null, remplace_id: null, motif_correction: null, service, constats: [], dossier });
+  const liste = (p: unknown) => ({ prestations: [p], totaux: { nombre: 1, retraites: 1, autres_departs: 0, du: 3625000, verse: 3625000, part_fonds_payee: 0 } });
+  const contrat = { service: "courtage", en_vigueur: null, historique: [], constats: [] };
+  const dossierPEC = (statut: string, extra: object = {}) => ({ id: "d1", matricule: "A-017", date_depart: "2020-01-01", prestation_id: "p1",
+    montant_demande: 3625000, statut, numero: null, assureur: "Assureur A", numero_police: "IFC-7", mandat_reference: "Mandat",
+    evenements: [{ etape: "declare", le: "2026-09-20", montant: null, motif: null, numero: null }],
+    beneficiaire: { qualite: "salarie", nom: "KOUASSI", prenoms: "Aya", date_naissance: null, piece_type: "cni",
+      piece_numero: "CI-1", telephone: null, moyen_paiement: "virement", coordonnees_paiement: "CI93" },
+    pieces: [], identite_effacee: false, efface_le: null, constats: [], ...extra });
+
+  it("en courtage, l'entreprise ouvre le dossier et l'identité part dans le dossier seulement", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/prestations`]: liste(depart("courtage")),
+      [`/organisations/${ORG}/contrats`]: contrat, [`POST /organisations/${ORG}/dossiers`]: dossierPEC("declare"),
+      [`/organisations/${ORG}/dossiers/d1`]: dossierPEC("declare") });
+    ouvrir(`/dossier/${ORG}/departs`);
+    await userEvent.click(await screen.findByText("A-017"));
+    await userEvent.click(screen.getByRole("button", { name: "Demander la prise en charge" }));
+    expect(screen.getByLabelText("Montant demandé au fonds (F)")).toHaveValue(3625000);
+    await userEvent.type(screen.getByLabelText("Nom"), "KOUASSI");
+    await userEvent.type(screen.getByLabelText("Numéro de la pièce"), "CI-1");
+    await userEvent.click(screen.getByRole("button", { name: "Ouvrir le dossier" }));
+    expect(await screen.findByRole("heading", { name: "Prise en charge · matricule A-017" })).toBeInTheDocument();
+    const corps = JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string);
+    expect(corps).toMatchObject({ prestation_id: "p1", montant_demande: 3625000,
+                                  beneficiaire: { nom: "KOUASSI", piece_numero: "CI-1", piece_type: "cni", qualite: "salarie" } });
+  });
+
+  it("en comparaison, pas de dossier : l'entreprise s'adresse à son assureur", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/prestations`]: liste(depart("comparaison")),
+      [`/organisations/${ORG}/contrats`]: { ...contrat, service: "comparaison" } });
+    ouvrir(`/dossier/${ORG}/departs`);
+    await userEvent.click(await screen.findByText("A-017"));
+    expect(screen.getByText(/Aucune identité n.est recueillie ici/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Demander la prise en charge" })).not.toBeInTheDocument();
+  });
+
+  it("le conseiller vérifie un dossier déclaré", async () => {
+    const appels = simulerApi({ ...dossier("conseiller"), [`/organisations/${ORG}/dossiers/d1`]: dossierPEC("declare"),
+      [`POST /organisations/${ORG}/dossiers/d1/verification`]: dossierPEC("verifie") });
+    ouvrir(`/dossier/${ORG}/dossiers/d1`);
+    expect(await screen.findByText("KOUASSI Aya")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Dossier complet" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/verification"))).toBe(true));
+  });
+
+  it("transmis : le conseiller note la réponse de l'assureur ; un retard se voit", async () => {
+    const appels = simulerApi({ ...dossier("conseiller"), [`/organisations/${ORG}/dossiers/d1`]: dossierPEC("transmis", {
+      numero: "PC-AAAA-BBBB", constats: [{ niveau: "avertit", code: "retard_assureur", message: "Sans réponse depuis 45 jours." }] }),
+      [`POST /organisations/${ORG}/dossiers/d1/reponse`]: dossierPEC("paye") });
+    ouvrir(`/dossier/${ORG}/dossiers/d1`);
+    expect(await screen.findByText("Sans réponse depuis 45 jours.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer la réponse" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/reponse"))).toBe(true));
+    const corps = JSON.parse(appels.find((a) => a.chemin.endsWith("/reponse"))!.init!.body as string);
+    expect(corps).toMatchObject({ paye: true, montant: 3625000 });
+  });
+
+  it("en lecture, ni identité ni pièces", async () => {
+    simulerApi({ ...dossier("lecteur_client"), [`/organisations/${ORG}/dossiers/d1`]: dossierPEC("paye", {
+      beneficiaire: null, efface_le: "2027-03-10" }) });
+    ouvrir(`/dossier/${ORG}/dossiers/d1`);
+    expect(await screen.findByText("Visible par l'entreprise et son conseiller seulement.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Pièces" })).not.toBeInTheDocument();
+    expect(screen.getByText(/seront effacées le 10\/03\/2027/)).toBeInTheDocument();
+  });
+});

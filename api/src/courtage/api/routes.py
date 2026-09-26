@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import analyse, contrats, etudes, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import analyse, contrats, dossiers, etudes, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -219,8 +219,12 @@ class AnnulationPrestation(_Corps):
 def lister_prestations(a: Acces = Depends(acces(*TOUS))):
     ps = prestations.actives(a.session)
     presences = prestations.presences(a.session)
-    return {"prestations": [prestations.en_clair(a.session, p, presences) for p in ps],
-            "totaux": prestations.totaux(ps)}
+    ouverts = dossiers.par_depart(a.session)
+
+    def ligne(p):
+        d = ouverts.get((p.matricule, p.date_depart))
+        return {**prestations.en_clair(a.session, p, presences), "dossier": dossiers.resume(a.session, d) if d else None}
+    return {"prestations": [ligne(p) for p in ps], "totaux": prestations.totaux(ps)}
 
 
 @routeur.post("/organisations/{organisation_id}/prestations/apercu")
@@ -257,6 +261,124 @@ def corriger_prestation(prestation_id: uuid.UUID, corps: CorrectionPrestation, a
 def annuler_prestation(prestation_id: uuid.UUID, corps: AnnulationPrestation, a: Acces = Depends(acces(*CLIENT))):
     p = prestations.annuler(a.session, a.organisation, a.utilisateur.id, prestation_id, corps.motif_correction)
     return prestations.en_clair(a.session, p)
+
+
+# --- Courtage : dossiers de prise en charge -------------------------------------------------
+# L'identité d'un bénéficiaire ne se lit que dans UN dossier, et seulement par l'entreprise et son
+# conseiller ; aucune liste ne la porte. Chaque lecture efface d'abord ce qui est échu.
+
+VOIENT_L_IDENTITE = ("admin_client", "conseiller")
+
+
+class Identite(_Corps):
+    qualite: Literal["salarie", "ayant_droit"] = "salarie"
+    nom: str = Field(min_length=1, max_length=200)
+    prenoms: str | None = Field(default=None, max_length=200)
+    date_naissance: date | None = None
+    piece_type: Literal["cni", "passeport", "carte_sejour", "autre"]
+    piece_numero: str = Field(min_length=1, max_length=60)
+    telephone: str | None = Field(default=None, max_length=30)
+    moyen_paiement: Literal["virement", "mobile_money", "cheque"]
+    coordonnees_paiement: str | None = Field(default=None, max_length=120)
+
+
+class NouveauDossier(_Corps):
+    prestation_id: uuid.UUID
+    montant_demande: int = Field(gt=0)
+    beneficiaire: Identite
+
+
+class Verification(_Corps):
+    conforme: bool
+    motif: str | None = Field(default=None, max_length=1000)
+
+
+class Transmission(_Corps):
+    le: date | None = None
+
+
+class Reponse(_Corps):
+    paye: bool
+    montant: int | None = Field(default=None, ge=0)
+    le: date | None = None
+    motif: str | None = Field(default=None, max_length=1000)
+
+
+def _dossier(a: Acces, dossier_id: uuid.UUID, statut: int = 200):
+    d = dossiers.obtenir(a.session, dossier_id)
+    corps = dossiers.en_clair(a.session, d, voir_identite=a.role in VOIENT_L_IDENTITE, aujourd_hui=date.today())
+    return JSONResponse(corps, status_code=statut)
+
+
+@routeur.get("/organisations/{organisation_id}/dossiers")
+def lister_dossiers(a: Acces = Depends(acces(*TOUS))):
+    dossiers.effacer_echus(a.session, date.today())
+    return [dossiers.en_clair(a.session, d, voir_identite=False, aujourd_hui=date.today())
+            for d in dossiers.lister(a.session)]
+
+
+@routeur.post("/organisations/{organisation_id}/dossiers")
+def ouvrir_dossier(corps: NouveauDossier, a: Acces = Depends(acces(*ENTREPRISE))):
+    d = dossiers.ouvrir(a.session, a.organisation, a.utilisateur.id, prestation_id=corps.prestation_id,
+                        montant_demande=corps.montant_demande, beneficiaire=corps.beneficiaire.model_dump(),
+                        aujourd_hui=date.today())
+    return _dossier(a, d.id, 201)
+
+
+@routeur.get("/organisations/{organisation_id}/dossiers/{dossier_id}")
+def lire_dossier(dossier_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    dossiers.effacer_echus(a.session, date.today())
+    return _dossier(a, dossier_id)
+
+
+@routeur.post("/organisations/{organisation_id}/dossiers/{dossier_id}/pieces")
+async def ajouter_piece(dossier_id: uuid.UUID, fichier: UploadFile = File(...), nature: str = Form(...),
+                        a: Acces = Depends(acces(*CLIENT))):
+    d = dossiers.obtenir(a.session, dossier_id)
+    dossiers.ajouter_piece(a.session, a.organisation, a.utilisateur.id, d, nature=nature,
+                           nom_fichier=fichier.filename or "piece", contenu=await fichier.read())
+    return _dossier(a, dossier_id, 201)
+
+
+@routeur.get("/organisations/{organisation_id}/dossiers/{dossier_id}/pieces/{piece_id}")
+def telecharger_piece(dossier_id: uuid.UUID, piece_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
+    p = dossiers.piece(a.session, dossiers.obtenir(a.session, dossier_id), piece_id)
+    return Response(p.contenu, media_type=p.type_contenu, headers=_piece_jointe(p.nom_fichier))
+
+
+@routeur.get("/organisations/{organisation_id}/dossiers/{dossier_id}/document")
+def telecharger_dossier(dossier_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
+    p = dossiers.document(a.session, dossiers.obtenir(a.session, dossier_id))
+    return Response(p.contenu, media_type="application/pdf", headers=_piece_jointe(p.nom_fichier))
+
+
+@routeur.post("/organisations/{organisation_id}/dossiers/{dossier_id}/verification")
+def verifier_dossier(dossier_id: uuid.UUID, corps: Verification, a: Acces = Depends(acces(*CONSEIL))):
+    dossiers.verifier(a.session, a.organisation, a.utilisateur.id, dossiers.obtenir(a.session, dossier_id),
+                      conforme=corps.conforme, motif=corps.motif, aujourd_hui=date.today())
+    return _dossier(a, dossier_id, 201)
+
+
+@routeur.post("/organisations/{organisation_id}/dossiers/{dossier_id}/resoumission")
+def resoumettre_dossier(dossier_id: uuid.UUID, a: Acces = Depends(acces(*ENTREPRISE))):
+    dossiers.resoumettre(a.session, a.organisation, a.utilisateur.id, dossiers.obtenir(a.session, dossier_id),
+                         date.today())
+    return _dossier(a, dossier_id, 201)
+
+
+@routeur.post("/organisations/{organisation_id}/dossiers/{dossier_id}/transmission")
+def transmettre_dossier(dossier_id: uuid.UUID, corps: Transmission, request: Request,
+                        a: Acces = Depends(acces(*CONSEIL))):
+    dossiers.transmettre(a.session, a.organisation, a.utilisateur.id, dossiers.obtenir(a.session, dossier_id),
+                         le=corps.le or date.today(), config=request.app.state.sceau, aujourd_hui=date.today())
+    return _dossier(a, dossier_id, 201)
+
+
+@routeur.post("/organisations/{organisation_id}/dossiers/{dossier_id}/reponse")
+def repondre_dossier(dossier_id: uuid.UUID, corps: Reponse, a: Acces = Depends(acces(*CONSEIL))):
+    dossiers.repondre(a.session, a.organisation, a.utilisateur.id, dossiers.obtenir(a.session, dossier_id),
+                      paye=corps.paye, montant=corps.montant, le=corps.le or date.today(), motif=corps.motif)
+    return _dossier(a, dossier_id, 201)
 
 
 # --- Régimes ------------------------------------------------------------------

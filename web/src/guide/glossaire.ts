@@ -50,6 +50,8 @@ export const GLOSSAIRE = {
     definition: "Le service où la plateforme éclaire votre choix d'assureur ; vous contractez et traitez les prestations directement avec lui." },
   mandat: { terme: "Mandat de courtage", chapitre: "contrat",
     definition: "Le document par lequel l'entreprise charge la plateforme de la représenter auprès des assureurs. Sans mandat, pas de courtage." },
+  prise_en_charge: { terme: "Dossier de prise en charge", chapitre: "departs",
+    definition: "En courtage, la demande de paiement d'une indemnité que la plateforme monte, scelle et transmet à l'assureur, puis suit jusqu'au paiement." },
   cahier: { terme: "Cahier des charges", chapitre: "cahier",
     definition: "Le document envoyé aux assureurs : votre engagement, votre régime et vos exigences, sur une base commune — sans aucun nom de salarié." },
   anonymat: { terme: "Regroupement anonyme", chapitre: "cahier",

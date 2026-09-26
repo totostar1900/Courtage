@@ -7,6 +7,7 @@ import { Terme } from "../composants/Terme";
 import { dateFr, millions, montant } from "../format";
 import type { ApercuImport, CalculPrestation, Constat, ContratsDossier, MotifDepart, Prestation, Prestations } from "../types";
 import { useDossier } from "./Dossier";
+import { DemandePriseEnCharge, EtatDossier } from "./DossierPEC";
 
 export const MOTIFS: Record<MotifDepart, string> = {
   retraite: "Retraite", demission: "Démission", licenciement: "Licenciement", deces: "Décès", autre: "Autre",
@@ -17,7 +18,7 @@ export default function Departs() {
   const d = useDossier();
   const { donnee, erreur, recharger } = useCharge(() => api.get<Prestations>(`/organisations/${d.org.id}/prestations`), []);
   const { donnee: contrat } = useCharge(() => api.get<ContratsDossier>(`/organisations/${d.org.id}/contrats`), []);
-  const [volet, setVolet] = useState<null | "declarer" | "importer" | { corriger: Prestation }>(null);
+  const [volet, setVolet] = useState<null | "declarer" | "importer" | { corriger: Prestation } | { demander: Prestation }>(null);
   const [ouverte, setOuverte] = useState<string | null>(null);
   const peutEcrire = d.role !== "lecteur_client";
   const fait = () => { setVolet(null); recharger(); };
@@ -56,8 +57,11 @@ export default function Departs() {
       )}
       {volet === "declarer" && <FormulaireDepart onFermer={() => setVolet(null)} onFait={fait} />}
       {volet === "importer" && <ImportHistorique onFermer={() => setVolet(null)} onFait={fait} />}
-      {volet && typeof volet === "object" && (
+      {volet && typeof volet === "object" && "corriger" in volet && (
         <FormulaireDepart onFermer={() => setVolet(null)} onFait={fait} corriger={volet.corriger} />
+      )}
+      {volet && typeof volet === "object" && "demander" in volet && (
+        <DemandePriseEnCharge p={volet.demander} onFermer={() => setVolet(null)} />
       )}
 
       <div className="section">
@@ -78,13 +82,14 @@ export default function Departs() {
                       <td className="n">{montant(p.du)}</td>
                       <td className="n">{montant(p.verse)}</td>
                       <td className="n">{montant(p.part_fonds_payee)}</td>
-                      <td><Pastilles constats={p.constats} /></td>
+                      <td><Pastilles constats={p.constats} />{p.dossier && <div><EtatDossier statut={p.dossier.statut} /></div>}</td>
                     </tr>
                     {ouverte === p.id && (
                       <tr><td colSpan={8}>
                         <div className="volet-tete"><strong>Départ du matricule {p.matricule}</strong>
                           <button type="button" className="fermer-volet" onClick={() => setOuverte(null)} aria-label="Fermer" title="Fermer">×</button></div>
                         <Detail p={p} />
+                        <PriseEnCharge p={p} role={d.role} onDemander={() => { setOuverte(null); setVolet({ demander: p }); }} />
                         {peutEcrire && <Actions p={p} onCorriger={() => { setOuverte(null); setVolet({ corriger: p }); }} onFait={recharger} />}
                       </td></tr>
                     )}
@@ -97,6 +102,22 @@ export default function Departs() {
       </div>
     </>
   );
+}
+
+/** Qui s'occupe de la prestation : nous (courtage, un dossier), ou l'assureur directement (comparaison). */
+function PriseEnCharge({ p, role, onDemander }: { p: Prestation; role: string; onDemander: () => void }) {
+  if (p.motif !== "retraite") return null;
+  if (p.dossier) {
+    return <p>Prise en charge : <EtatDossier statut={p.dossier.statut} />{p.dossier.numero && <> · {p.dossier.numero}</>}{" "}
+      <Link to={`../dossiers/${p.dossier.id}`}>Ouvrir le dossier</Link></p>;
+  }
+  if (p.service === "courtage") {
+    return role === "admin_client"
+      ? <div className="actions"><button className="principal" onClick={onDemander}>Demander la prise en charge</button></div>
+      : <p className="discret">En courtage : l'entreprise ouvre le dossier de prise en charge, le conseiller le vérifie et le transmet.</p>;
+  }
+  return <p className="discret">Au jour de ce départ, le service était la comparaison : la prise en charge se demande
+    directement à votre assureur. Aucune identité n'est recueillie ici.</p>;
 }
 
 function Pastilles({ constats }: { constats: Constat[] }) {

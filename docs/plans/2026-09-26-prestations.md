@@ -17,9 +17,11 @@ Commit : `feat(contrats): service de courtage ou de comparaison, daté`
 Commit : `feat(prestations): enregistrer un départ, reprendre l'historique`
 
 ## P3 — Courtage : le dossier de prise en charge
-- [ ] Migration 0011 `beneficiaires` (table à part, RLS, effacement programmé) et pièces jointes.
-- [ ] Déclaration DRH → vérification conseiller → dossier scellé `PC-…` → suivi transmise / payée / refusée ; retard contre le délai du cahier des charges.
-- [ ] Refus de collecter une identité hors courtage (service lu à la date du départ).
+- [x] Migration 0011 : `dossiers_prise_en_charge` (un par départ), `dossiers_evenements` (les étapes, des lignes), `beneficiaires` et `pieces_dossier` (les seules tables où le rôle applicatif peut SUPPRIMER) ; préfixe PC- admis par `sceaux`.
+- [x] Déclaration DRH (identité + montant ≤ versé) → vérification conseiller (ou « à compléter » motivé → resoumis) → dossier scellé `PC-…` (PDF avec identité rangé dans `pieces_dossier` ; sceau public sans identité) → payé (inscrit sur la prestation par une ligne de correction) | refusé motivé → retransmis. Dates : passées permises, jamais à venir ni avant le départ, réponse après l'envoi.
+- [x] Refus hors courtage (`pas_de_mandat`, aucune identité enregistrée) ; retard contre le délai du cahier des charges (30 jours sinon) ; une prestation portée par un dossier ne s'annule pas et garde sa clé.
+- [x] Effacement douze mois après le paiement : à chaque lecture, au démarrage, et `python -m courtage.purge` chaque jour ; le numéro se vérifie encore.
+- [x] Écran du dossier, « Demander la prise en charge » sur un départ ; guide ; démonstration avec un dossier fictif transmis.
 Commit : `feat(prestations): dossier de prise en charge en courtage`
 
 ## P4 — Comparaison : l'orientation

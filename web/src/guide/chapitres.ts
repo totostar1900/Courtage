@@ -154,8 +154,14 @@ export const CHAPITRES: Chapitre[] = [
         "Une colonne de noms est ignorée, comme dans le fichier du personnel." ] },
       { titre: "Corriger sans effacer", texte: [
         "Une ligne ne se modifie pas : « Corriger » ajoute une ligne qui remplace la précédente et dit pourquoi ; « Annuler » aussi. L'historique reste lisible." ] },
+      { titre: "La prise en charge, en courtage", texte: [
+        "Sur un départ en retraite, « Demander la prise en charge » ouvre un dossier : le montant demandé au fonds, l'identité du bénéficiaire et son moyen de paiement, puis les pièces (certificat de travail, attestation de départ…).",
+        "Votre conseiller le vérifie — ou vous dit ce qui manque —, le scelle (numéro PC-…) et l'envoie à l'assureur. Il note sa réponse : payé, et le paiement s'inscrit sur le départ ; ou refusé, avec le motif, et le dossier peut repartir.",
+        "Passé le délai de paiement exigé au cahier des charges (30 jours sinon), le retard de l'assureur est signalé.",
+        "L'identité et les pièces sont effacées douze mois après le paiement. Le numéro du dossier se vérifie toujours : son sceau public ne porte aucune donnée personnelle.",
+        "En comparaison, il n'y a pas de dossier ici : la prise en charge se demande directement à votre assureur." ] },
     ],
-    termes: ["turnover", "fonds"],
+    termes: ["turnover", "fonds", "prise_en_charge", "courtage"],
   },
   {
     id: "comprendre", groupe: "Comprendre", titre: "Comment se calcule l'engagement",

@@ -15,6 +15,7 @@ export const ASTUCES: Astuce[] = [
   { texte: "Dans le cahier des charges, aucune ligne ne décrit moins de trois salariés : un assureur ne peut reconnaître personne.", chapitre: "cahier" },
   { texte: "En courtage, nous portons vos prestations auprès de l'assureur ; en comparaison, vous traitez directement avec lui. L'écran « Contrat » dit lequel s'applique.", chapitre: "contrat" },
   { texte: "Un départ en démission ne coûte pas d'IFC, mais l'enregistrer (sans nom) mesure la rotation réelle de votre personnel — et une rotation mesurée vaut mieux qu'une rotation supposée.", chapitre: "departs" },
+  { texte: "En courtage, l'identité d'un bénéficiaire ne sert qu'à son paiement : elle est effacée douze mois après, et le dossier scellé se vérifie toujours par son numéro.", chapitre: "departs" },
   { texte: "La date d'évaluation est toujours une fin de mois : c'est votre date de clôture, celle du bilan.", chapitre: "etude" },
   { texte: "Une convention révisée ne remplace pas l'ancienne : une étude de 2023 garde le barème de 2023.", chapitre: "conventions" },
 ];

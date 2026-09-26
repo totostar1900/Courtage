@@ -196,3 +196,5 @@ button.lien { background: none; border: none; padding: 0; color: var(--indigo-vi
 .terme .bulle.a-droite { left: auto; right: 0; }
 .visite-bulle .actions { flex-wrap: nowrap; gap: 8px; }
 .visite-bulle .actions button { padding: 8px 12px; white-space: nowrap; }
+.etapes-dossier { margin: 0; padding-left: 20px; }
+.etapes-dossier li { margin-bottom: 6px; }

@@ -115,6 +115,17 @@ def main(url: str, sortie: Path) -> None:
     ok(client.post(f"{V1}/organisations/{org}/prestations/import", headers=h("conseiller"),
                    files={"fichier": ("departs-2021-2025.xlsx", tampon.getvalue())},
                    data={"convention_code": "CM_COMMERCE", "enregistrer": "true"}))
+    # En courtage : un dossier de prise en charge, bénéficiaire FICTIF, vérifié et transmis à l'assureur.
+    x105 = next(p for p in ok(client.get(f"{V1}/organisations/{org}/prestations", headers=h("drh")))["prestations"]
+                if p["matricule"] == "X105")
+    dossier = ok(client.post(f"{V1}/organisations/{org}/dossiers", headers=h("drh"), json={
+        "prestation_id": x105["id"], "montant_demande": 10_500_000, "beneficiaire": {
+            "qualite": "salarie", "nom": "FICTIF", "prenoms": "Bénéficiaire de démonstration", "piece_type": "cni",
+            "piece_numero": "000000000", "moyen_paiement": "virement", "coordonnees_paiement": "CM00 0000 0000 0000"}}))
+    ok(client.post(f"{V1}/organisations/{org}/dossiers/{dossier['id']}/verification", headers=h("conseiller"),
+                   json={"conforme": True}))
+    ok(client.post(f"{V1}/organisations/{org}/dossiers/{dossier['id']}/transmission", headers=h("conseiller"),
+                   json={}))
     etude = ok(client.post(f"{V1}/organisations/{org}/etudes", headers=h("drh"), json={
         "fichier_id": fichier["id"], "date_evaluation": "2025-12-31", "regime_version_id": version["id"],
         "fonds_disponible": 45_000_000}))
@@ -142,7 +153,7 @@ def main(url: str, sortie: Path) -> None:
     for qui in ("drh", "conseiller"):
         capter("/moi", qui=qui, cle=f"GET /moi@{ids[qui]}")
     base = f"/organisations/{org}"
-    for chemin in ("/fichiers", "/regimes", "/etudes", "/fiches", "/equipe", "/remuneration", "/contrats", "/prestations",
+    for chemin in ("/fichiers", "/regimes", "/etudes", "/fiches", "/equipe", "/remuneration", "/contrats", "/prestations", "/dossiers", f"/dossiers/{dossier['id']}",
                    f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}"):
         capter(base + chemin)
     for v in (version["id"], projet["id"]):
@@ -163,7 +174,9 @@ def main(url: str, sortie: Path) -> None:
     documents = {}
     rapport = reponses[f"GET {base}/etudes/{etude['id']}"]["rapport"]["numero"]
     for numero, chemin in ((rapport, f"{base}/etudes/{etude['id']}/rapport"),
-                           (fiche["numero"], f"{base}/fiches/{fiche['id']}/document")):
+                           (fiche["numero"], f"{base}/fiches/{fiche['id']}/document"),
+                           (reponses[f"GET {base}/dossiers/{dossier['id']}"]["numero"],
+                            f"{base}/dossiers/{dossier['id']}/document")):
         capter(f"/verifier/{numero}")
         pdf = client.get(f"{V1}{chemin}", headers=h("drh")).content
         with pymupdf.open(stream=pdf, filetype="pdf") as doc:

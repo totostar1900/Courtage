@@ -9,6 +9,7 @@ import Connexion from "./pages/Connexion";
 import Contrat from "./pages/Contrat";
 import Departs from "./pages/Departs";
 import Dossier from "./pages/Dossier";
+import DossierPriseEnCharge from "./pages/DossierPEC";
 import EtudeDetail from "./pages/EtudeDetail";
 import Etudes from "./pages/Etudes";
 import Financement from "./pages/Financement";
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="remuneration" element={<Remuneration />} />
             <Route path="contrat" element={<Contrat />} />
             <Route path="departs" element={<Departs />} />
+            <Route path="dossiers/:id" element={<DossierPriseEnCharge />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

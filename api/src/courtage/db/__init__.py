@@ -33,6 +33,8 @@ Fondement = ENUM("accord_entreprise", "contrat_travail", "usage", "decision_dire
 StatutBareme = ENUM("propose", "valide", name="statut_bareme", create_type=False)
 ModeRemuneration = ENUM("honoraires", "commission", "mixte", name="mode_remuneration", create_type=False)
 MotifDepart = ENUM("retraite", "demission", "licenciement", "deces", "autre", name="motif_depart", create_type=False)
+EtapeDossier = ENUM("declare", "a_completer", "resoumis", "verifie", "transmis", "paye", "refuse",
+                    "identite_effacee", name="etape_dossier", create_type=False)
 ServiceContrat = ENUM("courtage", "comparaison", name="service_contrat", create_type=False)
 
 
@@ -157,6 +159,66 @@ class Prestation(Base):
     remplace_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("prestations.id"))
     annulation: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
     motif_correction: Mapped[str | None] = mapped_column(Text)
+    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class DossierPriseEnCharge(Base):
+    """Courtage : la demande de paiement d'une prestation à l'assureur. Ses étapes sont des lignes."""
+    __tablename__ = "dossiers_prise_en_charge"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    matricule: Mapped[str] = mapped_column(Text)
+    date_depart: Mapped[date] = mapped_column(Date)
+    prestation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("prestations.id"))
+    contrat_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("contrats.id"))
+    montant_demande: Mapped[int] = mapped_column(BigInteger)
+    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class EvenementDossier(Base):
+    __tablename__ = "dossiers_evenements"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    dossier_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dossiers_prise_en_charge.id"))
+    etape: Mapped[str] = mapped_column(EtapeDossier)
+    le: Mapped[date] = mapped_column(Date)
+    montant: Mapped[int | None] = mapped_column(BigInteger)
+    motif: Mapped[str | None] = mapped_column(Text)
+    numero: Mapped[str | None] = mapped_column(ForeignKey("sceaux.numero"))
+    par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class Beneficiaire(Base):
+    """L'identité d'un bénéficiaire : en courtage seulement, ici seulement, effacée 12 mois après le paiement."""
+    __tablename__ = "beneficiaires"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    dossier_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dossiers_prise_en_charge.id"))
+    qualite: Mapped[str] = mapped_column(Text)
+    nom: Mapped[str] = mapped_column(Text)
+    prenoms: Mapped[str | None] = mapped_column(Text)
+    date_naissance: Mapped[date | None] = mapped_column(Date)
+    piece_type: Mapped[str] = mapped_column(Text)
+    piece_numero: Mapped[str] = mapped_column(Text)
+    telephone: Mapped[str | None] = mapped_column(Text)
+    moyen_paiement: Mapped[str] = mapped_column(Text)
+    coordonnees_paiement: Mapped[str | None] = mapped_column(Text)
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class PieceDossier(Base):
+    __tablename__ = "pieces_dossier"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    dossier_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dossiers_prise_en_charge.id"))
+    nature: Mapped[str] = mapped_column(Text)
+    nom_fichier: Mapped[str] = mapped_column(Text)
+    type_contenu: Mapped[str] = mapped_column(Text)
+    contenu: Mapped[bytes] = mapped_column(LargeBinary)
+    empreinte: Mapped[str] = mapped_column(Text)
     cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 

@@ -220,6 +220,7 @@ export interface Prestation {
   motif_correction: string | null;
   service: "courtage" | "comparaison";
   constats: Constat[];
+  dossier?: { id: string; statut: string; numero: string | null } | null;
 }
 
 export interface Prestations {
@@ -239,4 +240,22 @@ export interface ApercuImport {
   colonnes: Record<string, string>;
   colonnes_ignorees: string[];
   enregistrees: number;
+}
+
+export type EtapeDossier = "declare" | "a_completer" | "resoumis" | "verifie" | "transmis" | "paye" | "refuse" | "identite_effacee";
+
+export interface Beneficiaire {
+  qualite: "salarie" | "ayant_droit"; nom: string; prenoms: string | null; date_naissance: string | null;
+  piece_type: "cni" | "passeport" | "carte_sejour" | "autre"; piece_numero: string; telephone: string | null;
+  moyen_paiement: "virement" | "mobile_money" | "cheque"; coordonnees_paiement: string | null;
+}
+
+export interface DossierPEC {
+  id: string; matricule: string; date_depart: string; prestation_id: string; montant_demande: number;
+  statut: Exclude<EtapeDossier, "identite_effacee">; numero: string | null; assureur: string | null;
+  numero_police: string | null; mandat_reference: string | null;
+  evenements: { etape: EtapeDossier; le: string; montant: number | null; motif: string | null; numero: string | null }[];
+  beneficiaire: Beneficiaire | null;
+  pieces: { id: string; nature: string; nom_fichier: string; taille: number; empreinte: string; cree_le: string }[];
+  identite_effacee: boolean; efface_le: string | null; constats: Constat[];
 }

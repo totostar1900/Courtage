@@ -61,7 +61,19 @@ aussi le mode `entete_dev`.
 Après chaque déploiement : lire les sept `[base] PASS` dans les logs, puis
 `curl https://…/api/v1/sante`.
 
-## 5. Ce qui n'a pas pu être vérifié ici
+## 5. La tâche quotidienne : effacer les identités échues
+
+En courtage, l'identité d'un bénéficiaire et les pièces de son dossier sont effacées
+douze mois après le paiement. C'est fait à chaque lecture d'un dossier et à chaque
+démarrage. Pour un client qui ne se connecte plus, une tâche programmée le garantit,
+une fois par jour, avec le rôle applicatif (Render : un *Cron Job* sur la même
+image ; un VPS : `cron`) :
+
+```bash
+python -m courtage.purge        # DATABASE_URL = rôle courtage_app ; imprime « [purge] N identité(s) effacée(s) »
+```
+
+## 6. Ce qui n'a pas pu être vérifié ici
 
 L'image a été construite et parcourue de bout en bout (migrations, contrôles, sonde,
 connexion par code, interface, polices servies par la plateforme) **sans** la couche

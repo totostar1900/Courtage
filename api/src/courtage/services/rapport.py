@@ -65,13 +65,14 @@ def sceller(session: Session, org: Organisation, etude: Etude, config: ConfigSce
         numero=numero)
 
 
-def sceller_document(session: Session, org: Organisation, *, nature: str, empreinte: str, resume: dict,
-                     config: ConfigSceau, gabarit: str, contexte, etude_id=None, fiche_id=None,
-                     numero: str | None = None) -> Document:
-    """Signe ce que le papier affirme, rend le PDF (qui imprime le sceau), le signe à son tour, le range.
+def sceller_pdf(session: Session, *, nature: str, empreinte: str, resume: dict, config: ConfigSceau,
+                gabarit: str, contexte, numero: str | None = None, prefixe: str = "RL") -> tuple[str, bytes]:
+    """Signe ce que le papier affirme, rend le PDF (qui imprime le sceau), le signe à son tour.
 
-    `contexte(numero, sceau)` fournit au gabarit ce qu'il affiche."""
-    numero = numero or _nouveau_numero(session)
+    Le sceau (public) est rangé ; le PDF est rendu à l'appelant, qui le range où il doit : un
+    document qui porte une identité va là où il pourra être effacé. `resume` est PUBLIC : jamais
+    d'identité dedans. `contexte(numero, sceau)` fournit au gabarit ce qu'il affiche."""
+    numero = numero or _nouveau_numero(session, prefixe)
     sceau = _signer(config.cle, numero, nature, empreinte, resume)
     pdf = rendre_pdf(contexte(numero, sceau), gabarit)
     empreinte_document = hashlib.sha256(pdf).hexdigest()
@@ -79,6 +80,16 @@ def sceller_document(session: Session, org: Organisation, *, nature: str, emprei
                       empreinte_document=empreinte_document,
                       sceau_document=_hmac(config.cle, f"{numero}|{empreinte_document}")))
     session.flush()
+    return numero, pdf
+
+
+def sceller_document(session: Session, org: Organisation, *, nature: str, empreinte: str, resume: dict,
+                     config: ConfigSceau, gabarit: str, contexte, etude_id=None, fiche_id=None,
+                     numero: str | None = None) -> Document:
+    """Scelle, rend, et range le PDF dans `documents` (données du client, conservées)."""
+    numero, pdf = sceller_pdf(session, nature=nature, empreinte=empreinte, resume=resume, config=config,
+                              gabarit=gabarit, contexte=contexte, numero=numero)
+    empreinte_document = hashlib.sha256(pdf).hexdigest()
     document = Document(organisation_id=org.id, etude_id=etude_id, fiche_id=fiche_id, numero=numero, contenu=pdf,
                         empreinte_document=empreinte_document)
     session.add(document)
@@ -186,10 +197,10 @@ def _hmac(cle: bytes, message: str) -> str:
     return hmac.new(cle, message.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
-def _nouveau_numero(session: Session) -> str:
+def _nouveau_numero(session: Session, prefixe: str = "RL") -> str:
     for _ in range(10):
         brut = "".join(secrets.choice(_ALPHABET) for _ in range(8))
-        numero = f"RL-{brut[:4]}-{brut[4:]}"
+        numero = f"{prefixe}-{brut[:4]}-{brut[4:]}"
         if session.get(Sceau, numero) is None:
             return numero
     raise RuntimeError("impossible d'allouer un numéro de sceau")

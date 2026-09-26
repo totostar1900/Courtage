@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Demande de prise en charge — {{ org.nom }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 26mm 18mm;
+    @bottom-left {
+      content: "N° {{ numero }} · empreinte {{ empreinte[:16] }}… · sceau {{ sceau[:16] }}…{% if not probant %} · NON PROBANT{% endif %}\A Vérifier : {{ url_verification }}";
+      white-space: pre; font: 7pt "DejaVu Sans", sans-serif; color: #55607a;
+    }
+    @bottom-right { content: "Page " counter(page) " / " counter(pages); font: 7pt "DejaVu Sans", sans-serif; color: #55607a; }
+  }
+  body { font: 9.5pt/1.45 "DejaVu Sans", sans-serif; color: #1b2240; }
+  h1 { font-size: 18pt; margin: 0 0 2mm; color: #fff; }
+  h2 { font-size: 12pt; margin: 7mm 0 3mm; color: #1f2d6b; border-bottom: 0.4mm solid #1f2d6b; padding-bottom: 1mm; }
+  .bandeau { background: #1f2d6b; color: #fff; padding: 6mm; margin-bottom: 5mm; }
+  .bandeau .sous { color: #c9cfee; }
+  .non-probant { border: 0.5mm solid #a93a2c; color: #a93a2c; padding: 2mm 3mm; margin-bottom: 4mm; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 8.5pt; }
+  th, td { padding: 1.3mm 2mm; border-bottom: 0.2mm solid #dfe2ee; text-align: left; vertical-align: top; }
+  th { background: #e8ebf8; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.04em; color: #3d4566; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .note { font-size: 8pt; color: #55607a; }
+  .confidentiel { border: 0.4mm solid #b8741a; color: #8f6400; padding: 2mm 3mm; margin: 3mm 0; font-size: 8pt; }
+  .signature td { height: 18mm; border-bottom: 0.3mm dotted #55607a; }
+</style>
+</head>
+<body>
+
+<div class="bandeau">
+  <div class="sous">Demande de prise en charge · Indemnité de fin de carrière</div>
+  <h1>{{ org.nom }}</h1>
+  <div class="sous">À l'attention de {{ c.assureur }}{% if c.numero_police %} · police {{ c.numero_police }}{% endif %} · dossier N° {{ numero }} · émis le {{ emis_le | date_fr }} par {{ emetteur }}, courtier mandaté</div>
+</div>
+{% if not probant %}<div class="non-probant">Sceau de développement : ce document n'est pas probant.</div>{% endif %}
+
+<p>En vertu du mandat de courtage « {{ c.mandat_reference }} », nous demandons le versement, sur le fonds constitué
+au titre du contrat ci-dessus, de la somme de <strong>{{ d.montant_demande | montant }}</strong> au titre de
+l'indemnité de fin de carrière du salarié désigné ci-dessous.</p>
+
+<h2>Le départ</h2>
+<table>
+  <tr><td>Matricule</td><td class="n">{{ d.matricule }}</td></tr>
+  <tr><td>Motif</td><td class="n">Départ à la retraite</td></tr>
+  <tr><td>Date d'embauche · date de départ</td><td class="n">{{ p.date_embauche | date_fr }} · {{ p.date_depart | date_fr }}</td></tr>
+  <tr><td>Ancienneté</td><td class="n">{{ ("%.2f" % p.calcul.anciennete) | replace(".", ",") }} ans</td></tr>
+  <tr><td>Salaire mensuel de référence</td><td class="n">{{ p.salaire_mensuel_reference | montant }}</td></tr>
+  <tr><td>Règle appliquée</td><td class="n">{{ p.calcul.source.libelle }}{% if p.calcul.plancher_applique %} (plancher de la convention){% endif %}</td></tr>
+  <tr><td>Indemnité due : {{ ("%g" % p.calcul.mois) | replace(".", ",") }} mois × {{ p.salaire_mensuel_reference | montant }}</td><td class="n">{{ p.du | montant }}</td></tr>
+  {% if p.verse is not none %}<tr><td>Indemnité versée par l'entreprise</td><td class="n">{{ p.verse | montant }}</td></tr>{% endif %}
+  <tr class="total"><td><strong>Montant demandé au fonds</strong></td><td class="n"><strong>{{ d.montant_demande | montant }}</strong></td></tr>
+</table>
+
+<h2>Le bénéficiaire</h2>
+<div class="confidentiel">Données personnelles transmises pour le seul paiement de cette indemnité. La plateforme les
+efface douze mois après le paiement.</div>
+<table>
+  <tr><td>Qualité</td><td class="n">{{ "Le salarié" if b.qualite == "salarie" else "Ayant droit" }}</td></tr>
+  <tr><td>Nom et prénoms</td><td class="n">{{ b.nom }} {{ b.prenoms or "" }}</td></tr>
+  {% if b.date_naissance %}<tr><td>Date de naissance</td><td class="n">{{ b.date_naissance | date_fr }}</td></tr>{% endif %}
+  <tr><td>Pièce d'identité</td><td class="n">{{ {"cni": "Carte nationale d'identité", "passeport": "Passeport", "carte_sejour": "Carte de séjour"}.get(b.piece_type, "Autre") }} n° {{ b.piece_numero }}</td></tr>
+  {% if b.telephone %}<tr><td>Téléphone</td><td class="n">{{ b.telephone }}</td></tr>{% endif %}
+  <tr><td>Paiement</td><td class="n">{{ {"virement": "Virement", "mobile_money": "Mobile money", "cheque": "Chèque"}[b.moyen_paiement] }}{% if b.coordonnees_paiement %} — {{ b.coordonnees_paiement }}{% endif %}</td></tr>
+</table>
+
+<h2>Pièces jointes</h2>
+{% if pieces %}
+<table>
+  <tr><th>Pièce</th><th>Fichier</th><th>Empreinte SHA-256</th></tr>
+  {% for x in pieces %}<tr><td>{{ natures.get(x.nature, x.nature) }}</td><td>{{ x.nom_fichier }}</td><td class="note">{{ x.empreinte[:32] }}…</td></tr>{% endfor %}
+</table>
+<p class="note">Chaque pièce est identifiée par son empreinte : une pièce retouchée n'aurait plus la même.</p>
+{% else %}<p class="note">Aucune pièce jointe.</p>{% endif %}
+
+<h2>Réponse de l'assureur</h2>
+<table class="signature">
+  <tr><td style="width: 35%">Décision (paiement / refus motivé)</td><td></td></tr>
+  <tr><td>Montant et date du paiement</td><td></td></tr>
+</table>
+<p class="note">Ce document est scellé : son numéro et son empreinte se vérifient à l'adresse imprimée au pied de
+chaque page. La vérification publique ne révèle aucune donnée personnelle.</p>
+</body>
+</html>

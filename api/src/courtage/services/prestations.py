@@ -21,7 +21,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased
 
 from courtage.actuariat.ifc import Regles, annees_entre, mois_dus
-from courtage.db import Etude, FichierPersonnel, Organisation, Prestation, Regime, VersionRegime
+from courtage.db import DossierPriseEnCharge, Etude, FichierPersonnel, Organisation, Prestation, Regime, VersionRegime
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie
 from courtage.fichier.departs import LigneDepart, lire_departs
@@ -133,6 +133,8 @@ def enregistrer(session: Session, org: Organisation, auteur: uuid.UUID, s: Saisi
 def corriger(session: Session, org: Organisation, auteur: uuid.UUID, prestation_id: uuid.UUID, s: Saisie,
              motif_correction: str) -> Prestation:
     ancienne = _active(session, prestation_id)
+    if (s.matricule.strip(), s.date_depart) != (ancienne.matricule, ancienne.date_depart):
+        _sans_dossier(session, ancienne)
     return enregistrer(session, org, auteur, s, origine=ancienne.origine, import_id=ancienne.import_id,
                        remplace=ancienne, motif_correction=_motif(motif_correction))
 
@@ -141,6 +143,7 @@ def annuler(session: Session, org: Organisation, auteur: uuid.UUID, prestation_i
             motif_correction: str) -> Prestation:
     """Une ligne qui retire la précédente : elle en reprend les faits, pour que l'annulation se lise seule."""
     a = _active(session, prestation_id)
+    _sans_dossier(session, a)
     p = Prestation(organisation_id=org.id, matricule=a.matricule, categorie=a.categorie, motif=a.motif,
                    date_naissance=a.date_naissance, date_embauche=a.date_embauche, date_depart=a.date_depart,
                    salaire_mensuel_reference=a.salaire_mensuel_reference, du=a.du, calcul=a.calcul, verse=a.verse,
@@ -162,6 +165,14 @@ def apercu(session: Session, s: Saisie) -> dict:
 
 def _vue(s: Saisie, du: int) -> "_Apercu":
     return _Apercu(**{k: getattr(s, k) for k in _Apercu.__dataclass_fields__ if k != "du"}, du=du)
+
+
+def _sans_dossier(session: Session, p: Prestation) -> None:
+    """Un départ porté par un dossier de prise en charge garde son matricule et sa date : c'est sa clé."""
+    if session.scalar(select(DossierPriseEnCharge.id).where(DossierPriseEnCharge.matricule == p.matricule,
+                                                            DossierPriseEnCharge.date_depart == p.date_depart)):
+        raise ErreurMetier("dossier_ouvert", "Un dossier de prise en charge porte ce départ : il ne s'annule pas, et "
+                           "son matricule comme sa date de départ ne changent pas.", 409)
 
 
 def _motif(texte: str) -> str:
