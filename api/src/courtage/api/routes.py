@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
-from courtage.services import etudes, fichiers, journaliser, rapport, regimes, remuneration
+from courtage.services import analyse, etudes, fichiers, journaliser, rapport, regimes, remuneration
 
 from . import Acces, acces, identite, session_db
 
@@ -154,6 +154,14 @@ def lister_regimes(a: Acces = Depends(acces(*TOUS))):
 @routeur.get("/organisations/{organisation_id}/regimes/versions/{version_id}")
 def lire_version(version_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     return regimes.en_clair(a.session, regimes.obtenir_version(a.session, version_id))
+
+
+@routeur.get("/organisations/{organisation_id}/regimes/versions/{version_id}/analyse")
+def analyser_version(version_id: uuid.UUID, fichier_id: uuid.UUID | None = None, date_evaluation: date | None = None,
+                     a: Acces = Depends(acces(*TOUS))):
+    """Légalité, nature, pièges ; et, avec un fichier du personnel, les coûts."""
+    return analyse.analyser_version(a.session, a.organisation, regimes.obtenir_version(a.session, version_id),
+                                    fichier_id=fichier_id, date_evaluation=date_evaluation)
 
 
 @routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/adoption")

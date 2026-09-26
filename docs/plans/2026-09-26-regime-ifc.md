@@ -51,10 +51,21 @@ Commit : `feat(regime): le régime IFC de l'entreprise, par version et par caté
 
 ## R3 — L'analyse
 
-- [ ] Module pur de constats `bloque | avertit | informe` (spec §5), chacun
-      sourcé, le contenu juridique `a_valider`.
-- [ ] Coût de la non-conformité, dette de passé à l'adoption, concentration
-      sur les dirigeants, usage, provisionnement, déductibilité.
+- [x] Module pur `courtage.analyse` : `analyser(Contexte) -> [Constat]`,
+      triés `bloque | avertit | informe`. Deux sortes : les CALCULS, garantis
+      (`statut_contenu = calcul`), et les NOTES, sourcées et `a_valider`.
+- [x] Notes juridiques en données (`referentiel/donnees/notes_juridiques.json`) :
+      provisionnement, usage, déductibilité CI et CM, égalité de traitement,
+      abus de biens sociaux — chacune citée, aucune relue par un juriste.
+- [x] Calculs : coût de la non-conformité (le texte lu à la lettre contre la
+      dette réelle), dette de passé créée par l'adoption (face à la version en
+      vigueur la veille, sinon à la seule convention), concentration de ce que
+      le régime ajoute sur le décile des salaires les plus élevés (alerte
+      au-delà de 15 points de plus que leur part de la dette conventionnelle).
+- [x] `GET /organisations/{id}/regimes/versions/{vid}/analyse` : légalité et
+      nature sans fichier ; les coûts avec `fichier_id`.
+
+Commit : `feat(analyse): constats sourcés sur un régime IFC`
 
 ## R4 — La simulation
 

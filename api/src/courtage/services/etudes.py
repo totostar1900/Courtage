@@ -196,7 +196,7 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         version = regimes.obtenir_version(session, saisie.regime_version_id)
         regles = regimes.regles(session, version, saisie.date_evaluation)
         regles_plancher = regimes.regles_plancher(session, version, saisie.date_evaluation)
-        _exiger_categories_connues(lecture, regles)
+        exiger_categories_connues(lecture, regles)
         conventions = regimes.conventions_de(session, version, saisie.date_evaluation)
         if saisie.convention_code and saisie.convention_code not in {c.code for c in conventions}:
             raise ErreurMetier("convention_hors_regime",
@@ -212,14 +212,7 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         raise ErreurMetier("convention_ou_regime_requis", "Choisir une convention ou une version du régime.", 422)
 
     valeurs, ecarts = _hypotheses(saisie)
-    h = Hypotheses(
-        date_evaluation=saisie.date_evaluation,
-        taux_actualisation=valeurs["taux_actualisation"], croissance_salaires=valeurs["croissance_salaires"],
-        inflation=valeurs["inflation"], age_retraite=valeurs["age_retraite"],
-        turnover={age: valeurs["taux_turnover"] for age in range(AGE_PREMIER_EMPLOI, valeurs["age_retraite"])},
-        table=ref.table(valeurs["table"]), fonds_disponible=saisie.fonds_disponible,
-        frais_sur_cotisation=valeurs["frais_sur_cotisation"],
-    )
+    h = hypotheses_moteur(valeurs, saisie.date_evaluation, saisie.fonds_disponible)
     sal = salaries(lecture)
     resultat = evaluer(sal, h, convention, regles=regles)
 
@@ -252,7 +245,19 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
     }
 
 
-def _exiger_categories_connues(lecture, regles: dict[str, Regles]) -> None:
+def hypotheses_moteur(valeurs: dict, date_evaluation: date, fonds_disponible: int = 0) -> Hypotheses:
+    """Les hypothèses du moteur à partir des valeurs retenues (le référentiel par défaut)."""
+    return Hypotheses(
+        date_evaluation=date_evaluation,
+        taux_actualisation=valeurs["taux_actualisation"], croissance_salaires=valeurs["croissance_salaires"],
+        inflation=valeurs["inflation"], age_retraite=valeurs["age_retraite"],
+        turnover={age: valeurs["taux_turnover"] for age in range(AGE_PREMIER_EMPLOI, valeurs["age_retraite"])},
+        table=referentiel_courant().table(valeurs["table"]), fonds_disponible=fonds_disponible,
+        frais_sur_cotisation=valeurs["frais_sur_cotisation"],
+    )
+
+
+def exiger_categories_connues(lecture, regles: dict[str, Regles]) -> None:
     if regimes.AUTRES in regles:
         return
     inconnues: dict[str, list[int]] = {}

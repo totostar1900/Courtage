@@ -83,6 +83,15 @@ api/src/courtage/
 - Dans un routeur, les chemins littéraux (`/regimes/versions/{id}`) sont
   déclarés AVANT les chemins à paramètre (`/regimes/{id}/versions`).
 
+## Analyse
+
+- `courtage.analyse` est pur, comme le moteur. Un constat est un CALCUL
+  (garanti) ou une NOTE juridique (sourcée, `a_valider`). Les notes vivent en
+  données dans `referentiel/donnees/notes_juridiques.json` ; on n'écrit pas de
+  droit dans le code.
+- Une note ne passe `valide` que relue par un juriste ; aucune ne l'est
+  aujourd'hui (décision du 2026-09-26).
+
 ## Rapport et sceau
 
 - Le rapport est rendu UNE fois, à l'émission, dans la même transaction

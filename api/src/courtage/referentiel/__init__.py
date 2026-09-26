@@ -200,3 +200,20 @@ HYPOTHESES_PAR_DEFAUT: dict[str, float | int | str] = {
     "frais_sur_cotisation": 0.04,
     "table": "TV_CIMA_F",
 }
+
+
+class NoteJuridique(_Strict):
+    """Une information juridique ou fiscale, sourcée. `a_valider` tant qu'un juriste ne l'a pas relue :
+    la plateforme informe, elle ne donne pas d'avis juridique."""
+    id: str
+    titre: str = Field(min_length=1)
+    texte: str = Field(min_length=1)
+    pays: str | None = None
+    statut: Literal["valide", "a_valider"]
+    sources: list[Source] = []
+
+
+@cache
+def notes_juridiques() -> dict[str, NoteJuridique]:
+    brut = json.loads((_DONNEES / "notes_juridiques.json").read_text("utf-8"))
+    return {n["id"]: NoteJuridique.model_validate(n) for n in brut["notes"]}
