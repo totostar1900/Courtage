@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-import { construire, epuisement, graduations, MESURES, type Decoupage, type Horizon, type Lecture, type Mesure } from "../echeancier";
+import { construire, epuisement, graduations, HORIZON_MAX, MESURES, reperesAnnees, type Decoupage, type Horizon, type Lecture,
+  type Mesure } from "../echeancier";
 import { montant, pct } from "../format";
 import type { Annee } from "../types";
 
@@ -38,7 +39,7 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
   const [mesure, setMesure] = useState<Mesure>("prestations_probables");
   const [lecture, setLecture] = useState<Lecture>("annuelle");
   const [decoupage, setDecoupage] = useState<Decoupage>("ensemble");
-  const [horizon, setHorizon] = useState<Horizon>("tout");
+  const [horizonChoisi, setHorizon] = useState<Horizon | null>(null);   // null : jusqu'à 30 ans, ou tout s'il est plus court
   const [tableau, setTableau] = useState(false);
   const [actif, setActif] = useState<number | null>(null);
   const graphique = useRef<HTMLDivElement>(null);
@@ -47,6 +48,9 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
   if (!annees.length) return null;
 
   const enMontant = MESURES[mesure].montant;
+  const nbAnnees = annees.length ? annees[annees.length - 1].annee - annees[0].annee + 1 : 0;
+  const plafond = Math.min(HORIZON_MAX, nbAnnees);
+  const horizon: number = Math.min(typeof horizonChoisi === "number" ? horizonChoisi : plafond, plafond);
   const vue = construire(annees, mesure, lecture, decoupage, horizon);
   const repere = lecture === "cumulee" && enMontant && fonds ? fonds : null;
   const echelle = graduations(Math.max(vue.max, repere ?? 0));
@@ -54,7 +58,6 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
   const epuise = repere ? epuisement(vue.colonnes, repere) : null;
   const totalGeneral = construire(annees, mesure, "annuelle", "ensemble", "tout").colonnes.reduce((t, c) => t + c.total, 0) || 1;
   const cumuls = construire(annees, mesure, "cumulee", "ensemble", "tout").colonnes;
-  const nbAnnees = annees[annees.length - 1].annee - annees[0].annee + 1;
   const plusieurs = vue.series.length > 1;
   const valeur = (v: number) => (enMontant ? montant(v) : `${v}`);
   const departs = (n: number) => `${n} départ${n > 1 ? "s" : ""}${lecture === "cumulee" ? " cumulés" : " à la retraite"}`;
@@ -74,13 +77,16 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
                   options={[["ensemble", "Ensemble"], ["categorie", "Par catégorie"]]}
                   desactive={(v) => (v === "categorie" && !vue.decoupageDisponible
                     ? "Cette étude a été calculée avant le découpage par catégorie." : null)} />
-        <Segments nom="Horizon" valeur={horizon} onChange={setHorizon}
-                  options={[[10, "10 ans"], [20, "20 ans"], ["tout", "Tout"]] as [Horizon, string][]}
-                  desactive={(v) => (v !== "tout" && v >= nbAnnees ? "L'échéancier est plus court." : null)} />
+        <label className="segments curseur-horizon">
+          <span className="segments-nom">Horizon</span>
+          <input type="range" min={1} max={plafond} value={horizon} aria-label="Horizon en années"
+                 onChange={(e) => setHorizon(Number(e.target.value))} />
+          <output>{horizon} an{horizon > 1 ? "s" : ""}</output>
+        </label>
       </div>
 
       <p className="sous-titre">{MESURES[mesure].libelle}{lecture === "cumulee" ? ", cumulées depuis " + annees[0].annee : ", par année"}
-        {plusieurs ? ", par catégorie" : ""}{horizon !== "tout" ? ` · les ${horizon} premières années` : ""}</p>
+        {plusieurs ? ", par catégorie" : ""}{horizon < nbAnnees ? ` · les ${horizon} premières années` : ""}</p>
       {plusieurs && (
         <ul className="legende" aria-label="Légende">
           {vue.series.map((s) => <li key={s.cle}><span className="cle" style={{ background: s.couleur }} />{s.libelle}</li>)}
@@ -166,7 +172,10 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
               )}
             </div>
           )}
-          <div className="axe"><span>{vue.colonnes[0].annee}</span><span>{vue.colonnes[vue.colonnes.length - 1].annee}</span></div>
+          <div className="axe-annees" aria-hidden="true">
+            {(() => { const reperes = reperesAnnees(vue.colonnes.map((col) => col.annee));
+              return vue.colonnes.map((col) => <span key={col.annee}>{reperes.has(col.annee) ? col.annee : ""}</span>); })()}
+          </div>
         </div>
       )}
 

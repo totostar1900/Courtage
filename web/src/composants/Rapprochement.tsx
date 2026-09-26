@@ -8,7 +8,7 @@ export default function Rapprochement({ etude, titre = true }: { etude: Etude; t
   return (
     <div className="rapprochement">
       {titre && <h3>Du passif à la cotisation</h3>}
-      <table>
+      <div className="defile"><table>
         <tbody>
           {lignes.map((l, i) => (
             <tr key={i} className={l.total ? "total" : undefined}>
@@ -18,7 +18,7 @@ export default function Rapprochement({ etude, titre = true }: { etude: Etude; t
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

@@ -6,7 +6,9 @@ import type { Annee } from "./types";
 export type Mesure = "prestations_probables" | "ifc" | "vapf" | "effectif";
 export type Lecture = "annuelle" | "cumulee";
 export type Decoupage = "ensemble" | "categorie";
-export type Horizon = 10 | 20 | "tout";
+/** Le nombre d'années affichées depuis la première (1 à 30), ou tout l'échéancier. */
+export type Horizon = number | "tout";
+export const HORIZON_MAX = 30;
 
 export const MESURES: Record<Mesure, { libelle: string; court: string; montant: boolean }> = {
   prestations_probables: { libelle: "Prestations probables", court: "Probables", montant: true },
@@ -84,4 +86,15 @@ export function graduations(max: number): number[] {
 /** L'année où les versements cumulés dépassent le fonds constitué ; null s'il les couvre tous. */
 export function epuisement(colonnes: Colonne[], fonds: number): number | null {
   return colonnes.find((c) => c.total > fonds)?.annee ?? null;
+}
+
+/** Les années à écrire sous l'axe : toutes jusqu'à 12 colonnes, sinon les multiples de 5 (plus la première et la
+ *  dernière quand elles ne tombent pas trop près d'un repère). */
+export function reperesAnnees(annees: number[]): Set<number> {
+  if (annees.length <= 12) return new Set(annees);
+  const premiere = annees[0], derniere = annees[annees.length - 1];
+  const reperes = new Set(annees.filter((a) => a % 5 === 0));
+  if ([...reperes].every((a) => a - premiere >= 3)) reperes.add(premiere);
+  if ([...reperes].every((a) => derniere - a >= 3)) reperes.add(derniere);
+  return reperes;
 }
