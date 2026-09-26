@@ -38,7 +38,7 @@ export default function Personnel() {
       <p>Un fichier Excel ou CSV : matricule, date de naissance, date d'embauche, salaire, et la catégorie si votre
         régime en distingue. <strong>Aucun nom n'est lu</strong> : une colonne de nom est ignorée sans être ouverte.</p>
 
-      <div className="carte canevas section" style={{ maxWidth: 620 }}>
+      <div className="carte canevas section" style={{ maxWidth: 620, marginBottom: 16 }}>
         <div>
           <strong>Le canevas à remplir</strong>
           <p className="discret" style={{ margin: "4px 0 0" }}>Un classeur Excel aux bonnes colonnes, avec un mode d'emploi

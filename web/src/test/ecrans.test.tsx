@@ -804,3 +804,40 @@ describe("les fichiers du personnel", () => {
     clic.mockRestore();
   });
 });
+
+describe("la navigation dans le dossier", () => {
+  it("le fil d'Ariane dit où l'on est, et chaque niveau ramène", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    const fil = await screen.findByRole("navigation", { name: "Fil d'Ariane" });
+    expect(within(fil).getAllByRole("listitem").map((l) => l.textContent)).toEqual(
+      ["Vos dossiers", "AZITO", "Études", "Étude au 31/12/2019"]);
+    await userEvent.click(within(fil).getByRole("link", { name: "Études" }));
+    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(within(screen.getByRole("navigation", { name: "Fil d'Ariane" })).getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  it("Ctrl+K : chercher, choisir au clavier, ouvrir", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}`);
+    await screen.findByText("Prochaine étape");
+    await userEvent.keyboard("{Control>}k{/Control}");
+    const dialogue = screen.getByRole("dialog", { name: "Aller à" });
+    await userEvent.type(within(dialogue).getByRole("textbox", { name: "Rechercher" }), "etude 2019");
+    const options = within(dialogue).getAllByRole("option");
+    expect(options[0]).toHaveTextContent("Étude au 31/12/2019");
+    await userEvent.keyboard("{Enter}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^2021/ })).toBeInTheDocument();   // l'échéancier de l'étude
+  });
+
+  it("le bouton « Aller à… » ouvre la même palette, qui trouve aussi le guide", async () => {
+    simulerApi(dossier("admin_client"));
+    ouvrir(`/dossier/${ORG}`);
+    await userEvent.click(await screen.findByRole("button", { name: /Aller à…/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Rechercher" }), "methode actuarielle");
+    expect(screen.getAllByRole("option")[0]).toHaveTextContent("La méthode actuarielle en détail");
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});

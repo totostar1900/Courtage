@@ -3,6 +3,7 @@ import { NavLink, Outlet, useParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
+import { BoutonAller, FilAriane, PaletteAller } from "../composants/Navigation";
 import Visite, { lancerVisite } from "../composants/Visite";
 import { VISITE_DOSSIER } from "../guide/visite";
 import { etapes, type EtatDossier } from "../parcours";
@@ -65,7 +66,8 @@ export default function Dossier() {
           <NavLink to="." end className="discret" style={{ textDecoration: "none" }}>
             <h2 style={{ marginBottom: 2 }}>{donnee.org.nom}</h2>
           </NavLink>
-          <div className="discret" style={{ marginBottom: 16 }}>Tableau de bord du dossier</div>
+          <div className="discret" style={{ marginBottom: 12 }}>Tableau de bord du dossier</div>
+          <BoutonAller />
           <ol className="parcours" data-visite="parcours">
             {etapes(donnee.etat).map((e, i) => (
               <li key={e.cle} className={e.fait ? "fait" : e.suivant ? "suivant" : ""}>
@@ -106,7 +108,8 @@ export default function Dossier() {
             <NavLink to="/guide">Le guide</NavLink>
           </div>
         </aside>
-        <section><Outlet /></section>
+        <section><FilAriane d={donnee} /><Outlet /></section>
+        <PaletteAller d={donnee} />
         <Visite etapes={VISITE_DOSSIER} auto />
       </div>
     </Contexte.Provider>
