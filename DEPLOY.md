@@ -151,7 +151,10 @@ La même plateforme sur les offres gratuites de Render, pour un essai en ligne s
    projet d'avenant, des départs, un dossier de prise en charge, une étude émise, un cahier des charges et trois
    réponses d'assureurs fictifs. Le journal écrit `[demo] Société Démo SA semée`. Les administrateurs en sont
    conseillers ; ceux créés APRÈS le semis l'ouvrent depuis rien — ajouter la variable avant le premier
-   démarrage, ou déclarer l'administrateur d'abord. Le semis n'a lieu qu'une fois.
+   démarrage, ou déclarer l'administrateur d'abord. Le semis a lieu une fois PAR VERSION (`VERSION_DEMO`
+   dans `courtage/demo.py`) : les études sont figées, donc quand le code sait montrer davantage (v2 :
+   l'échéancier par catégorie), une Société Démo SA neuve est semée au démarrage et l'ancienne sort de la
+   liste des administrateurs — rien n'est effacé. Le journal écrit `… version 2 … ancienne(s) retirée(s)`.
 
 Ce que l'offre gratuite ne fait pas :
 
