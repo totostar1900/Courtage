@@ -262,3 +262,35 @@ button.lien { background: none; border: none; padding: 0; color: var(--indigo-vi
 .essais div { display: grid; grid-template-columns: 110px 1fr; gap: 12px; }
 .essais dt { font-weight: 600; }
 .essais dd { margin: 0; color: var(--encre-2); }
+
+/* Le canevas du personnel : une invitation, pas un formulaire. */
+.canevas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+
+/* Navigation : le fil d'Ariane, et la palette « Aller à… » (Ctrl+K). */
+.fil-ariane ol { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0 0 14px; padding: 0; font-size: 13px;
+  color: var(--discret); }
+.fil-ariane li { margin: 0; display: inline-flex; gap: 4px; align-items: center; }
+.fil-ariane li + li::before { content: "›"; color: var(--trait); padding-right: 2px; }
+.fil-ariane a { color: var(--encre-2); text-decoration: none; }
+.fil-ariane a:hover { text-decoration: underline; }
+.fil-ariane [aria-current] { color: var(--encre); font-weight: 600; }
+.bouton-aller { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-bottom: 16px;
+  font-weight: 500; color: var(--discret); background: var(--surface); padding: 7px 10px; }
+.bouton-aller:hover { color: var(--encre); }
+kbd { font: 600 11px/1 var(--texte); border: 1px solid var(--trait); border-bottom-width: 2px; border-radius: 5px;
+  padding: 2px 5px; background: var(--fond); color: var(--encre-2); }
+.palette-fond { position: fixed; inset: 0; z-index: 90; background: #141a3359; display: flex; justify-content: center;
+  align-items: flex-start; padding: max(10vh, env(safe-area-inset-top, 0px)) 16px 16px; }
+.palette { width: min(620px, 100%); background: var(--surface); border-radius: 14px; box-shadow: 0 24px 60px #141a3340;
+  overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; }
+.palette input { border: 0; border-bottom: 1px solid var(--trait); border-radius: 0; padding: 16px 18px; font-size: 16px;
+  outline: none; }
+.palette ul { list-style: none; margin: 0; padding: 6px; overflow-y: auto; }
+.palette li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px; border-radius: 8px; margin: 0;
+  cursor: pointer; }
+.palette li small { color: var(--discret); white-space: nowrap; }
+.palette li.actif { background: var(--encre); color: #fff; }
+.palette li.actif small { color: #c9cfee; }
+.palette li.vide { color: var(--discret); cursor: default; }
+.palette-pied { border-top: 1px solid var(--trait); padding: 8px 14px; font-size: 12px; color: var(--discret);
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }

@@ -12,6 +12,12 @@ export default function Personnel() {
   const [depose, setDepose] = useState<Fichier | null>(null);
   const [ouvert, setOuvert] = useState<string | null>(null);
   const peutDeposer = d.role !== "lecteur_client";
+  const [erreurTelechargement, setErreurTelechargement] = useState<unknown>(null);
+
+  async function telecharger(chemin: string, nom: string) {
+    setErreurTelechargement(null);
+    try { await api.telecharger(chemin, nom); } catch (e) { setErreurTelechargement(e); }
+  }
 
   async function deposer(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
@@ -31,6 +37,17 @@ export default function Personnel() {
       <h1>Votre personnel</h1>
       <p>Un fichier Excel ou CSV : matricule, date de naissance, date d'embauche, salaire, et la catégorie si votre
         régime en distingue. <strong>Aucun nom n'est lu</strong> : une colonne de nom est ignorée sans être ouverte.</p>
+
+      <div className="carte canevas section" style={{ maxWidth: 620, marginBottom: 16 }}>
+        <div>
+          <strong>Le canevas à remplir</strong>
+          <p className="discret" style={{ margin: "4px 0 0" }}>Un classeur Excel aux bonnes colonnes, avec un mode d'emploi
+            et un exemple. Rempli, il se dépose tel quel.</p>
+        </div>
+        <button type="button" onClick={() => telecharger("/referentiel/canevas-personnel", "canevas-personnel.xlsx")}>
+          Télécharger le canevas</button>
+      </div>
+      <Erreur erreur={erreurTelechargement} />
 
       {peutDeposer && (
         <form className="carte formulaire" onSubmit={deposer} style={{ maxWidth: 620 }}>
@@ -59,7 +76,7 @@ export default function Personnel() {
         {d.fichiers.length === 0 && <p className="discret">Aucun fichier pour l'instant.</p>}
         <div className="defile">
           <table>
-            <thead><tr><th>Fichier</th><th>Données au</th><th className="n">Salariés</th><th>État</th></tr></thead>
+            <thead><tr><th>Fichier</th><th>Données au</th><th className="n">Salariés</th><th>État</th><th /></tr></thead>
             <tbody>
               {d.fichiers.map((f) => {
                 const bloquants = f.anomalies.filter((a) => a.niveau === "bloquant").length;
@@ -71,9 +88,15 @@ export default function Personnel() {
                     <td>{bloquants ? <span className="etat grave">{bloquants} à corriger</span>
                       : f.anomalies.length ? <span className="etat attention">{f.anomalies.length} à regarder</span>
                       : <span className="etat bien">Complet</span>}</td>
+                    <td className="n">
+                      <button type="button" className="lien" aria-label={`Télécharger ${f.nom_fichier}`}
+                              onClick={(e) => { e.stopPropagation();
+                                telecharger(`/organisations/${d.org.id}/fichiers/${f.id}/telechargement`,
+                                            `personnel-${f.date_donnees}.xlsx`); }}>Télécharger</button>
+                    </td>
                   </tr>,
                   ouvert === f.id && (
-                    <tr key={`${f.id}-a`}><td colSpan={4}>
+                    <tr key={`${f.id}-a`}><td colSpan={5}>
                       <div className="volet-tete"><strong>Contrôles du fichier</strong>
                         <button type="button" className="fermer-volet" onClick={() => setOuvert(null)} aria-label="Fermer" title="Fermer">×</button></div>
                       <Anomalies anomalies={f.anomalies} /></td></tr>

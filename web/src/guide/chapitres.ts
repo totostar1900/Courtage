@@ -207,6 +207,42 @@ export const CHAPITRES: Chapitre[] = [
     termes: ["vapf", "dette", "charge", "actualisation", "croissance", "turnover", "mortalite"],
   },
   {
+    id: "methode", groupe: "Comprendre", titre: "La méthode actuarielle en détail",
+    resume: "Les formules, les hypothèses et leurs valeurs par défaut, le financement, et ce que le calcul ne fait pas.",
+    sections: [
+      { titre: "La méthode", texte: [
+        "La plateforme applique la méthode prospective des unités de crédit projetées, avec une répartition linéaire des droits au prorata de l'ancienneté. Le calcul se fait salarié par salarié, puis on additionne. Les calculs se font sans arrondi intermédiaire ; les totaux sont arrondis au franc.",
+        "Âge et ancienneté se comptent en années révolues, plus les jours écoulés depuis le dernier anniversaire divisés par 365 (comme DATEDIF dans un tableur)." ] },
+      { titre: "Les formules, pour un salarié", texte: [
+        "Années restantes n = âge de retraite − âge. Ancienneté totale A = l'ancienneté qu'il aura à la retraite.",
+        "Salaire de fin de carrière (mensuel) = salaire annuel ÷ 12 × ((1 + inflation) × (1 + croissance des salaires))ⁿ.",
+        "Mois dus = le barème appliqué à A (arrondie en années révolues ou en mois, selon le régime), nuls sous l'ancienneté minimale, bornés par le plafond ; avec un régime, la convention reste le plancher et le plus favorable des deux est retenu.",
+        "IFC = salaire de fin de carrière × mois dus.",
+        "Survie = l(âge de retraite) ÷ l(âge actuel), lus dans la table de mortalité TV CIMA F.",
+        "Présence = le produit, de l'âge actuel à la veille de la retraite, de (1 − taux de rotation).",
+        "VAPF = IFC × survie × présence × (1 + taux d'actualisation)⁻ⁿ.",
+        "Dette = VAPF × ancienneté actuelle ÷ A. Charge de l'année = VAPF ÷ A." ] },
+      { titre: "Du total à la cotisation", texte: [
+        "Cotisation nette = dette + charge − fonds déjà constitué (jamais négative).",
+        "Cotisation totale = cotisation nette × (1 + frais sur cotisation). L'étude affiche ce rapprochement ligne à ligne." ] },
+      { titre: "Les hypothèses par défaut", texte: [
+        "Taux d'actualisation 3,5 %. Croissance des salaires 2 %. Inflation 0 %. Départ à 60 ans. Rotation 2 % par an à tout âge. Table TV CIMA F. Frais sur cotisation 4 %.",
+        "S'écarter d'une valeur par défaut demande une justification. Elle est imprimée dans le rapport scellé.",
+        "L'étude recalcule la dette avec le taux d'actualisation à un point de moins et à un point de plus, et avec les salaires à un point de plus : ce sont les sensibilités." ] },
+      { titre: "Le financement", texte: [
+        "Chaque année, l'entreprise cotise : la charge indexée sur les salaires, plus une part du déficit initial (dette − fonds) amorti sur le nombre d'années choisi. L'assureur prélève ses frais, crédite le fonds au taux garanti plus sa participation aux bénéfices, puis les prestations probables de l'année sont payées par le fonds, dans la limite de ce qu'il contient.",
+        "Trois scénarios de rendement : prudent 3,5 %, central 5 %, favorable 6,5 %. Les offres se comparent sur leur coût net actualisé, dans le scénario central : cotisations et découverts actualisés, moins le fonds restant à l'horizon." ] },
+      { titre: "L'expérience réelle", texte: [
+        "La rotation observée est le nombre de démissions et de licenciements ÷ (années × effectif), sur cinq ans au plus. Elle n'est crédible qu'à partir de cinq départs, et proposée seulement si elle s'écarte d'au moins un demi-point. Elle n'est jamais appliquée d'office." ] },
+      { titre: "Ce que le calcul ne fait pas", texte: [
+        "Seul le départ à la retraite est chiffré ; les autres événements couverts par un régime (départ anticipé, licenciement économique, décès) sont signalés, pas évalués.",
+        "Une seule table de mortalité pour tous, la table féminine : c'est une hypothèse prudente, les femmes y vivant plus longtemps.",
+        "Une croissance des salaires uniforme, sans échelle par âge. Un régime fondé sur la moyenne des 12 derniers mois est évalué sur le salaire courant projeté, et c'est signalé.",
+        "L'étude est un calcul d'aide à la décision, pas un avis juridique ou fiscal." ] },
+    ],
+    termes: ["vapf", "dette", "charge", "actualisation", "croissance", "turnover", "mortalite", "plancher"],
+  },
+  {
     id: "conventions", groupe: "Référence", titre: "Les conventions préremplies",
     resume: "Les barèmes intégrés pour les pays de la CEMAC, leurs sources et leur degré de vérification.",
     sections: [
