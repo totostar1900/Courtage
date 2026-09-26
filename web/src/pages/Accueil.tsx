@@ -2,9 +2,12 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "../api";
+import { DecompteAlertes } from "../composants/Alertes";
 import { Erreur, useCharge, Volet } from "../composants/communs";
 import { ilYa, lireReprise } from "../reprise";
-import type { Moi } from "../types";
+import type { Alerte, Moi } from "../types";
+
+type Decomptes = Record<string, Record<Alerte["niveau"], number>>;
 
 const ROLES = { admin_client: "Votre entreprise", lecteur_client: "En lecture", conseiller: "Vous conseillez" };
 
@@ -15,6 +18,8 @@ export const PAYS_CEMAC = { CM: "Cameroun", GA: "Gabon", CG: "Congo", TD: "Tchad
 export default function Accueil() {
   const { donnee: moi, erreur } = useCharge(() => api.get<Moi>("/moi"), []);
   const [ouvrir, setOuvrir] = useState(false);
+  const { donnee: decomptes } = useCharge(
+    () => api.get<Decomptes>("/alertes").catch((): Decomptes => ({})), []);
   return (
     <>
       <div className="actions" style={{ marginTop: 0, justifyContent: "space-between" }}>
@@ -35,6 +40,7 @@ export default function Accueil() {
           <Link key={o.id} to={`/dossier/${o.id}`} className="carte lien">
             <h2 style={{ marginBottom: 4 }}>{o.nom}</h2>
             <div className="discret">{PAYS_CEMAC[o.pays as keyof typeof PAYS_CEMAC] ?? o.pays} · {ROLES[o.role]}</div>
+            <div style={{ marginTop: 8 }}><DecompteAlertes decompte={decomptes?.[o.id]} /></div>
           </Link>
         ))}
       </div>

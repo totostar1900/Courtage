@@ -341,3 +341,10 @@ export interface ExtractionProposee extends ModeExtraction {
   verifications: { champ: string; valeur: unknown; citation: string | null; retrouvee: boolean | null }[];
   constats: Constat[];
 }
+
+export interface Alerte {
+  niveau: "grave" | "attention" | "info";
+  code: string; titre: string; detail: string;
+  lien: string;                         // la page du dossier, relative à lui
+  pour: "entreprise" | "conseiller";    // qui doit agir
+}

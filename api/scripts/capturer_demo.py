@@ -75,12 +75,13 @@ def main(url: str, sortie: Path) -> None:
     capter("/referentiel/conventions")
     capter("/referentiel/modeles?pays=CM")
     capter("/catalogue/regimes")
+    capter("/alertes")
     capter("/dev/utilisateurs")
     reponses["GET /dev/utilisateurs"] = [u for u in reponses["GET /dev/utilisateurs"] if not u["admin_plateforme"]]
     for qui in ("drh", "conseiller"):
         capter("/moi", qui=qui, cle=f"GET /moi@{ids[qui]}")
     base = f"/organisations/{org}"
-    for chemin in ("/fichiers", "/regimes", "/regimes/partages", "/etudes", "/fiches", "/equipe", "/remuneration", "/contrats", "/prestations", "/dossiers", f"/dossiers/{dossier['id']}",
+    for chemin in ("/fichiers", "/regimes", "/regimes/partages", "/alertes", "/etudes", "/fiches", "/equipe", "/remuneration", "/contrats", "/prestations", "/dossiers", f"/dossiers/{dossier['id']}",
                    f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}", f"/fiches/{fiche['id']}/reponses"):
         capter(base + chemin)
     for v in (version["id"], projet["id"]):

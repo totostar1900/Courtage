@@ -29,6 +29,10 @@ export const CHAPITRES: Chapitre[] = [
         "L'entreprise (la DRH) dépose le personnel, décrit et adopte son régime.",
         "Le conseiller relit, émet l'étude et le cahier des charges, fixe sa rémunération de façon transparente.",
         "Les assureurs répondent au cahier des charges ; vous comparez sur une base commune." ] },
+      { titre: "Les points d'attention", texte: [
+        "Le tableau de bord du dossier liste ce qui attend : une étude de plus de 12 mois (une clôture est passée), un fichier du personnel trop ancien, un brouillon ou une version du régime en attente depuis plus de 30 jours, un dossier de prise en charge qui n'avance plus (l'assureur tarde à payer, des pièces sont attendues, un refus), un cahier des charges dont la date limite est passée.",
+        "Chaque point dit qui agit (l'entreprise ou le conseiller) et mène à la bonne page. « À traiter » passe avant « À surveiller », puis « À savoir ». Rien n'est à « fermer » : un point disparaît quand sa cause est réglée.",
+        "« Vos dossiers » compte, sur chaque dossier, ce qui est à traiter et à surveiller." ] },
     ],
     termes: ["ifc", "convention", "regime"],
   },

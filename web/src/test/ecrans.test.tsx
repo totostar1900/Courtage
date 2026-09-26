@@ -943,3 +943,35 @@ describe("l'export de l'étude", () => {
     clic.mockRestore();
   });
 });
+
+describe("les points d'attention", () => {
+  const alertes = [
+    { niveau: "grave", code: "etude_a_renouveler", titre: "Une nouvelle étude s'impose",
+      detail: "La dernière étude émise est au 31/12/2019, il y a 81 mois.", lien: "etudes", pour: "entreprise" },
+    { niveau: "attention", code: "donnees_anciennes", titre: "Le personnel est à mettre à jour",
+      detail: "Le dernier fichier est arrêté au 31/12/2019.", lien: "personnel", pour: "entreprise" }];
+
+  it("le tableau de bord les liste, avec qui agit, et mène à la page", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/alertes`]: alertes,
+      [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}`);
+    const zone = await screen.findByRole("region", { name: "Points d'attention" });
+    const lignes = within(zone).getAllByRole("listitem");
+    expect(lignes[0]).toHaveTextContent("À traiter");
+    expect(lignes[0]).toHaveTextContent("Une nouvelle étude s'impose");
+    expect(lignes[1]).toHaveTextContent("L'entreprise agit.");
+    await userEvent.click(within(lignes[1]).getByRole("link", { name: "Ouvrir" }));
+    expect(await screen.findByRole("heading", { name: "Votre personnel" })).toBeInTheDocument();
+  });
+
+  it("« Vos dossiers » compte ce qui attend, et dit quand tout est à jour", async () => {
+    simulerApi({ "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [
+      { id: ORG, nom: "AZITO", pays: "CI", role: "admin_client" }, { id: "o2", nom: "Calme SA", pays: "CM", role: "admin_client" }] },
+      "/alertes": { [ORG]: { grave: 1, attention: 2, info: 1 }, o2: { grave: 0, attention: 0, info: 3 } } });
+    ouvrir("/");
+    const azito = (await screen.findByRole("heading", { name: "AZITO" })).closest("a") as HTMLElement;
+    expect(azito).toHaveTextContent("1 à traiter");
+    expect(azito).toHaveTextContent("2 à surveiller");
+    expect(screen.getByRole("heading", { name: "Calme SA" }).closest("a")).toHaveTextContent("À jour");
+  });
+});

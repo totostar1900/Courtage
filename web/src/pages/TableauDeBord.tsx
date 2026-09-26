@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 
 import { api } from "../api";
+import { PointsAttention } from "../composants/Alertes";
 import { Cle, Constats, useCharge } from "../composants/communs";
 import { dateFr, millions, montant } from "../format";
 import { etapes } from "../parcours";
 import Rapprochement, { sousCotisation } from "../composants/Rapprochement";
-import type { Etude } from "../types";
+import type { Alerte, Etude } from "../types";
 import LeSaviezVous from "../composants/LeSaviezVous";
 import { useDossier } from "./Dossier";
 
@@ -18,9 +19,12 @@ export default function TableauDeBord() {
     [derniere?.id],
   );
 
+  const { donnee: alertes } = useCharge(() => api.get<Alerte[]>(`/organisations/${d.org.id}/alertes`), [d.org.id]);
+
   return (
     <>
       <h1>Où en est votre dossier</h1>
+      {alertes && alertes.length > 0 && <PointsAttention alertes={alertes} />}
       {suivante ? (
         <div className="carte" style={{ borderColor: "var(--ocre)" }} data-visite="prochaine">
           <div className="discret">Prochaine étape</div>

@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import analyse, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import alertes, analyse, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -44,6 +44,24 @@ def moi(session: Session = Depends(session_db, scope="function"), utilisateur: U
         "admin_plateforme": utilisateur.admin_plateforme,
         "organisations": [{"id": str(o.id), "nom": o.nom, "pays": o.pays, "role": r} for o, r in rangs],
     }
+
+
+@routeur.get("/alertes")
+def alertes_de_mes_dossiers(session: Session = Depends(session_db, scope="function"),
+                            utilisateur: Utilisateur = Depends(identite)):
+    """Le décompte des alertes de chacun de mes dossiers, pour « Vos dossiers »."""
+    decompte = {}
+    for org in session.scalars(select(Organisation).join(Adhesion, Adhesion.organisation_id == Organisation.id)
+                               .where(Adhesion.utilisateur_id == utilisateur.id)):
+        contexte(session.connection(), org.id)
+        liste = alertes.du_dossier(session, org, date.today())
+        decompte[str(org.id)] = {n: sum(a["niveau"] == n for a in liste) for n in ("grave", "attention", "info")}
+    return decompte
+
+
+@routeur.get("/organisations/{organisation_id}/alertes")
+def alertes_du_dossier(a: Acces = Depends(acces(*TOUS))):
+    return alertes.du_dossier(a.session, a.organisation, date.today())
 
 
 class NouvelleOrganisation(_Corps):
