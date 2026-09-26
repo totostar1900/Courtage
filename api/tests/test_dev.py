@@ -59,3 +59,28 @@ def test_la_societe_demo_se_seme_au_demarrage_et_une_seule_fois(bases, monkeypat
     assert len(client.get(f"{base}/fiches/{fiche['id']}/reponses", headers=en_tant_que(admin)).json()["reponses"]) == 3
     with bases[0].connect() as c:
         assert c.execute(text("SELECT count(*) FROM organisations WHERE nom = :n"), {"n": NOM_DEMO}).scalar() == 1
+
+
+def test_une_nouvelle_version_de_la_demonstration_remplace_l_ancienne(bases, monkeypatch):
+    """Les études sont figées : pour montrer ce que le code sait faire de nouveau (le découpage par catégorie
+    de l'échéancier), la démonstration se sème à neuf, et l'ancienne sort de la liste des administrateurs."""
+    import uuid
+    from courtage.amorcer import amorcer
+    from courtage.demo import NOM_DEMO, depuis_environnement
+    from tests.conftest import MOT_DE_PASSE_APP
+    monkeypatch.delenv("COURTAGE_ENV", raising=False)
+    url = bases[0].url.render_as_string(hide_password=False)
+    admin, _ = amorcer(url, f"+2376{uuid.uuid4().int % 10**8:08d}", "Admin remplacement")
+    env = {"COURTAGE_DEMO": "1", "COURTAGE_URL_PROPRIETAIRE": url, "COURTAGE_MOT_DE_PASSE_APP": MOT_DE_PASSE_APP}
+    depuis_environnement(env, version=90)                          # une démonstration en place
+    assert "semée" in depuis_environnement(env, version=91)        # le code a changé : on resème
+    assert "déjà" in depuis_environnement(env, version=91)
+
+    client = TestClient(creer_app(moteur=bases[1], authentification="entete_dev"))
+    demos = [o for o in client.get(f"{V1}/moi", headers=en_tant_que(admin)).json()["organisations"] if o["nom"] == NOM_DEMO]
+    assert len(demos) == 1                                          # l'ancienne n'encombre plus la liste
+    base = f"{V1}/organisations/{demos[0]['id']}"
+    emise = next(e for e in client.get(f"{base}/etudes", headers=en_tant_que(admin)).json() if e["statut"] == "emise")
+    etude = client.get(f"{base}/etudes/{emise['id']}", headers=en_tant_que(admin)).json()
+    assert all(a["par_categorie"] for a in etude["echeancier"])     # le graphique peut tout montrer
+    assert {c for a in etude["echeancier"] for c in a["par_categorie"]} == {"Cadre", "Employé"}

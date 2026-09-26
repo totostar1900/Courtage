@@ -221,9 +221,15 @@ def _fichier() -> bytes:
     return tampon.getvalue()
 
 
-def depuis_environnement(env) -> str | None:
-    """`COURTAGE_DEMO=1` : sème la Société Démo SA au démarrage, une fois, et en fait suivre le dossier par
-    les administrateurs de la plateforme. Jamais en production : un client n'y verrait que du faux."""
+# La version de la démonstration : à monter quand le code sait montrer ce que les études déjà semées ne
+# portent pas (elles sont figées). v2 : l'échéancier découpé par catégorie (26/09/2026).
+VERSION_DEMO = 2
+
+
+def depuis_environnement(env, version: int = VERSION_DEMO) -> str | None:
+    """`COURTAGE_DEMO=1` : sème la Société Démo SA au démarrage, une fois par version, et en fait suivre le
+    dossier par les administrateurs de la plateforme. Une version plus récente sème un dossier neuf et retire
+    l'ancien de leur liste (rien n'est effacé : le journal et les études restent). Jamais en production."""
     if (env.get("COURTAGE_DEMO") or "").strip().lower() not in ("1", "oui", "true"):
         return None
     if env.get("COURTAGE_ENV") == "production":
@@ -232,12 +238,18 @@ def depuis_environnement(env) -> str | None:
     proprio = create_engine(_psycopg(env["COURTAGE_URL_PROPRIETAIRE"]))
     ids = {}
     with proprio.begin() as c:
-        if c.execute(text("SELECT 1 FROM journal WHERE action = 'demo.semee'")).first():
-            return f"{NOM_DEMO} déjà semée"
+        # La première démonstration a laissé une marque sans version : elle compte pour la version 1.
+        en_place = c.execute(text("SELECT max(coalesce((details->>'version')::int, 1)) FROM journal "
+                                  "WHERE action = 'demo.semee'")).scalar()
+        if en_place is not None and en_place >= version:
+            return f"{NOM_DEMO} déjà semée (version {en_place})"
+        anciennes = [str(i) for i in c.execute(text("SELECT id FROM organisations WHERE nom = :n"), {"n": NOM_DEMO}).scalars()]
         # La marque d'abord : si la suite échoue, le redémarrage ne sème pas un second dossier.
-        c.execute(text("INSERT INTO journal (action, cible, details) VALUES ('demo.semee', 'plateforme', '{}')"))
+        c.execute(text("INSERT INTO journal (action, cible, details) VALUES ('demo.semee', 'plateforme', "
+                       "jsonb_build_object('version', CAST(:v AS int)))"), {"v": version})
         admins = [str(i) for i in c.execute(text(
-            "SELECT id FROM utilisateurs WHERE admin_plateforme ORDER BY cree_le")).scalars()]
+            "SELECT id FROM utilisateurs WHERE admin_plateforme AND coalesce(email, '') NOT LIKE '%@demo.courtage' "
+            "ORDER BY cree_le")).scalars()]
         suffixe = uuid.uuid4().hex[:6]
         for cle, nom, admin in (("admin", "Plateforme (démonstration)", True),
                                 ("conseiller", "Awa Nkoulou, actuaire conseil (fictive)", False),
@@ -256,7 +268,15 @@ def depuis_environnement(env) -> str | None:
         r = client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": admin, "role": "conseiller"},
                         headers=h("admin"))
         assert r.status_code == 201, r.text
-    return f"{NOM_DEMO} semée ({org}), suivie par {len(admins)} administrateur(s)"
+    if anciennes:
+        # L'ancienne démonstration sort de la liste des administrateurs ; son dossier reste, intact.
+        with proprio.begin() as c:
+            c.execute(text("DELETE FROM adhesions WHERE organisation_id = ANY(CAST(:o AS uuid[])) "
+                           "AND utilisateur_id = ANY(CAST(:u AS uuid[]))"), {"o": anciennes, "u": admins})
+            c.execute(text("INSERT INTO journal (action, cible, details) VALUES ('demo.remplacee', :n, "
+                           "jsonb_build_object('anciennes', CAST(:a AS jsonb)))"), {"n": org, "a": json.dumps(anciennes)})
+    return (f"{NOM_DEMO} semée ({org}, version {version}), suivie par {len(admins)} administrateur(s)"
+            + (f" ; {len(anciennes)} ancienne(s) retirée(s) de leur liste" if anciennes else ""))
 
 
 if __name__ == "__main__":
