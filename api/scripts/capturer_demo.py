@@ -200,6 +200,18 @@ def main(url: str, sortie: Path) -> None:
         if p["motif"] == "retraite" and p["service"] == "comparaison":
             capter(f"{base}/prestations/{p['id']}/orientation")
             fiches_de_calcul.append(f"{base}/prestations/{p['id']}/fiche-de-calcul")
+    # L'extraction assistée, par le moteur à règles (aucun appel externe) sur un accord FICTIF de la Société Démo.
+    accord = ("ACCORD D'ENTREPRISE — INDEMNITÉ DE DÉPART À LA RETRAITE\nSociété Démo SA, Douala, Cameroun\n"
+              "Article 9. Le salarié qui part à la retraite perçoit une indemnité calculée sur la moyenne mensuelle "
+              "des douze derniers mois de salaire :\n- 50 % d'un mois de salaire pour chacune des 5 premières années ;\n"
+              "- 60 % de la 6e à la 10e année ;\n- 75 % de la 11e à la 20e année ;\n- 90 % au-delà de la 20e année.\n"
+              "Le présent accord entre en vigueur le 1er juillet 2026.\n")
+    capter("/extraction/mode")
+    r = client.post(f"{V1}{base}/regimes/extraction", headers=h("drh"),
+                    files={"fichier": ("accord-ifc-2026.txt", accord.encode("utf-8"))})
+    assert r.status_code == 201, r.text
+    reponses[f"POST {base}/regimes/extraction"] = r.json()
+
     documents = {}
     rapport = reponses[f"GET {base}/etudes/{etude['id']}"]["rapport"]["numero"]
     for numero, chemin in ((rapport, f"{base}/etudes/{etude['id']}/rapport"),

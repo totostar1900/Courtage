@@ -67,6 +67,11 @@ export const CHAPITRES: Chapitre[] = [
       { titre: "Faut-il un régime ?", texte: [
         "Non : sans régime, l'étude s'appuie sur la convention collective de votre branche. Décrivez un régime si vous versez plus (accord d'entreprise, usage, contrats).",
         "Un régime a des versions : une nouvelle version s'ajoute, l'ancienne reste, et une étude dit toujours sur quelle version elle repose." ] },
+      { titre: "Partir d'un texte existant", texte: [
+        "Votre accord d'entreprise existe déjà ? « Partir d'un texte existant » lit le PDF et propose le barème de départ à la retraite, catégorie par catégorie, avec la date d'effet et la base de salaire.",
+        "Chaque valeur proposée cite le passage d'où elle vient, et la plateforme vérifie que ce passage est bien dans le texte : « introuvable » veut dire qu'il faut relire cette valeur avant tout.",
+        "Rien n'est enregistré sans vous : « Reprendre dans le formulaire » préremplit la version, vous la relisez, la corrigez et l'enregistrez ; l'analyse habituelle suit.",
+        "Pour l'instant, les textes des pays de la CEMAC seulement. Selon la configuration, la lecture se fait sur la plateforme (formulations courantes) ou par un service d'IA (Anthropic), qui demande alors votre accord avant l'envoi ; la plateforme ne garde que l'empreinte du document." ] },
       { titre: "L'analyse", texte: [
         "« Analyser » lit votre régime contre la convention : où il est en dessous du plancher, ce qu'il coûte de plus, les pièges (une tranche mal bornée, un plafond qui annule un avantage).",
         "Avec un fichier du personnel, l'analyse chiffre ce que coûte chaque écart sur VOS salariés." ] },

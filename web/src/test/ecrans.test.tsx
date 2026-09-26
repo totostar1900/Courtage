@@ -497,3 +497,58 @@ describe("les réponses des assureurs", () => {
     expect(screen.queryByRole("button", { name: "Saisir une réponse" })).not.toBeInTheDocument();
   });
 });
+
+describe("partir d'un texte existant", () => {
+  const cemac = { CM: "Cameroun", GA: "Gabon", CG: "Congo", TD: "Tchad", CF: "Centrafrique", GQ: "Guinée équatoriale" };
+  const camerounais = (role: "admin_client" | "conseiller" = "admin_client") => ({ ...dossier(role),
+    "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [{ id: ORG, nom: "Démo CM", pays: "CM", role }] } });
+  const proposition = { id: "x1", moteur: "claude", modele: "claude-opus-5", envoie_a_un_tiers: true, pays_couverts: cemac,
+    version: { en_vigueur_du: "2024-02-01", fondement: "accord_entreprise", document_reference: "Accord IFC 2024",
+      categories: [{ categorie: "*", convention_code: "CM_COMMERCE", bareme: { forme: "tranches_cumulatives", tranches: [
+        { jusqu_a: 5, mois_par_annee: 0.45 }, { jusqu_a: null, mois_par_annee: 0.8 }] }, anciennete_minimale: 0,
+        plafond_mois: null, arrondi: "annees", base_salaire: "moyenne_12_mois", avec_primes: false, evenements: ["retraite"] }] },
+    verifications: [
+      { champ: "* · barème", valeur: [{ jusqu_a: 5, mois_par_annee: 0.45 }, { jusqu_a: null, mois_par_annee: 0.8 }],
+        citation: "45 % d'un mois de salaire pour chacune des 5 premières années", retrouvee: true },
+      { champ: "date d'effet", valeur: "2024-02-01", citation: "en vigueur le 1er mars 2024", retrouvee: false }],
+    constats: [{ niveau: "avertit", code: "citation_introuvable", message: "Un passage cité est introuvable." }] };
+
+  it("l'accord avant l'envoi, chaque valeur avec son passage, puis le formulaire prérempli", async () => {
+    const appels = simulerApi({ ...camerounais(), "/extraction/mode": { moteur: "claude", modele: "claude-opus-5", envoie_a_un_tiers: true, pays_couverts: cemac },
+      [`POST /organisations/${ORG}/regimes/extraction`]: proposition });
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Décrire un régime" }));
+    await userEvent.upload(await screen.findByLabelText("Le texte (PDF ou texte brut)"), new File(["accord"], "accord.pdf"));
+    const lire = screen.getByRole("button", { name: "Lire le texte" });
+    expect(lire).toBeDisabled();
+    await userEvent.click(screen.getByRole("checkbox", { name: /envoyé à Anthropic/ }));
+    await userEvent.click(lire);
+    expect(await screen.findByText("Un passage cité est introuvable.")).toBeInTheDocument();
+    expect(screen.getByText("introuvable")).toBeInTheDocument();
+    expect(screen.getByText("45 % jusqu'à 5 ans ; 80 % au-delà")).toBeInTheDocument();
+    const corps = appels.find((a) => a.init?.method === "POST")!.init!.body as FormData;
+    expect(corps.get("consentement")).toBe("true");
+    await userEvent.click(screen.getByRole("button", { name: "Reprendre dans le formulaire" }));
+    expect(screen.getByLabelText("En vigueur à partir du")).toHaveValue("2024-02-01");
+    expect(screen.getByLabelText("Document")).toHaveValue("Accord IFC 2024");
+    expect(screen.getByLabelText("Nom")).toHaveValue("Accord IFC 2024");
+  });
+
+  it("hors CEMAC, la lecture assistée n'est pas proposée", async () => {
+    simulerApi({ ...dossier("admin_client"), "/extraction/mode": { moteur: "regles", modele: null, envoie_a_un_tiers: false, pays_couverts: cemac } });
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Décrire un régime" }));
+    expect(await screen.findByText(/réservée pour l'instant aux pays de la CEMAC/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Lire le texte" })).not.toBeInTheDocument();
+  });
+
+  it("le moteur à règles ne demande pas d'accord : rien ne part", async () => {
+    simulerApi({ ...camerounais(), "/extraction/mode": { moteur: "regles", modele: null, envoie_a_un_tiers: false, pays_couverts: cemac } });
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Décrire un régime" }));
+    await userEvent.upload(await screen.findByLabelText("Le texte (PDF ou texte brut)"), new File(["x"], "accord.txt"));
+    expect(screen.getByRole("button", { name: "Lire le texte" })).toBeEnabled();
+    expect(screen.queryByRole("checkbox", { name: /Anthropic/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/sans envoi à un tiers/)).toBeInTheDocument();
+  });
+});

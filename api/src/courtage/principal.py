@@ -10,6 +10,7 @@ COURTAGE_CLE_SCEAU      clé secrète des sceaux ; obligatoire en production, si
 COURTAGE_URL_PUBLIQUE   adresse publique, imprimée sur les rapports pour la vérification
 COURTAGE_WEB            dossier de l'interface construite (web/dist) ; l'image le fixe à /app/web
 COURTAGE_ENV            `production` | `recette` (cookie sécurisé ; en recette les codes vont au journal)
+COURTAGE_EXTRACTION     `regles` (défaut, aucun appel externe) | `claude` (Anthropic ; ANTHROPIC_API_KEY requis)
 """
 import os
 
@@ -25,10 +26,18 @@ def _octets(nom: str) -> bytes | None:
     return valeur.encode("utf-8") if valeur else None
 
 
+def _extracteur():
+    if os.environ.get("COURTAGE_EXTRACTION", "regles") == "claude":
+        from courtage.extraction.claude import ExtracteurClaude
+        return ExtracteurClaude()
+    return None
+
+
 app = creer_app(create_engine(_psycopg(os.environ["DATABASE_URL"]), pool_pre_ping=True),
                 authentification=os.environ.get("COURTAGE_AUTH", "session"),
                 cle_sceau=_octets("COURTAGE_CLE_SCEAU"),
                 url_publique=os.environ.get("COURTAGE_URL_PUBLIQUE"),
                 expediteur=expediteur_depuis_environnement(os.environ),
                 cle_auth=_octets("COURTAGE_CLE_AUTH"),
-                dossier_web=os.environ.get("COURTAGE_WEB") or None)
+                dossier_web=os.environ.get("COURTAGE_WEB") or None,
+                extracteur=_extracteur())

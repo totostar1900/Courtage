@@ -42,6 +42,8 @@ répond 503 dès que la base ne porte pas la révision attendue par le code.
 | `COURTAGE_CLE_AUTH` | clé des codes de connexion (la changer invalide seulement les codes en cours) |
 | `COURTAGE_URL_PUBLIQUE` | `https://…`, imprimée sur les rapports pour la vérification |
 | `TWILIO_COMPTE`, `TWILIO_JETON`, `TWILIO_EMETTEUR`, `TWILIO_CANAL` | envoi des codes (`whatsapp` ou `sms`) |
+| `COURTAGE_EXTRACTION` | `regles` (défaut : lecture sur la plateforme, aucun envoi) \| `claude` (lecture par Claude, l'accord de la personne est demandé avant chaque envoi) |
+| `ANTHROPIC_API_KEY` | avec `COURTAGE_EXTRACTION=claude` seulement |
 | `COURTAGE_PROXYS` | adresses de proxy de confiance pour `X-Forwarded-For` (défaut `*`) |
 
 En production, l'application **refuse de démarrer** dans trois cas : pas de clé de

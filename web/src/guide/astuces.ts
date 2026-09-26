@@ -19,6 +19,7 @@ export const ASTUCES: Astuce[] = [
   { texte: "En comparaison, joignez la fiche de calcul scellée à votre demande : l'assureur vérifie en ligne, par son numéro FC-…, que le calcul n'a pas été retouché.", chapitre: "departs" },
   { texte: "Cinq départs au moins avant de changer une hypothèse : en dessous, la rotation observée est montrée, pas proposée — deux démissions ne font pas une tendance.", chapitre: "departs" },
   { texte: "La moins chère des offres n'est pas toujours la recommandée : une pénalité de transfert ou un préavis trop long la rend non conforme — c'est ce qui vous permettra de partir plus tard.", chapitre: "cahier" },
+  { texte: "Votre accord d'entreprise peut préremplir votre régime : chaque taux proposé cite son passage du texte, et un passage introuvable est signalé.", chapitre: "regime" },
   { texte: "La date d'évaluation est toujours une fin de mois : c'est votre date de clôture, celle du bilan.", chapitre: "etude" },
   { texte: "Une convention révisée ne remplace pas l'ancienne : une étude de 2023 garde le barème de 2023.", chapitre: "conventions" },
 ];

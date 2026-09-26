@@ -39,7 +39,8 @@ _SURES = {"GET", "HEAD", "OPTIONS"}
 
 def creer_app(moteur: Engine, authentification: ModeAuthentification = "session",
               cle_sceau: bytes | None = None, url_publique: str | None = None,
-              expediteur=None, cle_auth: bytes | None = None, dossier_web: Path | str | None = None) -> FastAPI:
+              expediteur=None, cle_auth: bytes | None = None, dossier_web: Path | str | None = None,
+              extracteur=None) -> FastAPI:
     """`dossier_web` : l'interface construite (`web/dist`), servie par la même application — une
     seule origine, donc un cookie de session sans CORS ni domaine tiers."""
     production = os.environ.get("COURTAGE_ENV") == "production"
@@ -56,6 +57,8 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     app.state.sceau = ConfigSceau.depuis(cle_sceau, url_publique)
     app.state.expediteur = expediteur or ExpediteurJournal()
     app.state.cle_auth = cle_auth or auth.CLE_DE_DEVELOPPEMENT
+    from courtage.extraction.regles import ExtracteurRegles
+    app.state.extracteur = extracteur or ExtracteurRegles()
     app.state.cookie_securise = production or os.environ.get("COURTAGE_ENV") == "recette"
     from .limites import Limiteur
     app.state.limites = {

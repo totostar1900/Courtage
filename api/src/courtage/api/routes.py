@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import analyse, contrats, dossiers, etudes, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import analyse, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -404,6 +404,32 @@ def repondre_dossier(dossier_id: uuid.UUID, corps: Reponse, a: Acces = Depends(a
     dossiers.repondre(a.session, a.organisation, a.utilisateur.id, dossiers.obtenir(a.session, dossier_id),
                       paye=corps.paye, montant=corps.montant, le=corps.le or date.today(), motif=corps.motif)
     return _dossier(a, dossier_id, 201)
+
+
+# --- Extraction assistée d'un texte existant ------------------------------------------------
+
+@routeur.get("/extraction/mode")
+def mode_extraction(request: Request, _: Utilisateur = Depends(identite)):
+    return extractions.mode(request.app.state.extracteur)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/extraction", status_code=201)
+async def extraire_regime(request: Request, fichier: UploadFile = File(...), consentement: bool = Form(default=False),
+                          a: Acces = Depends(acces(*CLIENT))):
+    return extractions.pour_un_regime(a.session, a.organisation, a.utilisateur.id, request.app.state.extracteur,
+                                      contenu=await fichier.read(), nom_fichier=fichier.filename or "texte",
+                                      consentement=consentement)
+
+
+@routeur.post("/referentiel/extraction")
+async def extraire_convention(request: Request, fichier: UploadFile = File(...), pays: str = Form(...),
+                              consentement: bool = Form(default=False), session: Session = Depends(session_db),
+                              utilisateur: Utilisateur = Depends(identite)):
+    if not utilisateur.admin_plateforme:
+        raise ErreurMetier("acces_refuse", "Le référentiel se tient par la plateforme.", 403)
+    return extractions.pour_le_referentiel(utilisateur.id, request.app.state.extracteur, session,
+                                           contenu=await fichier.read(), nom_fichier=fichier.filename or "texte",
+                                           consentement=consentement, pays=pays.strip().upper())
 
 
 # --- Régimes ------------------------------------------------------------------

@@ -236,3 +236,20 @@ chère des conformes. **Le choix appartient à l'entreprise** : un par cahier, e
 s'il ne se porte pas sur la recommandée. Une réponse arrive en multipart : la grille
 est un champ JSON `donnees`, l'offre PDF est à côté.
 
+## Extraction assistée
+
+`courtage/extraction/` (module pur + deux moteurs) et `services/extractions.py`,
+migration 0014. La plateforme **propose, elle n'enregistre pas** : la proposition
+préremplit le formulaire d'une version, et une personne la relit. Chaque valeur
+**cite son passage**, que `citation_retrouvee` cherche dans le texte lu localement.
+Une valeur introuvable est signalée, jamais reprise en silence.
+
+- **CEMAC seulement**, pour le dossier comme pour le texte.
+- **Moteurs** : `regles` par défaut, sans appel externe ; `claude` si
+  `COURTAGE_EXTRACTION=claude`, avec `claude-opus-5`, une sortie structurée et
+  `fallbacks: "default"`. Un moteur qui envoie le texte à un tiers exige l'accord
+  explicite de la personne.
+- **Ce qui est gardé** : l'empreinte et la proposition, **jamais le document**.
+- **Schémas** : garder `extraction/claude.py:SCHEMA` aligné sur le modèle
+  `Extraction`. Un test vérifie que le schéma est strict partout.
+

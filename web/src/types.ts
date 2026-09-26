@@ -297,3 +297,18 @@ export interface ReponsesFiche {
   reponses: ReponseAssureur[]; recommandee: string | null; comparaison: Financement | null;
   choix: { reponse_id: string; assureur: string; motif: string | null; choisi_le: string; recommandee: boolean } | null;
 }
+
+export interface ModeExtraction {
+  moteur: string; modele: string | null; envoie_a_un_tiers: boolean; pays_couverts: Record<string, string>;
+}
+
+export interface VersionProposee {
+  en_vigueur_du: string | null; fondement: string; document_reference: string; categories: Categorie[];
+}
+
+export interface ExtractionProposee extends ModeExtraction {
+  id: string;
+  version: VersionProposee | Record<string, never>;
+  verifications: { champ: string; valeur: unknown; citation: string | null; retrouvee: boolean | null }[];
+  constats: Constat[];
+}

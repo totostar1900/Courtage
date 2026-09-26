@@ -20,6 +20,8 @@ export async function repondre(methode: string, chemin: string, corps: unknown, 
   if (m === "POST" && chemin === "/auth/deconnexion") return { message: "Déconnecté." };
   if (m === "GET") return trouver(`GET ${chemin}`);
   if (m === "POST" && chemin.endsWith("/simulations")) return trouver(`POST ${chemin}`);
+  // La lecture assistée d'un texte : la réponse enregistrée sur l'accord fictif, quel que soit le fichier choisi.
+  if (m === "POST" && chemin.endsWith("/regimes/extraction")) return trouver(`POST ${chemin}`);
   const f = chemin.match(/^\/organisations\/[^/]+\/etudes\/([^/]+)\/financement$/);
   if (m === "POST" && f) return financer(chemin.replace(/\/financement$/, ""), corps as Record<string, unknown>);
   throw new ErreurApi(403, "demo_lecture_seule",

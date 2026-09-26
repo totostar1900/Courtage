@@ -3,8 +3,9 @@ import { useState, type FormEvent } from "react";
 import { api } from "../api";
 import { Constats, Erreur, Volet } from "../composants/communs";
 import { EditeurCategories, categorieVide, resumeBareme } from "../composants/EditeurCategories";
+import ExtractionTexte from "../composants/ExtractionTexte";
 import { dateFr } from "../format";
-import type { Categorie, Constat, Version } from "../types";
+import type { Categorie, Constat, Version, VersionProposee } from "../types";
 import { useDossier } from "./Dossier";
 
 const FONDEMENTS = {
@@ -127,9 +128,10 @@ function CarteVersion({ version: v }: { version: Version }) {
   );
 }
 
-function FormulaireVersion({ onValider, bouton }: { onValider: (v: object) => Promise<void>; bouton: string }) {
+function FormulaireVersion({ onValider, bouton, initial }:
+  { onValider: (v: object) => Promise<void>; bouton: string; initial?: VersionProposee | null }) {
   const d = useDossier();
-  const [categories, setCategories] = useState<Categorie[]>([categorieVide(d.org.pays)]);
+  const [categories, setCategories] = useState<Categorie[]>(initial?.categories?.length ? initial.categories : [categorieVide(d.org.pays)]);
   const [erreur, setErreur] = useState<unknown>(null);
   async function envoyer(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
@@ -144,11 +146,11 @@ function FormulaireVersion({ onValider, bouton }: { onValider: (v: object) => Pr
   return (
     <form className="formulaire" onSubmit={envoyer}>
       <div className="grille g3">
-        <label>En vigueur à partir du<input name="en_vigueur_du" type="date" required /></label>
+        <label>En vigueur à partir du<input name="en_vigueur_du" type="date" required defaultValue={initial?.en_vigueur_du ?? undefined} /></label>
         <label>Fondement
-          <select name="fondement">{Object.entries(FONDEMENTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+          <select name="fondement" defaultValue={initial?.fondement}>{Object.entries(FONDEMENTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
         </label>
-        <label>Document<input name="document_reference" required placeholder="Accord du 12/03/2015, art. 12" /></label>
+        <label>Document<input name="document_reference" required placeholder="Accord du 12/03/2015, art. 12" defaultValue={initial?.document_reference} /></label>
       </div>
       <EditeurCategories categories={categories} onChange={setCategories} pays={d.org.pays} />
       <div className="actions"><button className="principal">{bouton}</button></div>
@@ -160,10 +162,12 @@ function FormulaireVersion({ onValider, bouton }: { onValider: (v: object) => Pr
 function NouveauRegime({ onFini, onFermer }: { onFini: () => void; onFermer: () => void }) {
   const d = useDossier();
   const [nom, setNom] = useState("");
+  const [initial, setInitial] = useState<{ v: VersionProposee; n: number } | null>(null);
   return (
     <Volet titre="Décrire un régime" onFermer={onFermer}>
+      <ExtractionTexte onReprendre={(v) => { setInitial({ v, n: (initial?.n ?? 0) + 1 }); if (!nom) setNom(v.document_reference); }} />
       <label style={{ marginBottom: 12 }}>Nom<input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Accord IFC 2015" /></label>
-      <FormulaireVersion bouton="Enregistrer pour analyse" onValider={async (v) => {
+      <FormulaireVersion key={initial?.n ?? 0} initial={initial?.v} bouton="Enregistrer pour analyse" onValider={async (v) => {
         const r = await api.post<{ id: string }>(`/organisations/${d.org.id}/regimes`, { nom: nom || "Régime IFC" });
         await api.post(`/organisations/${d.org.id}/regimes/${r.id}/versions`, v);
         onFini();
@@ -175,10 +179,12 @@ function NouveauRegime({ onFini, onFermer }: { onFini: () => void; onFermer: () 
 function NouvelleVersion({ regimeId }: { regimeId: string }) {
   const d = useDossier();
   const [ouvert, setOuvert] = useState(false);
+  const [initial, setInitial] = useState<{ v: VersionProposee; n: number } | null>(null);
   if (!ouvert) return <button onClick={() => setOuvert(true)}>Nouvelle version</button>;
   return (
     <Volet titre="Nouvelle version" onFermer={() => setOuvert(false)}>
-      <FormulaireVersion bouton="Enregistrer pour analyse" onValider={async (v) => {
+      <ExtractionTexte onReprendre={(v) => setInitial({ v, n: (initial?.n ?? 0) + 1 })} />
+      <FormulaireVersion key={initial?.n ?? 0} initial={initial?.v} bouton="Enregistrer pour analyse" onValider={async (v) => {
         await api.post(`/organisations/${d.org.id}/regimes/${regimeId}/versions`, v);
         setOuvert(false);
       }} />

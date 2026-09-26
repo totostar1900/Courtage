@@ -263,6 +263,22 @@ class ChoixFiche(Base):
     choisi_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
+class ExtractionTexte(Base):
+    """La trace d'une extraction assistée : l'empreinte du document, jamais le document."""
+    __tablename__ = "extractions"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    nom_fichier: Mapped[str] = mapped_column(Text)
+    empreinte: Mapped[str] = mapped_column(Text)
+    taille: Mapped[int] = mapped_column(Integer)
+    moteur: Mapped[str] = mapped_column(Text)
+    modele: Mapped[str | None] = mapped_column(Text)
+    envoye_a_un_tiers: Mapped[bool] = mapped_column(Boolean)
+    resultat: Mapped[dict] = mapped_column(JSONB)
+    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
 class BaremeEntreprise(Base):
     __tablename__ = "baremes_entreprise"
     id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())

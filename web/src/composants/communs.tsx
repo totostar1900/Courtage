@@ -149,6 +149,16 @@ const MOTIFS: Record<string, string> = {
   colonnes_introuvables: "colonnes introuvables",
   categorie_inconnue: "catégorie sans règle",
   convention_requise: "convention à préciser",
+  a_relire: "à relire",
+  non_trouve: "non trouvé dans le texte",
+  hors_cemac: "hors CEMAC",
+  autre_pays: "un autre pays",
+  citation_introuvable: "passage introuvable",
+  texte_illisible: "texte illisible",
+  bareme_absent: "barème absent",
+  derniere_tranche_ouverte: "dernière tranche à vérifier",
+  rien_a_reprendre: "rien à reprendre",
+  sans_categorie_generale: "pas de catégorie générale",
 };
 
 export function libelleMotif(code: string): string {
