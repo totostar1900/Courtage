@@ -74,6 +74,7 @@ def main(url: str, sortie: Path) -> None:
 
     capter("/referentiel/conventions")
     capter("/referentiel/modeles?pays=CM")
+    capter("/referentiel/hypotheses")
     capter("/catalogue/regimes")
     capter("/alertes")
     capter("/dev/utilisateurs")

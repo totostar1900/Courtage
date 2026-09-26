@@ -16,7 +16,7 @@ from courtage.analyse import concentration
 from courtage.db import Organisation
 from courtage.erreurs import ErreurMetier
 from courtage.fichier import salaries
-from courtage.referentiel import HYPOTHESES_PAR_DEFAUT, referentiel_courant
+from courtage.referentiel import referentiel_courant
 
 from . import etudes, fichiers, regimes
 
@@ -96,10 +96,5 @@ def _resume(nom: str, source: dict, r: Resultat, base: Resultat, sal, fonds: int
     }
 
 
-def _valeurs(hypotheses: dict) -> dict:
-    valeurs = dict(HYPOTHESES_PAR_DEFAUT)
-    for champ, valeur in hypotheses.items():
-        if champ not in etudes.SAISISSABLES:
-            raise ErreurMetier("hypothese_inconnue", f"Hypothèse inconnue : {champ}.", 422)
-        valeurs[champ] = etudes.SAISISSABLES[champ](valeur)
-    return valeurs
+def _valeurs(saisies: dict) -> dict:
+    return etudes.hypotheses.valeurs_et_ecarts(saisies)[0]

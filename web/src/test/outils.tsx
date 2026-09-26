@@ -4,6 +4,7 @@ import { vi } from "vitest";
 
 import { seConnecter } from "../api";
 import App from "../App";
+import CATALOGUE from "./catalogue-hypotheses.json";
 
 /** Une API simulée : chemin (sans /api/v1) → réponse JSON. Une fonction reçoit la requête. */
 export function simulerApi(reponses: Record<string, unknown | ((init?: RequestInit) => unknown)>) {
@@ -44,6 +45,7 @@ export function dossier(role: "admin_client" | "conseiller" | "lecteur_client", 
     [`/organisations/${ORG}/etudes`]: [{ id: "e1", statut: "brouillon", date_evaluation: "2019-12-31", convention_code: "CI_CCI", dette: 60130415, emise_le: null }],
     [`/organisations/${ORG}/fiches`]: [],
     [`/organisations/${ORG}/equipe`]: [{ id: "c", nom: "Awa Nkoulou", email: "awa@x.cm", telephone: null, role: "conseiller" }],
+    "/referentiel/hypotheses": CATALOGUE,
     ...extra,
   };
 }

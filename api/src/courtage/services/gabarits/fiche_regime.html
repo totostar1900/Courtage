@@ -56,9 +56,25 @@
   <tr><td>Engagement total (VAPF)</td><td class="n">{{ c.etude.totaux.vapf | montant }}</td></tr>
   <tr><td>Fonds déjà constitué</td><td class="n">{{ c.etude.fonds_disponible | montant }}</td></tr>
 </table>
+{% if c.etude.hypotheses_lues %}
+<h3>Les hypothèses de l'évaluation</h3>
+<table>
+  <tr><th>Hypothèse</th><th class="n">Retenue</th><th class="n">Référentiel</th></tr>
+  {% for h in c.etude.hypotheses_lues %}<tr><td>{{ h.libelle }}{% if h.ecarte %} ✱{% endif %}</td><td class="n">{{ h.retenu }}</td><td class="n">{{ h.defaut }}</td></tr>{% endfor %}
+</table>
+{% if c.etude.hypotheses_lues | selectattr("ecarte") | list %}<p class="note">✱ Écart au référentiel, justifié dans l'étude.</p>{% endif %}
+<h3>Ce que chaque hypothèse pèse</h3>
+<table>
+  <tr><th>Variante</th><th class="n">Dette actuarielle</th><th class="n">Écart</th></tr>
+  {% for cle in sensibilites if cle in c.etude.sensibilites %}{% set v = c.etude.sensibilites[cle] %}
+  <tr><td>{{ sensibilites[cle] }}</td><td class="n">{{ v.dette | montant }}</td><td class="n">{{ ((v.dette - c.etude.totaux.dette) / c.etude.totaux.dette) | pct if c.etude.totaux.dette else "—" }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
 <p class="note">Hypothèses : actualisation {{ c.etude.hypotheses.taux_actualisation | pct }}, croissance des salaires
 {{ c.etude.hypotheses.croissance_salaires | pct }}, retraite à {{ c.etude.hypotheses.age_retraite }} ans, rotation
 {{ c.etude.hypotheses.taux_turnover | pct }}, table {{ c.etude.hypotheses.table }}.</p>
+{% endif %}
 
 <h2>La population (agrégats)</h2>
 <table>

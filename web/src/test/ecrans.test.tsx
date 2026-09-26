@@ -418,7 +418,8 @@ describe("l'expérience réelle", () => {
     const appels = simulerApi({ ...dossier("admin_client"), [`POST /organisations/${ORG}/etudes`]: { ...etude({ possible: true, motifs: [] }), id: "e2" },
       [`/organisations/${ORG}/etudes/e2`]: etude({ possible: true, motifs: [] }) });
     ouvrir(`/dossier/${ORG}/etudes?turnover=0.065&justification=${encodeURIComponent("Rotation observée : 6 départs.")}`);
-    expect(await screen.findByLabelText("Rotation retenue (% par an)")).toHaveValue(6.5);
+    expect(await screen.findByLabelText("Rotation du personnel")).toHaveValue("6,5");
+    expect(screen.getByLabelText(/Justification des hypothèses ajustées/)).toHaveValue("Rotation observée : 6 départs.");
     await userEvent.click(screen.getByRole("button", { name: "Calculer" }));
     await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
     const corps = JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string);
@@ -433,6 +434,61 @@ describe("l'expérience réelle", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Calculer" }));
     await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
     expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string).hypotheses).toBeUndefined();
+  });
+});
+
+describe("les hypothèses de l'étude", () => {
+  const monter = () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`POST /organisations/${ORG}/etudes`]: { ...etude({ possible: true, motifs: [] }), id: "e2" },
+      [`/organisations/${ORG}/etudes/e2`]: etude({ possible: true, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}/etudes`);
+    return appels;
+  };
+  const corps = (appels: ReturnType<typeof simulerApi>) =>
+    JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string);
+
+  it("repliées, aux valeurs par défaut, chacune avec son rôle ; le taux dit son effet et comment le fixer", async () => {
+    monter();
+    const resume = await screen.findByText("valeurs par défaut");
+    expect(resume.closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByLabelText("Taux d'actualisation")).toHaveValue("3,5");
+    expect(screen.getByRole("button", { name: "Revenir aux valeurs par défaut" })).toBeDisabled();
+    const ligne = screen.getByLabelText("Taux d'actualisation").closest(".hypothese-ligne") as HTMLElement;
+    await userEvent.click(within(ligne).getByRole("button", { name: "Comprendre" }));
+    expect(within(ligne).getByText(/ramène chaque versement futur à sa valeur d'aujourd'hui/)).toBeInTheDocument();
+    expect(within(ligne).getByText(/Plus il est bas, plus l'engagement est lourd/)).toBeInTheDocument();
+    expect(within(ligne).getByText(/rendement de placements sûrs/)).toBeInTheDocument();
+    // La table masculine n'est pas encore au référentiel : on la voit, on ne la choisit pas.
+    const th = screen.getByRole("option", { name: /CIMA H/ }) as HTMLOptionElement;
+    expect(th.disabled).toBe(true);
+  });
+
+  it("un écart demande sa justification ; le retour aux valeurs par défaut l'efface", async () => {
+    monter();
+    const taux = await screen.findByLabelText("Taux d'actualisation");
+    await userEvent.clear(taux);
+    await userEvent.type(taux, "4,5");
+    expect(screen.getByText("1 ajustée")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Justification des hypothèses ajustées/)).toBeRequired();
+    await userEvent.click(screen.getByRole("button", { name: "Revenir aux valeurs par défaut" }));
+    expect(taux).toHaveValue("3,5");
+    expect(screen.queryByLabelText(/Justification des hypothèses ajustées/)).toBeNull();
+  });
+
+  it("la rotation par tranche d'âge et les frais partent à l'API, justifiés", async () => {
+    const appels = monter();
+    await userEvent.click(await screen.findByRole("radio", { name: "Par tranche d'âge" }));
+    expect(screen.queryByLabelText("Rotation du personnel")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Retirer la tranche 3" }));
+    const frais = screen.getByLabelText("Frais sur cotisation");
+    await userEvent.clear(frais);
+    await userEvent.type(frais, "2");
+    await userEvent.type(screen.getByLabelText(/Justification des hypothèses ajustées/), "Départs observés par âge");
+    await userEvent.click(screen.getByRole("button", { name: "Calculer" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    expect(corps(appels).hypotheses).toEqual({ frais_sur_cotisation: 0.02,
+      rotation_par_age: [{ des: 18, taux: 0.06 }, { des: 30, taux: 0.03 }] });
+    expect(corps(appels).justification).toBe("Départs observés par âge");
   });
 });
 

@@ -380,3 +380,44 @@ a.bouton.principal:hover { background: var(--indigo-vif); }
 .axe-annees span { flex: 1 1 0; min-width: 0; text-align: center; white-space: nowrap; overflow: visible; }
 .axe-annees span:first-child { text-align: left; }
 .axe-annees span:last-child { text-align: right; direction: rtl; }  /* la dernière année déborde vers la gauche : elle reste dans le graphique */
+
+/* Les hypothèses de l'étude : repliées sous un chevron, chacune avec sa valeur par défaut et son explication. */
+details.hypotheses { border: 1px solid var(--trait); border-radius: var(--rayon); background: var(--surface); }
+details.hypotheses > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-weight: 700; color: var(--indigo); }
+details.hypotheses > summary::-webkit-details-marker { display: none; }
+details.hypotheses > summary .etat { margin-left: auto; }
+.chevron { width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; flex: none; }
+details.hypotheses[open] > summary .chevron { transform: rotate(45deg); }
+.hypotheses-corps { padding: 0 16px 12px; border-top: 1px solid var(--trait); }
+.hypotheses-intro { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 12px 0 4px; }
+.hypotheses-intro p { margin: 0; }
+.hypothese-ligne { border-bottom: 1px solid var(--trait); padding: 10px 0; }
+.hypothese-ligne:last-child { border-bottom: 0; }
+.hypothese-ligne.ecartee { box-shadow: inset 3px 0 0 var(--attention); padding-left: 10px; }
+.hypothese-tete { display: grid; grid-template-columns: minmax(150px, 1.2fr) minmax(0, 1.6fr) minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.hypothese-nom { font-weight: 600; font-size: 14px; }
+.hypothese-tete .discret { font-size: 12.5px; }
+.unite { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--encre-2); }
+.unite input { width: 84px; text-align: right; }
+.hypothese-tete select { max-width: 100%; }
+.rotation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.explication { margin: 10px 0 2px; padding: 10px 14px; background: var(--fond); border-radius: 10px; }
+.explication p { font-size: 13.5px; margin: 0 0 6px; }
+.explication p:last-child { margin: 0; }
+.tranches { display: grid; gap: 6px; padding: 4px 0 10px; }
+.tranches { max-width: 520px; }
+.tranche { display: grid; grid-template-columns: 34px 64px auto 64px minmax(0, 1fr) auto; align-items: center; gap: 6px; font-size: 13px; color: var(--encre-2); }
+.tranche input { width: 64px; text-align: right; }
+.hypothese-saisie { min-width: 0; }
+.hypothese-saisie select { width: 100%; }
+@media (max-width: 700px) {
+  .hypothese-tete { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nom lien" "saisie saisie" "defaut defaut"; gap: 6px 12px; }
+  .hypothese-nom { grid-area: nom; }
+  .hypothese-lien { grid-area: lien; }
+  .hypothese-saisie { grid-area: saisie; }
+  .hypothese-defaut { grid-area: defaut; }
+  .tranche { grid-template-columns: 30px 56px auto 56px minmax(0, 1fr) auto; }
+  .tranche input { width: 56px; }
+}
+.grille > label > input, .grille > label > select { min-width: 0; width: 100%; box-sizing: border-box; }
+@media (max-width: 700px) { .tranche .discret { display: none; } }

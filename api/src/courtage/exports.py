@@ -11,6 +11,9 @@ import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+from courtage.services import hypotheses
+from courtage.services.hypotheses import SENSIBILITES
+
 POLICE = "Arial"
 F = '#,##0;-#,##0;"-"'                 # francs CFA, entiers
 PCT = '0.0%;-0.0%;"-"'
@@ -27,11 +30,6 @@ HYPOTHESES = {
     "inflation": ("Inflation", PCT2), "age_retraite": ("Âge de départ à la retraite", "0"),
     "taux_turnover": ("Taux de rotation du personnel", PCT2), "frais_sur_cotisation": ("Frais sur cotisation", PCT2),
     "table": ("Table de mortalité", "@"),
-}
-SENSIBILITES = {
-    "taux_actualisation_moins_1pt": "Taux d'actualisation − 1 point",
-    "taux_actualisation_plus_1pt": "Taux d'actualisation + 1 point",
-    "croissance_salaires_plus_1pt": "Croissance des salaires + 1 point",
 }
 SCENARIOS = {"prudent": "prudent", "central": "central", "favorable": "favorable"}
 
@@ -142,9 +140,11 @@ def _synthese(ws, e: dict, organisation: str) -> str:
         if cle in (h.get("valeurs") or {}):
             ws.append([libelle, h["valeurs"][cle]])
             ws.cell(row=ws.max_row, column=2).number_format = fmt
-    for ecart in h.get("ecarts") or []:
-        libelle = HYPOTHESES.get(ecart["champ"], (ecart["champ"],))[0]
-        ws.append([f"Écart au référentiel : {libelle}", f"{ecart['referentiel']} → {ecart['retenu']}"])
+    if (h.get("valeurs") or {}).get("rotation_par_age"):
+        ws.append(["Rotation par tranche d'âge (remplace le taux unique)",
+                   hypotheses.en_texte("rotation_par_age", h["valeurs"]["rotation_par_age"])])
+    for ecart in hypotheses.ecarts_en_texte(h.get("ecarts") or []):
+        ws.append([f"Écart au référentiel : {ecart['libelle']}", f"{ecart['referentiel']} → {ecart['retenu']}"])
     if h.get("justification"):
         ws.append(["Justification", h["justification"]])
     _largeurs(ws, [48, 58])
@@ -198,7 +198,9 @@ def _par_categorie(ws, e: dict) -> None:
 def _sensibilites(ws, e: dict, ref_dette: str) -> None:
     _titre(ws, "Sensibilités : la dette si une hypothèse bouge", "L'écart se calcule contre la dette de la synthèse.")
     entete = _entete(ws, ["Hypothèse modifiée", "Dette (F CFA)", "Écart à la dette de l'étude", "Charge (F CFA)"])
-    for i, (cle, v) in enumerate(e.get("sensibilites", {}).items()):
+    ordre = list(SENSIBILITES)
+    rangees = sorted((e.get("sensibilites") or {}).items(), key=lambda kv: ordre.index(kv[0]) if kv[0] in ordre else 99)
+    for i, (cle, v) in enumerate(rangees):
         r = entete + 1 + i
         ws.append([SENSIBILITES.get(cle, cle), v["dette"], f"=IF({ref_dette}=0,0,B{r}/{ref_dette}-1)", v.get("charge")])
     _formats(ws, entete + 1, ws.max_row, {2: F, 3: PCT, 4: F})

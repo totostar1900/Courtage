@@ -20,14 +20,13 @@ from courtage.actuariat.ifc import VERSION_MOTEUR, Hypotheses, Regles, Resultat,
 from courtage.db import Document, Etude, Organisation
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie, controler, controler_parametres, controler_resultat, salaries
-from courtage.referentiel import HYPOTHESES_PAR_DEFAUT, motifs_de_refus, referentiel_courant
+from courtage.referentiel import motifs_de_refus, referentiel_courant
 
-from . import baremes, experience, fichiers, journaliser, regimes, remuneration
+from . import baremes, experience, fichiers, hypotheses, journaliser, regimes, remuneration
 
 ECART_MAX_ETUDE_PRECEDENTE = 0.25
-AGE_PREMIER_EMPLOI = 18
-SAISISSABLES = {"taux_actualisation": float, "croissance_salaires": float, "inflation": float,
-                 "age_retraite": int, "taux_turnover": float}
+AGE_PREMIER_EMPLOI = hypotheses.AGE_PREMIER_EMPLOI
+SAISISSABLES = hypotheses.SAISISSABLES
 
 
 @dataclass
@@ -150,7 +149,9 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
         "convention": {"code": convention.code, "libelle": convention.libelle, "en_vigueur_du": convention.en_vigueur_du.isoformat(),
                        "statut": convention.statut, "verification": convention.verification},
         "referentiel_version": etude.referentiel_version, "version_moteur": etude.version_moteur,
-        "hypotheses": etude.hypotheses, "fonds_disponible": etude.fonds_disponible,
+        "hypotheses": {**etude.hypotheses, "lues": hypotheses.pour_le_lecteur(
+            etude.hypotheses["valeurs"], etude.hypotheses["ecarts"], r["sensibilites"], r["totaux"]["dette"])},
+        "fonds_disponible": etude.fonds_disponible,
         "regime": regime, "bareme_entreprise": bareme, "totaux_convention": r.get("totaux_convention"),
         "par_categorie": r.get("par_categorie"),
         "totaux": r["totaux"], "echeancier": r["echeancier"], "sensibilites": r["sensibilites"],
@@ -235,7 +236,8 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         "constats_regime": constats_regime,
         # Les départs enregistrés, lus à la date d'évaluation : scellés avec l'étude.
         "experience": experience.pour_etude(session, date_evaluation=saisie.date_evaluation, effectif=len(sal),
-                                            taux_turnover=valeurs["taux_turnover"], sauf=sauf),
+                                            taux_turnover=hypotheses.taux_moyen(valeurs, (l.age for l in resultat.lignes)),
+                                            sauf=sauf),
     }
     if regles is not None:
         resultats["par_categorie"] = resultat.par_categorie
@@ -256,7 +258,7 @@ def hypotheses_moteur(valeurs: dict, date_evaluation: date, fonds_disponible: in
         date_evaluation=date_evaluation,
         taux_actualisation=valeurs["taux_actualisation"], croissance_salaires=valeurs["croissance_salaires"],
         inflation=valeurs["inflation"], age_retraite=valeurs["age_retraite"],
-        turnover={age: valeurs["taux_turnover"] for age in range(AGE_PREMIER_EMPLOI, valeurs["age_retraite"])},
+        turnover=hypotheses.turnover(valeurs),
         table=referentiel_courant().table(valeurs["table"]), fonds_disponible=fonds_disponible,
         frais_sur_cotisation=valeurs["frais_sur_cotisation"],
     )
@@ -285,16 +287,8 @@ def _anomalies_du_regime(constats: list[dict]) -> list[Anomalie]:
 
 
 def _hypotheses(saisie: Saisie) -> tuple[dict, list[dict]]:
-    valeurs = dict(HYPOTHESES_PAR_DEFAUT)
-    ecarts = []
-    for champ, valeur in saisie.hypotheses.items():
-        if champ not in SAISISSABLES:
-            raise ErreurMetier("hypothese_inconnue", f"Hypothèse inconnue : {champ}.", 422)
-        valeur = SAISISSABLES[champ](valeur)
-        if valeur != HYPOTHESES_PAR_DEFAUT[champ]:
-            ecarts.append({"champ": champ, "referentiel": HYPOTHESES_PAR_DEFAUT[champ], "retenu": valeur,
-                           "justification": saisie.justification})
-        valeurs[champ] = valeur
+    valeurs, ecarts = hypotheses.valeurs_et_ecarts(saisie.hypotheses)
+    ecarts = [{**e, "justification": saisie.justification} for e in ecarts]
     if ecarts and not (saisie.justification or "").strip():
         raise ErreurMetier("justification_requise",
                            "Une hypothèse qui s'écarte du référentiel doit être justifiée.", 422,
@@ -361,7 +355,10 @@ def _sensibilites(sal, h: Hypotheses, convention, regles) -> dict:
     variantes = {
         "taux_actualisation_moins_1pt": replace(h, taux_actualisation=h.taux_actualisation - 0.01),
         "taux_actualisation_plus_1pt": replace(h, taux_actualisation=h.taux_actualisation + 0.01),
+        "croissance_salaires_moins_1pt": replace(h, croissance_salaires=h.croissance_salaires - 0.01),
         "croissance_salaires_plus_1pt": replace(h, croissance_salaires=h.croissance_salaires + 0.01),
+        "rotation_moins_1pt": replace(h, turnover={a: max(t - 0.01, 0.0) for a, t in h.turnover.items()}),
+        "rotation_plus_1pt": replace(h, turnover={a: t + 0.01 for a, t in h.turnover.items()}),
     }
     totaux = {nom: evaluer(sal, v, convention, regles=regles).totaux for nom, v in variantes.items()}
     return {nom: {"dette": t.dette, "charge": t.charge} for nom, t in totaux.items()}

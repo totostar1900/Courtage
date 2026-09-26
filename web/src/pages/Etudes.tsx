@@ -2,10 +2,11 @@ import { useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api } from "../api";
-import { Erreur } from "../composants/communs";
+import { Erreur, useCharge } from "../composants/communs";
 import { CONVENTION_PAR_PAYS } from "../composants/EditeurCategories";
+import { aEnvoyer, Hypotheses, saisieParDefaut, type SaisieHypotheses } from "../composants/Hypotheses";
 import { dateFr, montant } from "../format";
-import type { Etude } from "../types";
+import type { CatalogueHypotheses, Etude } from "../types";
 import { useDossier } from "./Dossier";
 
 export default function Etudes() {
@@ -16,6 +17,16 @@ export default function Etudes() {
   const [params] = useSearchParams();
   const proposee = params.get("turnover");
   const versions = d.regimes.flatMap((r) => r.versions.map((v) => ({ ...v, nomRegime: r.nom })));
+  const { donnee: catalogue } = useCharge(() => api.get<CatalogueHypotheses>("/referentiel/hypotheses"), []);
+  // La dernière étude donne l'effet de chaque hypothèse mesuré sur l'entreprise.
+  const derniere = d.etudes[0]?.id;
+  const { donnee: precedente } = useCharge(
+    () => (derniere ? api.get<Etude>(`/organisations/${d.org.id}/etudes/${derniere}`) : Promise.resolve(null)), [derniere]);
+  const [saisie, setSaisie] = useState<SaisieHypotheses | null>(null);
+  const [justification, setJustification] = useState(params.get("justification") ?? "");
+  const hypotheses = saisie ?? (catalogue ? saisieParDefaut(catalogue, proposee ? { taux_turnover: Number(proposee) } : {}) : null);
+  const envoi = catalogue && hypotheses ? aEnvoyer(catalogue, hypotheses) : {};
+  const ajustees = Object.keys(envoi).length > 0;
 
   async function lancer(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
@@ -26,8 +37,7 @@ export default function Etudes() {
       const e = await api.post<Etude>(`/organisations/${d.org.id}/etudes`, {
         fichier_id: f.get("fichier_id"), date_evaluation: f.get("date_evaluation"),
         fonds_disponible: Number(f.get("fonds_disponible") || 0),
-        ...(f.get("taux_turnover") ? { hypotheses: { taux_turnover: Number(f.get("taux_turnover")) / 100 },
-                                       justification: f.get("justification") } : {}),
+        ...(ajustees ? { hypotheses: envoi, justification } : {}),
         ...(version ? { regime_version_id: version } : { convention_code: f.get("convention_code") }),
       });
       d.recharger();
@@ -61,13 +71,17 @@ export default function Etudes() {
           {proposee && (
             <div className="constat informe section">
               <div className="titre">Rotation proposée par l'expérience réelle</div>
-              <div className="grille g3">
-                <label>Rotation retenue (% par an)<input name="taux_turnover" type="number" step={0.1} min={0} max={50}
-                       defaultValue={Math.round(Number(proposee) * 1000) / 10} /></label>
-                <label style={{ gridColumn: "span 2" }}>Justification (figurera au rapport)
-                  <input name="justification" required defaultValue={params.get("justification") ?? ""} /></label>
-              </div>
+              <p>Elle est reprise dans les hypothèses ci-dessous : la relire, la justifier, puis calculer.</p>
             </div>
+          )}
+          {catalogue && hypotheses && (
+            <Hypotheses catalogue={catalogue} saisie={hypotheses} onChange={setSaisie} lues={precedente?.hypotheses.lues}
+                        ouvert={Boolean(proposee)} />
+          )}
+          {ajustees && (
+            <label className="section">Justification des hypothèses ajustées (figurera au rapport)
+              <input name="justification" required value={justification} onChange={(e) => setJustification(e.target.value)} />
+            </label>
           )}
           <div className="actions"><button className="principal">Calculer</button></div>
           <Erreur erreur={erreur} />
