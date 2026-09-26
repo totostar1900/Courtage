@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test": "vitest run",
-    "demo": "VITE_DEMO=1 vite build && python3 scripts/assembler_demo.py"
+    "demo": "VITE_DEMO=1 vite build && python3 scripts/assembler_demo.py",
+    "maquette": "VITE_MAQUETTE=1 vite build && python3 scripts/assembler_demo.py dist-maquette maquette-echeancier.html \"Échéancier des départs\""
   },
   "dependencies": {
     "@fontsource/figtree": "^5.3.0",

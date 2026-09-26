@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import analyse, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import analyse, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -499,6 +499,41 @@ def adopter_version(version_id: uuid.UUID, corps: Adoption, a: Acces = Depends(a
     v = regimes.adopter(a.session, regimes.obtenir_version(a.session, version_id), a.utilisateur.id,
                         corps.accepte_non_conformite)
     return regimes.en_clair(a.session, v)
+
+
+# --- Le catalogue anonyme ------------------------------------------------------
+
+class Partage(_Corps):
+    secteur: str
+    taille: Literal["moins_de_50", "50_a_250", "plus_de_250"]
+    consentement: bool
+
+
+@routeur.get("/catalogue/regimes")
+def consulter_catalogue(session: Session = Depends(session_db, scope="function"),
+                        utilisateur: Utilisateur = Depends(identite)):
+    """Toute personne connectée : des groupes d'au moins cinq entreprises, jamais une entreprise."""
+    return catalogue.consulter(session)
+
+
+@routeur.get("/organisations/{organisation_id}/regimes/partages")
+def partages_du_dossier(a: Acces = Depends(acces(*TOUS))):
+    return catalogue.partages_de(a.session, a.organisation)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/partage", status_code=201)
+def partager_version(version_id: uuid.UUID, corps: Partage, a: Acces = Depends(acces(*ENTREPRISE))):
+    if not corps.consentement:
+        raise ErreurMetier("consentement_requis", "Le partage demande l'accord explicite de l'entreprise.", 422)
+    lien = catalogue.partager(a.session, a.organisation, regimes.obtenir_version(a.session, version_id),
+                              a.utilisateur.id, secteur=corps.secteur, taille=corps.taille)
+    return {"partage_id": str(lien.partage_id), "version_id": str(lien.version_id)}
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/partages/{partage_id}/retrait")
+def retirer_partage(partage_id: uuid.UUID, a: Acces = Depends(acces(*ENTREPRISE))):
+    catalogue.retirer(a.session, a.organisation, partage_id, a.utilisateur.id)
+    return {"partage_id": str(partage_id), "actif": False}
 
 
 @routeur.post("/organisations/{organisation_id}/regimes/{regime_id}/versions", status_code=201)

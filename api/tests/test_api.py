@@ -19,6 +19,12 @@ def test_parcours_complet_du_depot_a_l_emission(client, azito, bases):
     assert e["emission"] == {"possible": True, "motifs": []}
     assert e["sensibilites"]["taux_actualisation_moins_1pt"]["dette"] > e["totaux"]["dette"]
     assert sum(an["effectif"] for an in e["echeancier"]) == 23
+    # Chaque année se découpe par catégorie, et les parts refont le total (à l'arrondi près).
+    for an in e["echeancier"]:
+        parts = an["par_categorie"].values()
+        assert sum(p["effectif"] for p in parts) == an["effectif"]
+        for champ in ("ifc", "prestations_probables", "vapf"):
+            assert abs(sum(p[champ] for p in parts) - an[champ]) <= len(parts)
 
     # La DRH lance l'étude, elle ne l'émet pas.
     r = client.post(f"{V1}/organisations/{a['org']}/etudes/{e['id']}/emission", headers=en_tant_que(a["drh"]))

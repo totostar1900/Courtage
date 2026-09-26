@@ -339,16 +339,21 @@ def _lignes(r: Resultat) -> list[dict]:
 
 def echeancier(r: Resultat, date_evaluation: date) -> list[dict]:
     """Les départs par année : ce que l'entreprise devra payer, et quand."""
-    par_annee: dict[int, dict] = defaultdict(lambda: {"effectif": 0, "ifc": 0.0, "prob": 0.0, "vapf": 0.0})
+    vide = lambda: {"effectif": 0, "ifc": 0.0, "prob": 0.0, "vapf": 0.0}  # noqa: E731
+    par_annee: dict[int, dict] = defaultdict(vide)
+    par_categorie: dict[int, dict[str, dict]] = defaultdict(lambda: defaultdict(vide))
     for l in r.lignes:
         annee = max(l.date_retraite.year, date_evaluation.year)
-        par_annee[annee]["effectif"] += 1
-        par_annee[annee]["ifc"] += l.ifc
-        # Ce que l'entreprise versera probablement : l'indemnité pondérée par la survie et la présence.
-        par_annee[annee]["prob"] += l.ifc * l.probabilite_survie * l.probabilite_presence
-        par_annee[annee]["vapf"] += l.vapf
-    return [{"annee": a, "effectif": v["effectif"], "ifc": round(v["ifc"]),
-             "prestations_probables": round(v["prob"]), "vapf": round(v["vapf"])}
+        for cumul in (par_annee[annee], par_categorie[annee][l.categorie or "*"]):
+            cumul["effectif"] += 1
+            cumul["ifc"] += l.ifc
+            # Ce que l'entreprise versera probablement : l'indemnité pondérée par la survie et la présence.
+            cumul["prob"] += l.ifc * l.probabilite_survie * l.probabilite_presence
+            cumul["vapf"] += l.vapf
+    arrondi = lambda v: {"effectif": v["effectif"], "ifc": round(v["ifc"]),  # noqa: E731
+                         "prestations_probables": round(v["prob"]), "vapf": round(v["vapf"])}
+    # La même année, découpée par catégorie : ce que le graphique de l'étude sait montrer côte à côte.
+    return [{"annee": a, **arrondi(v), "par_categorie": {c: arrondi(x) for c, x in sorted(par_categorie[a].items())}}
             for a, v in sorted(par_annee.items())]
 
 

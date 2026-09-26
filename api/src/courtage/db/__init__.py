@@ -389,6 +389,36 @@ class CategorieRegime(Base):
     evenements: Mapped[list[str]] = mapped_column(ARRAY(Text))
 
 
+class EntreeCatalogue(Base):
+    """Un régime partagé, tel que le catalogue le garde : aucune organisation, aucune personne (public)."""
+    __tablename__ = "catalogue_regimes"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    empreinte: Mapped[str] = mapped_column(Text)
+    pays: Mapped[str] = mapped_column(Text)
+    secteur: Mapped[str] = mapped_column(Text)
+    taille: Mapped[str] = mapped_column(Text)
+    convention_code: Mapped[str] = mapped_column(Text)
+    annee: Mapped[int] = mapped_column(Integer)
+    categories: Mapped[list] = mapped_column(JSONB)
+
+
+class RetraitCatalogue(Base):
+    __tablename__ = "catalogue_retraits"
+    partage_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("catalogue_regimes.id"), primary_key=True)
+    retire_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class PartageRegime(Base):
+    """Le lien, du côté de l'entreprise (RLS) : quelle version, sous quel numéro de catalogue."""
+    __tablename__ = "partages_regime"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("regimes_versions.id"))
+    partage_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("catalogue_regimes.id"))
+    partage_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    partage_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
 class FicheRegime(Base):
     __tablename__ = "fiches_regime"
     id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())

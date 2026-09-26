@@ -71,6 +71,10 @@ export const CHAPITRES: Chapitre[] = [
         "Pas encore de régime écrit ? « Partir d'un modèle type » propose quatre barèmes calculés depuis votre convention : le minimum conventionnel, la convention majorée de 25 %, les cadres favorisés (une fois et demie la convention), et un barème unique, un seul taux par année.",
         "Chaque modèle est construit pour ne jamais passer sous la convention, à aucune ancienneté, et il ne vient d'aucune entreprise : c'est un point de départ, pas le régime d'un autre.",
         "Vous le reprenez dans le formulaire, l'ajustez et l'enregistrez ; l'analyse habituelle suit, et c'est vous qui adoptez." ] },
+      { titre: "Le catalogue anonyme", texte: [
+        "« Partir du catalogue anonyme » montre des régimes que d'autres entreprises ont adoptés et accepté de partager : leurs barèmes, leurs mois d'indemnité à 10, 20 et 30 ans, et leur écart à leur convention. Vous en reprenez un dans le formulaire comme un modèle type.",
+        "Personne n'y est nommé : ni entreprise, ni document, ni date. Un régime ne se montre que dans un groupe d'au moins cinq entreprises ; quand un groupe est trop petit, le catalogue l'élargit (la taille, puis le secteur, puis le pays s'effacent) plutôt que de montrer une petite case.",
+        "Partager le vôtre est un choix de l'entreprise : depuis sa version adoptée, « Partager anonymement », avec votre accord. Vous voyez ce qui part et ce qui ne part pas, et vous pouvez le retirer à tout moment." ] },
       { titre: "Partir d'un texte existant", texte: [
         "Votre accord d'entreprise existe déjà ? « Partir d'un texte existant » lit le PDF et propose le barème de départ à la retraite, catégorie par catégorie, avec la date d'effet et la base de salaire.",
         "Chaque valeur proposée cite le passage d'où elle vient, et la plateforme vérifie que ce passage est bien dans le texte : « introuvable » veut dire qu'il faut relire cette valeur avant tout.",
