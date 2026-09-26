@@ -11,7 +11,7 @@ cette organisation, et le réglage disparaît avec la transaction.
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, FetchedValue, ForeignKey, Integer, Text, text
+from sqlalchemy import BigInteger, Boolean, Date, LargeBinary, DateTime, FetchedValue, ForeignKey, Integer, Text, text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -155,4 +155,18 @@ class Sceau(Base):
     empreinte: Mapped[str] = mapped_column(Text)
     sceau: Mapped[str] = mapped_column(Text)
     resume: Mapped[dict] = mapped_column(JSONB)
+    empreinte_document: Mapped[str | None] = mapped_column(Text)
+    sceau_document: Mapped[str | None] = mapped_column(Text)
     emis_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class Document(Base):
+    __tablename__ = "documents"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    etude_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etudes.id"))
+    numero: Mapped[str] = mapped_column(ForeignKey("sceaux.numero"))
+    type_contenu: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
+    contenu: Mapped[bytes] = mapped_column(LargeBinary)
+    empreinte_document: Mapped[str] = mapped_column(Text)
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())

@@ -70,6 +70,16 @@ api/src/courtage/
 - Toute écriture appelle `journaliser(...)`.
 - Les services ne vérifient pas les droits, l'API ne calcule rien.
 
+## Rapport et sceau
+
+- Le rapport est rendu UNE fois, à l'émission, dans la même transaction
+  (`services/rapport.py`, gabarit `services/gabarits/rapport_ifc.html`) ; il
+  n'est jamais régénéré. Tout ce qu'il affiche vient de l'étude.
+- Le sceau signe ce que le papier affirme (numéro, empreinte de l'étude,
+  résumé public) ; le PDF a sa propre empreinte et sa propre signature.
+- Sans `COURTAGE_CLE_SCEAU`, clé de développement et mention NON PROBANT ;
+  en production l'application refuse de démarrer sans clé.
+
 Un barème nouveau ou révisé : un nouveau fichier `convention_<pays>_<nom>_<année>.json`
 avec `en_vigueur_du`, et `en_vigueur_au` posé sur la version précédente. Le
 chargement refuse deux versions qui se chevauchent. Un barème dont le texte

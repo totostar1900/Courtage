@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Étude IFC — {{ org.nom }} — {{ e.date_evaluation | date_fr }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 26mm 18mm;
+    @bottom-left {
+      content: "N° {{ numero }} · empreinte {{ empreinte[:16] }}… · sceau {{ sceau[:16] }}…{% if not probant %} · NON PROBANT{% endif %}\A Vérifier : {{ url_verification }}";
+      white-space: pre; font: 7pt "DejaVu Sans", sans-serif; color: #55607a;
+    }
+    @bottom-right { content: "Page " counter(page) " / " counter(pages); font: 7pt "DejaVu Sans", sans-serif; color: #55607a; }
+  }
+  * { box-sizing: border-box; }
+  body { font: 9.5pt/1.45 "DejaVu Sans", sans-serif; color: #1b2240; }
+  h1 { font-size: 18pt; margin: 0 0 2mm; color: #1f2d6b; }
+  h2 { font-size: 12pt; margin: 8mm 0 3mm; color: #1f2d6b; border-bottom: 0.4mm solid #1f2d6b; padding-bottom: 1mm; }
+  h3 { font-size: 10pt; margin: 4mm 0 2mm; }
+  p { margin: 0 0 2mm; }
+  .sous { color: #55607a; }
+  .bandeau { background: #1f2d6b; color: #fff; padding: 6mm; margin-bottom: 5mm; }
+  .bandeau h1 { color: #fff; }
+  .bandeau .sous { color: #c9cfee; }
+  .non-probant { border: 0.5mm solid #a93a2c; color: #a93a2c; padding: 2mm 3mm; margin-bottom: 4mm; font-weight: bold; }
+  .chiffres { display: flex; gap: 3mm; margin: 3mm 0; }
+  .chiffre { flex: 1; border: 0.3mm solid #dfe2ee; padding: 3mm; }
+  .chiffre .l { font-size: 7.5pt; color: #55607a; text-transform: uppercase; letter-spacing: 0.05em; }
+  .chiffre .v { font-size: 12pt; font-weight: bold; margin-top: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 8.5pt; }
+  th, td { padding: 1.3mm 2mm; border-bottom: 0.2mm solid #dfe2ee; text-align: left; vertical-align: top; }
+  th { background: #e8ebf8; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.04em; color: #3d4566; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  tr.total td { font-weight: bold; border-top: 0.4mm solid #1f2d6b; }
+  .note { font-size: 8pt; color: #55607a; }
+  .alerte { border-left: 1mm solid #8f6400; padding: 1mm 3mm; margin: 1.5mm 0; background: #f6edd6; }
+  .annexe { page-break-before: always; }
+  .detail td, .detail th { font-size: 7.5pt; padding: 0.8mm 1.5mm; }
+</style>
+</head>
+<body>
+
+<div class="bandeau">
+  <div class="sous">Étude actuarielle · Indemnités de fin de carrière</div>
+  <h1>{{ org.nom }}</h1>
+  <div class="sous">Évaluation au {{ e.date_evaluation | date_fr }} · document N° {{ numero }} · émis le {{ emis_le | date_fr }} par {{ emetteur }}</div>
+</div>
+
+{% if not probant %}
+<div class="non-probant">Sceau de développement : ce document n'est pas probant et ne peut pas être produit comme justificatif.</div>
+{% endif %}
+
+<h2>Synthèse</h2>
+<div class="chiffres">
+  <div class="chiffre"><div class="l">Dette actuarielle</div><div class="v">{{ e.totaux.dette | montant }}</div></div>
+  <div class="chiffre"><div class="l">Charge de l'exercice</div><div class="v">{{ e.totaux.charge | montant }}</div></div>
+  <div class="chiffre"><div class="l">Engagement total (VAPF)</div><div class="v">{{ e.totaux.vapf | montant }}</div></div>
+</div>
+<table>
+  <tr><td>Dette actuarielle + charge de l'exercice</td><td class="n">{{ (e.totaux.dette + e.totaux.charge) | montant }}</td></tr>
+  <tr><td>Fonds disponible déclaré</td><td class="n">{{ e.fonds_disponible | montant }}</td></tr>
+  <tr><td>Cotisation d'ajustement nette</td><td class="n">{{ e.totaux.cotisation_nette | montant }}</td></tr>
+  <tr><td>Frais de gestion sur cotisation ({{ e.hypotheses.valeurs.frais_sur_cotisation | pct }})</td><td class="n">{{ (e.totaux.cotisation_totale - e.totaux.cotisation_nette) | montant }}</td></tr>
+  <tr class="total"><td>Cotisation d'ajustement à verser</td><td class="n">{{ e.totaux.cotisation_totale | montant }}</td></tr>
+</table>
+{% if e.bareme_entreprise %}
+<p><strong>Barème de l'entreprise.</strong> L'étude applique « {{ e.bareme_entreprise.libelle }} »
+({{ e.bareme_entreprise.document_reference }}), qui améliore la convention. Au barème de la seule convention,
+la dette serait de {{ e.totaux_convention.dette | montant }} : l'accord représente
+{{ (e.totaux.dette - e.totaux_convention.dette) | montant }} de dette au-delà de la convention.</p>
+{% endif %}
+
+<h2>Population</h2>
+<table>
+  <tr><td>Effectif évalué</td><td class="n">{{ e.totaux.effectif }} salariés</td></tr>
+  <tr><td>Masse salariale annuelle</td><td class="n">{{ masse_salariale | montant }}</td></tr>
+  <tr><td>Âge moyen</td><td class="n">{{ age_moyen | annees }}</td></tr>
+  <tr><td>Ancienneté moyenne</td><td class="n">{{ anciennete_moyenne | annees }}</td></tr>
+  <tr><td>Données transmises par l'entreprise, arrêtées au</td><td class="n">{{ fichier.date_donnees | date_fr }}</td></tr>
+</table>
+<p class="note">Aucun nom de salarié n'a été transmis ni utilisé : l'évaluation repose sur les matricules, les dates de naissance et d'embauche et les salaires.</p>
+
+<h2>Convention et barème</h2>
+<p><strong>{{ convention.libelle }}</strong>, version en vigueur depuis le {{ convention.en_vigueur_du | date_fr }}.</p>
+{% if convention.bareme.forme == "tranches_cumulatives" %}
+<table>
+  <tr><th>Ancienneté</th><th class="n">Mois de salaire par année</th></tr>
+  {% set ns = namespace(de=1) %}
+  {% for t in convention.bareme.tranches %}
+  <tr><td>{% if t.jusqu_a %}de {{ ns.de }} à {{ t.jusqu_a }} ans{% else %}au-delà de {{ ns.de - 1 }} ans{% endif %}</td><td class="n">{{ t.mois_par_annee | pct(0) }}</td></tr>
+  {% if t.jusqu_a %}{% set ns.de = t.jusqu_a + 1 %}{% endif %}
+  {% endfor %}
+</table>
+{% else %}
+<table>
+  <tr><th>Ancienneté</th><th class="n">Mois de salaire</th></tr>
+  <tr><td>sous le premier palier</td><td class="n">{{ convention.bareme.sous_premier_palier_mois_par_annee | pct(0) }} par année</td></tr>
+  {% for p in convention.bareme.paliers %}<tr><td>à partir de {{ p.a_partir_de }} ans</td><td class="n">{{ p.mois }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+<p class="note">Vérification du barème : {{ convention.verification }}
+Sources : {% for s in convention.sources %}{{ s.titre }}{% if not loop.last %} ; {% endif %}{% endfor %}.</p>
+
+<h2>Hypothèses et méthode</h2>
+<table>
+  <tr><td>Taux d'actualisation</td><td class="n">{{ e.hypotheses.valeurs.taux_actualisation | pct }}</td></tr>
+  <tr><td>Croissance annuelle des salaires</td><td class="n">{{ e.hypotheses.valeurs.croissance_salaires | pct }}</td></tr>
+  <tr><td>Inflation</td><td class="n">{{ e.hypotheses.valeurs.inflation | pct }}</td></tr>
+  <tr><td>Âge de départ à la retraite</td><td class="n">{{ e.hypotheses.valeurs.age_retraite }} ans</td></tr>
+  <tr><td>Rotation du personnel (par an, jusqu'à la retraite)</td><td class="n">{{ e.hypotheses.valeurs.taux_turnover | pct }}</td></tr>
+  <tr><td>Table de mortalité</td><td class="n">{{ e.hypotheses.valeurs.table }}</td></tr>
+</table>
+{% if e.hypotheses.ecarts %}
+<h3>Écarts au référentiel</h3>
+<table>
+  <tr><th>Hypothèse</th><th class="n">Référentiel</th><th class="n">Retenu</th></tr>
+  {% for x in e.hypotheses.ecarts %}<tr><td>{{ x.champ }}</td><td class="n">{{ x.referentiel }}</td><td class="n">{{ x.retenu }}</td></tr>{% endfor %}
+</table>
+<p class="note">Justification : {{ e.hypotheses.justification }}</p>
+{% endif %}
+<p class="note">Méthode prospective, salarié par salarié : l'indemnité prévue au départ en retraite est calculée sur le salaire
+projeté et l'ancienneté totale, pondérée par la probabilité d'être en vie et toujours salarié à cet âge, puis actualisée.
+La dette actuarielle en retient la part acquise, au prorata de l'ancienneté à la date d'évaluation ; la charge de
+l'exercice en est l'acquisition d'une année. Moteur {{ e.version_moteur }}, référentiel {{ e.referentiel_version }}.</p>
+
+<h2>Échéancier des départs</h2>
+<table>
+  <tr><th>Année</th><th class="n">Départs</th><th class="n">Indemnités prévues</th><th class="n">Valeur actuelle probable</th></tr>
+  {% for a in e.echeancier %}
+  <tr><td>{{ a.annee }}</td><td class="n">{{ a.effectif }}</td><td class="n">{{ a.ifc | montant }}</td><td class="n">{{ a.vapf | montant }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Sensibilités</h2>
+<table>
+  <tr><th>Variante</th><th class="n">Dette actuarielle</th><th class="n">Écart</th></tr>
+  <tr><td>Hypothèses retenues</td><td class="n">{{ e.totaux.dette | montant }}</td><td class="n">—</td></tr>
+  {% set libelles = {"taux_actualisation_moins_1pt": "Taux d'actualisation − 1 point", "taux_actualisation_plus_1pt": "Taux d'actualisation + 1 point", "croissance_salaires_plus_1pt": "Croissance des salaires + 1 point"} %}
+  {% for cle, v in e.sensibilites.items() %}
+  <tr><td>{{ libelles[cle] }}</td><td class="n">{{ v.dette | montant }}</td><td class="n">{{ ((v.dette - e.totaux.dette) / e.totaux.dette) | pct }}</td></tr>
+  {% endfor %}
+</table>
+
+{% if avertissements %}
+<h2>Points d'attention</h2>
+{% for a in avertissements %}<div class="alerte">{{ a.message }}{% if a.ligne %} (ligne {{ a.ligne }} du fichier){% endif %}</div>{% endfor %}
+{% endif %}
+
+<div class="annexe">
+<h2>Annexe — détail par salarié</h2>
+<table class="detail">
+  <tr><th>Matricule</th><th class="n">Âge</th><th class="n">Ancienneté</th><th>Retraite</th><th class="n">IFC prévue</th><th class="n">VAPF</th><th class="n">Dette</th><th class="n">Charge</th></tr>
+  {% for l in e.lignes %}
+  <tr><td>{{ l.matricule }}</td><td class="n">{{ l.age | annees }}</td><td class="n">{{ l.anciennete | annees }}</td><td>{{ l.date_retraite | date_fr }}</td>
+      <td class="n">{{ l.ifc | montant }}</td><td class="n">{{ l.vapf | montant }}</td><td class="n">{{ l.dette | montant }}</td><td class="n">{{ l.charge | montant }}</td></tr>
+  {% endfor %}
+  <tr class="total"><td colspan="5">Total</td><td class="n">{{ e.totaux.vapf | montant }}</td><td class="n">{{ e.totaux.dette | montant }}</td><td class="n">{{ e.totaux.charge | montant }}</td></tr>
+</table>
+<p class="note">Document N° {{ numero }}. Empreinte de l'étude (SHA-256) : {{ empreinte }}. Sceau : {{ sceau }}.
+Vérifier l'authenticité de ce document : {{ url_verification }}</p>
+</div>
+
+</body>
+</html>

@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from courtage.actuariat.ifc import VERSION_MOTEUR, Hypotheses, Resultat, comparer_baremes, evaluer
-from courtage.db import Etude, Organisation
+from courtage.db import Document, Etude, Organisation
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie, controler, controler_parametres, controler_resultat, salaries
 from courtage.referentiel import HYPOTHESES_PAR_DEFAUT, motifs_de_refus, referentiel_courant
@@ -141,7 +141,13 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
         "emise_le": etude.emise_le.isoformat() if etude.emise_le else None,
         "emise_par": str(etude.emise_par) if etude.emise_par else None,
         "remplace_etude_id": str(etude.remplace_etude_id) if etude.remplace_etude_id else None,
+        "rapport": _rapport(session, etude),
     }
+
+
+def _rapport(session: Session, etude: Etude) -> dict | None:
+    numero = session.scalar(select(Document.numero).where(Document.etude_id == etude.id))
+    return {"numero": numero} if numero else None
 
 
 def empreinte(etude: Etude) -> str:

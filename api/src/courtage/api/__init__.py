@@ -22,16 +22,22 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
+from courtage.services.rapport import ConfigSceau
 
 ModeAuthentification = Literal["entete_dev", "aucune"]
 
 
-def creer_app(moteur: Engine, authentification: ModeAuthentification = "aucune") -> FastAPI:
-    if authentification == "entete_dev" and os.environ.get("COURTAGE_ENV") == "production":
+def creer_app(moteur: Engine, authentification: ModeAuthentification = "aucune",
+              cle_sceau: bytes | None = None, url_publique: str | None = None) -> FastAPI:
+    production = os.environ.get("COURTAGE_ENV") == "production"
+    if production and authentification == "entete_dev":
         raise RuntimeError("L'identité par en-tête est réservée au développement et aux tests.")
+    if production and not cle_sceau:
+        raise RuntimeError("Clé de sceau absente : un rapport émis en production doit être probant.")
     app = FastAPI(title="Courtage", version="0.1.0")
     app.state.moteur = moteur
     app.state.authentification = authentification
+    app.state.sceau = ConfigSceau.depuis(cle_sceau, url_publique)
 
     @app.exception_handler(ErreurMetier)
     async def _erreur_metier(_: Request, e: ErreurMetier):

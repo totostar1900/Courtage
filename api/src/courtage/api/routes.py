@@ -3,7 +3,7 @@ import uuid
 from datetime import date
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
-from courtage.services import baremes, etudes, fichiers, journaliser, remuneration
+from courtage.services import baremes, etudes, fichiers, journaliser, rapport, remuneration
 
 from . import Acces, acces, identite, session_db
 
@@ -203,6 +203,31 @@ def supprimer_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
 
 
 @routeur.post("/organisations/{organisation_id}/etudes/{etude_id}/emission")
-def emettre_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))):
+def emettre_etude(etude_id: uuid.UUID, request: Request, a: Acces = Depends(acces(*CONSEIL))):
+    """Émettre, sceller et rendre le rapport : un seul acte. Si le rapport échoue, rien n'est émis."""
     e = etudes.emettre(a.session, a.organisation, etudes.obtenir(a.session, etude_id), a.utilisateur.id, date.today())
+    document = rapport.sceller(a.session, a.organisation, e, request.app.state.sceau, date.today())
+    journaliser(a.session, a.organisation.id, a.utilisateur.id, "rapport.scelle", document.numero, {"etude_id": str(e.id)})
     return etudes.en_clair(a.session, a.organisation, e, date.today())
+
+
+@routeur.get("/organisations/{organisation_id}/etudes/{etude_id}/rapport")
+def telecharger_rapport(etude_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    e = etudes.obtenir(a.session, etude_id)
+    document = rapport.document_de(a.session, e)
+    nom = f"etude-ifc-{a.organisation.nom}-{e.date_evaluation.isoformat()}-{document.numero}.pdf".replace(" ", "-")
+    return Response(document.contenu, media_type=document.type_contenu,
+                    headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+
+
+# --- Vérification publique (sans compte) --------------------------------------
+
+@routeur.get("/verifier/{numero}")
+def verifier_document(numero: str, request: Request, session: Session = Depends(session_db)):
+    return rapport.verifier(session, numero, request.app.state.sceau)
+
+
+@routeur.post("/verifier/{numero}")
+async def verifier_fichier(numero: str, document: UploadFile = File(...), session: Session = Depends(session_db)):
+    """Le fichier présenté est-il l'original, octet pour octet ?"""
+    return {"numero": numero, "conforme": rapport.est_conforme(session, numero, await document.read())}
