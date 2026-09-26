@@ -118,6 +118,11 @@ export const CHAPITRES: Chapitre[] = [
       { titre: "Ce qu'il contient", texte: [
         "Votre engagement (tiré d'une étude émise), votre régime, et vos exigences minimales : taux garanti, participation, frais maximum, conditions de transfert, délai de paiement.",
         "Le personnel y est décrit par groupes d'au moins trois salariés, les départs par périodes de cinq ans : personne n'est reconnaissable." ] },
+      { titre: "Les réponses des assureurs", texte: [
+        "Chaque réponse se saisit dans la grille du cahier, avec l'offre de l'assureur en PDF si elle est jointe. Ce que l'assureur n'a pas dit reste vide : c'est signalé, pas deviné.",
+        "La plateforme confronte chaque réponse aux conditions demandées, critère par critère — conforme, en écart, ou non renseigné — et signale une réponse arrivée après la date limite.",
+        "Les réponses sont classées par leur coût net actualisé, le même calcul que la comparaison d'offres. La recommandée est la moins chère des CONFORMES : une offre moins chère qui impose une pénalité de transfert ne l'est pas.",
+        "L'entreprise choisit. Retenir une autre offre que la recommandée est permis, et se motive : la raison figure au dossier. Un cahier attribué est clos ; le conseiller enregistre alors le contrat." ] },
       { titre: "Changer d'assureur", texte: [
         "Les conditions de transfert (préavis, pénalité) font partie des exigences : c'est ce qui vous permettra de changer d'assureur plus tard sans perdre votre fonds." ] },
     ],

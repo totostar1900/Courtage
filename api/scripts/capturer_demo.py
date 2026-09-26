@@ -150,6 +150,19 @@ def main(url: str, sortie: Path) -> None:
                        "transfert_preavis_mois_maximum": 3, "transfert_penalite_maximum": 0.0,
                        "delai_paiement_jours_maximum": 30}}))
 
+    # Trois assureurs FICTIFS répondent le jour même : le moins cher impose une pénalité de transfert (non
+    # conforme), le recommandé est conforme, le troisième est conforme et plus cher.
+    for assureur, tg, pb, fc, fe, penalite, recue in (
+            ("Assureur C (fictif)", 0.025, 0.85, 0.0, 0.0, 0.05, 0),
+            ("Assureur A (fictif)", 0.03, 0.9, 0.02, 0.004, 0.0, 0),
+            ("Assureur D (fictif)", 0.025, 0.85, 0.03, 0.005, 0.0, 0)):
+        ok(client.post(f"{V1}/organisations/{org}/fiches/{fiche['id']}/reponses", headers=h("conseiller"), data={
+            "donnees": json.dumps({"assureur": assureur, "recue_le": (date.today() + timedelta(days=recue)).isoformat(),
+                                   "taux_garanti": tg, "participation_benefices": pb, "frais_sur_cotisations": fc,
+                                   "frais_sur_encours": fe, "delai_paiement_jours": 25, "transfert_preavis_mois": 3,
+                                   "transfert_penalite": penalite, "accepte_etude_plateforme": True,
+                                   "reporting_annuel": True})}))
+
     reponses: dict[str, object] = {}
 
     def capter(chemin: str, qui="drh", methode="GET", corps=None, cle=None):
@@ -164,7 +177,7 @@ def main(url: str, sortie: Path) -> None:
         capter("/moi", qui=qui, cle=f"GET /moi@{ids[qui]}")
     base = f"/organisations/{org}"
     for chemin in ("/fichiers", "/regimes", "/etudes", "/fiches", "/equipe", "/remuneration", "/contrats", "/prestations", "/dossiers", f"/dossiers/{dossier['id']}",
-                   f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}"):
+                   f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}", f"/fiches/{fiche['id']}/reponses"):
         capter(base + chemin)
     for v in (version["id"], projet["id"]):
         capter(f"{base}/regimes/versions/{v}/analyse")

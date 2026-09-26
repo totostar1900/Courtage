@@ -435,3 +435,65 @@ describe("l'expérience réelle", () => {
     expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string).hypotheses).toBeUndefined();
   });
 });
+
+describe("les réponses des assureurs", () => {
+  const critere = (critere: string, libelle: string, sens: string, demande: number | boolean, offert: number | boolean | null, conforme: boolean | null) =>
+    ({ critere, libelle, sens, demande, offert, conforme });
+  const reponse = (id: string, assureur: string, rang: number, cout: number, conforme: boolean, extra: object = {}) => ({
+    id, assureur, recue_le: "2026-09-20", taux_garanti: 0.03, participation_benefices: 0.9, frais_sur_cotisations: 0.02,
+    frais_sur_encours: 0.004, delai_paiement_jours: 20, transfert_preavis_mois: 3, transfert_penalite: 0,
+    accepte_etude_plateforme: true, reporting_annuel: true, historique_participation: null, commentaire: null,
+    conformite: [critere("taux_garanti", "Taux garanti", "min", 0.025, 0.03, true),
+                 critere("transfert_penalite", "Pénalité de transfert", "max", 0, conforme ? 0 : 0.05, conforme)],
+    conforme, tardive: false, rang, cout_net_actualise: cout, offre: null, remplace_id: null, motif_correction: null, ...extra });
+  const fiches = { [`/organisations/${ORG}/fiches`]: [{ id: "f1", numero: "RL-AAAA-BBBB", etude_id: "e1", date_limite_reponse: "2026-10-26", emise_le: "2026-09-26" }] };
+  const reponses = (choix: unknown = null) => ({ fiche_id: "f1", date_limite_reponse: "2026-10-26", conditions: {},
+    reponses: [reponse("r1", "Piège", 1, 50_000_000, false), reponse("r2", "Assureur A", 2, 60_000_000, true)],
+    recommandee: "r2", comparaison: null, choix });
+
+  it("classées, la recommandée est la moins chère des conformes ; un autre choix se motive", async () => {
+    const appels = simulerApi({ ...dossier("admin_client", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: reponses(),
+      [`POST /organisations/${ORG}/fiches/f1/choix`]: reponses({ reponse_id: "r1", assureur: "Piège", motif: "Service", choisi_le: "2026-09-26T10:00:00", recommandee: false }) });
+    ouvrir(`/dossier/${ORG}/cahier/f1`);
+    const piege = within(await screen.findByText("1. Piège").then((h) => h.closest("[data-reponse]") as HTMLElement));
+    expect(piege.getByText("1 écart")).toBeInTheDocument();
+    const a = within(document.querySelector('[data-reponse="Assureur A"]') as HTMLElement);
+    expect(a.getByText("Recommandée")).toBeInTheDocument();
+    expect(a.getByRole("button", { name: "Retenir Assureur A" })).toBeEnabled();
+    expect(piege.getByRole("button", { name: "Retenir Piège" })).toBeDisabled();
+    await userEvent.type(piege.getByLabelText("Pourquoi Piège"), "Service");
+    await userEvent.click(piege.getByRole("button", { name: "Retenir Piège" }));
+    await waitFor(() => expect(appels.some((x) => x.chemin.endsWith("/choix"))).toBe(true));
+    expect(JSON.parse(appels.find((x) => x.chemin.endsWith("/choix"))!.init!.body as string)).toEqual({ reponse_id: "r1", motif: "Service" });
+  });
+
+  it("le conseiller saisit une réponse : la grille part en JSON, l'offre à côté", async () => {
+    const appels = simulerApi({ ...dossier("conseiller", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: { ...reponses(), reponses: [] },
+      [`POST /organisations/${ORG}/fiches/f1/reponses`]: reponse("r3", "Assureur C", 1, 1, true) });
+    ouvrir(`/dossier/${ORG}/cahier/f1`);
+    await userEvent.click(await screen.findByRole("button", { name: "Saisir une réponse" }));
+    await userEvent.type(screen.getByLabelText("Assureur"), "Assureur C");
+    await userEvent.type(screen.getByLabelText("Taux garanti (%)"), "2.8");
+    await userEvent.type(screen.getByLabelText("Participation (%)"), "90");
+    await userEvent.type(screen.getByLabelText("Frais sur cotisations (%)"), "2");
+    await userEvent.type(screen.getByLabelText("Frais sur encours (%/an)"), "0.5");
+    await userEvent.upload(screen.getByLabelText("L'offre de l'assureur (PDF, facultatif)"), new File(["%PDF"], "offre.pdf"));
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer la réponse" }));
+    await waitFor(() => expect(appels.some((x) => x.init?.method === "POST")).toBe(true));
+    const corps = appels.find((x) => x.init?.method === "POST")!.init!.body as FormData;
+    const donnees = JSON.parse(corps.get("donnees") as string);
+    expect(donnees).toMatchObject({ assureur: "Assureur C", taux_garanti: 0.028, participation_benefices: 0.9,
+                                    frais_sur_encours: 0.005, delai_paiement_jours: null, accepte_etude_plateforme: null });
+    expect((corps.get("offre") as File).name).toBe("offre.pdf");
+    expect(screen.queryByRole("button", { name: /Retenir/ })).not.toBeInTheDocument();
+  });
+
+  it("attribué : le choix se lit, et le conseiller enregistre le contrat", async () => {
+    simulerApi({ ...dossier("conseiller", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: reponses({
+      reponse_id: "r2", assureur: "Assureur A", motif: null, choisi_le: "2026-09-26T10:00:00", recommandee: true }) });
+    ouvrir(`/dossier/${ORG}/cahier/f1`);
+    expect(await screen.findByRole("heading", { name: "Attribué à Assureur A" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Enregistrer le contrat avec Assureur A" }).getAttribute("href")).toContain("contrat?assureur=Assureur%20A");
+    expect(screen.queryByRole("button", { name: "Saisir une réponse" })).not.toBeInTheDocument();
+  });
+});

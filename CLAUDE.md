@@ -226,3 +226,13 @@ enregistrés **à sa date** et les scelle avec elle (`resultats.experience`) :
 Le cahier des charges en publie l'historique par années regroupées (≥ 3 retraites
 par ligne), sans matricule.
 
+## Réponses des assureurs (placement)
+
+`services/reponses.py`, migration 0013. Chaque réponse est confrontée aux
+conditions du cahier : conforme, en écart, ou **non renseignée**, qui ne compte pas
+comme conforme. Elle est ensuite classée par le coût net actualisé du scénario
+central, le même calcul que la comparaison d'offres. La **recommandée** est la moins
+chère des conformes. **Le choix appartient à l'entreprise** : un par cahier, et motivé
+s'il ne se porte pas sur la recommandée. Une réponse arrive en multipart : la grille
+est un champ JSON `donnees`, l'offre PDF est à côté.
+

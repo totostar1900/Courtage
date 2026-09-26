@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Constats, Erreur, useCharge, Volet } from "../composants/communs";
@@ -33,7 +33,9 @@ const SERVICES = {
 export default function Contrat() {
   const d = useDossier();
   const { donnee, erreur, recharger } = useCharge(() => api.get<ContratsDossier>(`/organisations/${d.org.id}/contrats`), []);
-  const [ouvert, setOuvert] = useState(false);
+  const [params] = useSearchParams();
+  const retenu = params.get("assureur");
+  const [ouvert, setOuvert] = useState(Boolean(retenu));
   if (erreur) return <Erreur erreur={erreur} />;
   if (!donnee) return <p className="discret">Chargement…</p>;
   const s = SERVICES[donnee.service];
@@ -83,7 +85,7 @@ export default function Contrat() {
       {d.role === "conseiller" && (
         <div className="section">
           {ouvert
-            ? <NouveauContrat onFermer={() => setOuvert(false)} onFait={() => { setOuvert(false); recharger(); }} />
+            ? <NouveauContrat assureur={retenu} onFermer={() => setOuvert(false)} onFait={() => { setOuvert(false); recharger(); }} />
             : <button className="principal" onClick={() => setOuvert(true)}>Enregistrer un contrat</button>}
         </div>
       )}
@@ -91,7 +93,7 @@ export default function Contrat() {
   );
 }
 
-function NouveauContrat({ onFermer, onFait }: { onFermer: () => void; onFait: () => void }) {
+function NouveauContrat({ assureur, onFermer, onFait }: { assureur?: string | null; onFermer: () => void; onFait: () => void }) {
   const d = useDossier();
   const [service, setService] = useState<"courtage" | "comparaison">("courtage");
   const [erreur, setErreur] = useState<unknown>(null);
@@ -120,7 +122,7 @@ function NouveauContrat({ onFermer, onFait }: { onFermer: () => void; onFait: ()
             </select>
           </label>
           <label>À partir du<input name="en_vigueur_du" type="date" required /></label>
-          <label>Assureur<input name="assureur" required={service === "courtage"} /></label>
+          <label>Assureur<input name="assureur" required={service === "courtage"} defaultValue={assureur ?? ""} /></label>
           <label>Numéro de police<input name="numero_police" /></label>
           <label>Effet de la police<input name="date_effet_police" type="date" /></label>
           {service === "courtage" && <label>Référence du mandat<input name="mandat_reference" required placeholder="Mandat du 15/12/2025" /></label>}

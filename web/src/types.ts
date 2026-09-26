@@ -276,3 +276,24 @@ export interface Orientation {
   du: number; verse: number | null; montant_a_demander: number; calcul: CalculPrestation;
   delai_jours: number; delai_exige: boolean; pieces: { nature: string; libelle: string; detail: string }[]; message: string;
 }
+
+export interface CritereConformite {
+  critere: string; libelle: string; sens: "min" | "max" | "oui";
+  demande: number | boolean; offert: number | boolean | null; conforme: boolean | null;
+}
+
+export interface ReponseAssureur {
+  id: string; assureur: string; recue_le: string; taux_garanti: number; participation_benefices: number;
+  frais_sur_cotisations: number; frais_sur_encours: number; delai_paiement_jours: number | null;
+  transfert_preavis_mois: number | null; transfert_penalite: number | null; accepte_etude_plateforme: boolean | null;
+  reporting_annuel: boolean | null; historique_participation: string | null; commentaire: string | null;
+  conformite: CritereConformite[]; conforme: boolean; tardive: boolean; rang: number | null;
+  cout_net_actualise: number | null; offre: { nom_fichier: string; empreinte: string } | null;
+  remplace_id: string | null; motif_correction: string | null;
+}
+
+export interface ReponsesFiche {
+  fiche_id: string; date_limite_reponse: string; conditions: Record<string, number | boolean | string | null>;
+  reponses: ReponseAssureur[]; recommandee: string | null; comparaison: Financement | null;
+  choix: { reponse_id: string; assureur: string; motif: string | null; choisi_le: string; recommandee: boolean } | null;
+}

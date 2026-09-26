@@ -223,6 +223,46 @@ class PieceDossier(Base):
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
+class ReponseFiche(Base):
+    """La réponse d'un assureur à un cahier des charges : une écriture, corrigée ou retirée par une ligne."""
+    __tablename__ = "reponses_fiche"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    fiche_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("fiches_regime.id"))
+    assureur: Mapped[str] = mapped_column(Text)
+    recue_le: Mapped[date] = mapped_column(Date)
+    taux_garanti: Mapped[float] = mapped_column(Numeric(asdecimal=False))
+    participation_benefices: Mapped[float] = mapped_column(Numeric(asdecimal=False))
+    frais_sur_cotisations: Mapped[float] = mapped_column(Numeric(asdecimal=False))
+    frais_sur_encours: Mapped[float] = mapped_column(Numeric(asdecimal=False))
+    delai_paiement_jours: Mapped[int | None] = mapped_column(Integer)
+    transfert_preavis_mois: Mapped[int | None] = mapped_column(Integer)
+    transfert_penalite: Mapped[float | None] = mapped_column(Numeric(asdecimal=False))
+    accepte_etude_plateforme: Mapped[bool | None] = mapped_column(Boolean)
+    reporting_annuel: Mapped[bool | None] = mapped_column(Boolean)
+    historique_participation: Mapped[str | None] = mapped_column(Text)
+    commentaire: Mapped[str | None] = mapped_column(Text)
+    offre_nom_fichier: Mapped[str | None] = mapped_column(Text)
+    offre_contenu: Mapped[bytes | None] = mapped_column(LargeBinary)
+    offre_empreinte: Mapped[str | None] = mapped_column(Text)
+    remplace_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("reponses_fiche.id"))
+    retrait: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
+    motif_correction: Mapped[str | None] = mapped_column(Text)
+    saisie_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class ChoixFiche(Base):
+    __tablename__ = "choix_fiche"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    fiche_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("fiches_regime.id"))
+    reponse_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("reponses_fiche.id"))
+    motif: Mapped[str | None] = mapped_column(Text)
+    choisi_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    choisi_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
 class BaremeEntreprise(Base):
     __tablename__ = "baremes_entreprise"
     id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())

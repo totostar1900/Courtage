@@ -7,15 +7,15 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from courtage.auth.telephone import normaliser
-from courtage.db import Adhesion, Organisation, Utilisateur, contexte
+from courtage.db import Adhesion, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import analyse, contrats, dossiers, etudes, orientation, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import analyse, contrats, dossiers, etudes, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -658,6 +658,97 @@ def emettre_fiche(corps: NouvelleFiche, request: Request, a: Acces = Depends(acc
                                  conditions=corps.conditions.model_dump(), date_limite_reponse=corps.date_limite_reponse,
                                  config=request.app.state.sceau, aujourd_hui=date.today())
     return fiches.en_clair(f, document.numero)
+
+
+# --- Réponses des assureurs au cahier des charges --------------------------------------------
+
+class SaisieReponse(_Corps):
+    assureur: str = Field(min_length=1, max_length=200)
+    recue_le: date
+    taux_garanti: float = Field(ge=-0.05, le=0.2)
+    participation_benefices: float = Field(ge=0, le=1)
+    frais_sur_cotisations: float = Field(ge=0, le=0.2)
+    frais_sur_encours: float = Field(ge=0, le=0.2)
+    delai_paiement_jours: int | None = Field(default=None, ge=1, le=365)
+    transfert_preavis_mois: int | None = Field(default=None, ge=0, le=60)
+    transfert_penalite: float | None = Field(default=None, ge=0, le=1)
+    accepte_etude_plateforme: bool | None = None
+    reporting_annuel: bool | None = None
+    historique_participation: str | None = Field(default=None, max_length=500)
+    commentaire: str | None = Field(default=None, max_length=2000)
+
+
+class CorrectionReponse(SaisieReponse):
+    motif_correction: str = Field(max_length=500)
+
+
+class Retrait(_Corps):
+    motif_correction: str = Field(max_length=500)
+
+
+class Choix(_Corps):
+    reponse_id: uuid.UUID
+    motif: str | None = Field(default=None, max_length=1000)
+
+
+def _donnees(brut: str, modele):
+    """Une réponse arrive en multipart (l'offre PDF à côté) : la grille est un champ JSON, validé ici."""
+    try:
+        return modele.model_validate_json(brut).model_dump()
+    except ValidationError as e:
+        raise ErreurMetier("donnees_invalides", "Réponse illisible : vérifiez les champs de la grille.", 422,
+                           {"erreurs": [{"champ": ".".join(map(str, x["loc"])), "message": x["msg"]} for x in e.errors()]}) from None
+
+
+async def _offre(offre: UploadFile | None):
+    return (offre.filename or "offre.pdf", await offre.read()) if offre is not None else None
+
+
+@routeur.get("/organisations/{organisation_id}/fiches/{fiche_id}/reponses")
+def lire_reponses(fiche_id: uuid.UUID, horizon: int = 10, amortissement: int = 3, a: Acces = Depends(acces(*TOUS))):
+    return reponses.tout(a.session, reponses.obtenir_fiche(a.session, fiche_id), horizon, amortissement)
+
+
+@routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses", status_code=201)
+async def saisir_reponse(fiche_id: uuid.UUID, donnees: str = Form(...), offre: UploadFile | None = File(default=None),
+                         a: Acces = Depends(acces(*CLIENT))):
+    fiche = reponses.obtenir_fiche(a.session, fiche_id)
+    r = reponses.enregistrer(a.session, a.organisation, a.utilisateur.id, fiche, _donnees(donnees, SaisieReponse),
+                             offre=await _offre(offre))
+    return reponses.en_clair(r, fiche)
+
+
+@routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/{reponse_id}/correction", status_code=201)
+async def corriger_reponse(fiche_id: uuid.UUID, reponse_id: uuid.UUID, donnees: str = Form(...),
+                           offre: UploadFile | None = File(default=None), a: Acces = Depends(acces(*CLIENT))):
+    fiche = reponses.obtenir_fiche(a.session, fiche_id)
+    d = _donnees(donnees, CorrectionReponse)
+    motif = d.pop("motif_correction")
+    r = reponses.corriger(a.session, a.organisation, a.utilisateur.id, fiche, reponse_id, d, motif,
+                          offre=await _offre(offre))
+    return reponses.en_clair(r, fiche)
+
+
+@routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/{reponse_id}/retrait", status_code=201)
+def retirer_reponse(fiche_id: uuid.UUID, reponse_id: uuid.UUID, corps: Retrait, a: Acces = Depends(acces(*CLIENT))):
+    fiche = reponses.obtenir_fiche(a.session, fiche_id)
+    r = reponses.retirer(a.session, a.organisation, a.utilisateur.id, fiche, reponse_id, corps.motif_correction)
+    return reponses.en_clair(r, fiche)
+
+
+@routeur.get("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/{reponse_id}/offre")
+def telecharger_offre(fiche_id: uuid.UUID, reponse_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    r = a.session.get(ReponseFiche, reponse_id)
+    if r is None or r.fiche_id != fiche_id or r.offre_contenu is None:
+        raise ErreurMetier("offre_indisponible", "Aucune offre jointe à cette réponse.", 404)
+    return Response(r.offre_contenu, media_type="application/pdf", headers=_piece_jointe(r.offre_nom_fichier or "offre.pdf"))
+
+
+@routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/choix", status_code=201)
+def choisir_reponse(fiche_id: uuid.UUID, corps: Choix, a: Acces = Depends(acces(*ENTREPRISE))):
+    fiche = reponses.obtenir_fiche(a.session, fiche_id)
+    reponses.choisir(a.session, a.organisation, a.utilisateur.id, fiche, corps.reponse_id, corps.motif)
+    return reponses.tout(a.session, fiche)
 
 
 @routeur.get("/organisations/{organisation_id}/fiches")

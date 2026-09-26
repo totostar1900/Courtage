@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 
+import { Link } from "react-router-dom";
+
 import { api } from "../api";
 import { Erreur } from "../composants/communs";
 import { dateFr, millions } from "../format";
@@ -72,7 +74,9 @@ export default function Cahier() {
           <thead><tr><th>Numéro</th><th>Émis le</th><th>Réponses avant le</th><th /></tr></thead>
           <tbody>{d.fiches.map((f) => (
             <tr key={f.id}><td>{f.numero}</td><td>{dateFr(f.emise_le)}</td><td>{dateFr(f.date_limite_reponse)}</td>
-              <td className="n"><button onClick={() => api.ouvrir(`/organisations/${d.org.id}/fiches/${f.id}/document`)}>PDF</button></td></tr>
+              <td className="n"><div className="actions" style={{ justifyContent: "flex-end", marginTop: 0 }}>
+                <Link to={f.id}><button className="principal">Réponses des assureurs</button></Link>
+                <button onClick={() => api.ouvrir(`/organisations/${d.org.id}/fiches/${f.id}/document`)}>PDF</button></div></td></tr>
           ))}</tbody>
         </table>
       </div>
