@@ -20,6 +20,7 @@ from pathlib import Path
 
 import random
 from datetime import date, timedelta
+from io import BytesIO
 
 import openpyxl
 from fastapi.testclient import TestClient
@@ -68,6 +69,123 @@ def semer(proprio: Engine, moteur_app: Engine | None = None) -> dict:
     return ids
 
 
+NOM_DEMO = "Société Démo SA"
+
+
+def societe_demo(client, h) -> dict:
+    """Le dossier fictif de la démonstration, rempli par l'API elle-même : 40 salariés inventés, un accord
+    plus favorable pour les cadres (adopté) et un projet d'avenant, des départs passés, un dossier de prise
+    en charge transmis, une étude émise et un brouillon, un cahier des charges et trois réponses d'assureurs
+    FICTIFS. `h(qui)` rend les en-têtes de « admin », « conseiller » ou « drh ». Sert à la démonstration
+    statique (scripts/capturer_demo.py) et au site en ligne (`--depuis-env`)."""
+    def ok(r):
+        assert r.status_code < 300, r.text
+        return r.json() if r.content and r.headers.get("content-type", "").startswith("application/json") else r
+
+    ids = {"conseiller": h("conseiller")["X-Utilisateur"], "drh": h("drh")["X-Utilisateur"]}
+    org = ok(client.post(f"{V1}/organisations", json={"nom": NOM_DEMO, "pays": "CM", "secteur": "Commerce"},
+                         headers=h("admin")))["id"]
+    for qui, role in (("conseiller", "conseiller"), ("drh", "admin_client")):
+        ok(client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": ids[qui], "role": role},
+                       headers=h("admin")))
+    ok(client.post(f"{V1}/organisations/{org}/remuneration", headers=h("conseiller"), json={
+        "en_vigueur_du": "2025-01-01", "mode": "mixte", "honoraires_etude_ifc": 900_000,
+        "honoraires_par_salarie": 2_500, "commission_bps": 800}))
+    # Avant le mandat, l'entreprise traitait seule avec son assureur : les départs d'avant 2025 relèvent de la comparaison.
+    ok(client.post(f"{V1}/organisations/{org}/contrats", headers=h("conseiller"), json={
+        "en_vigueur_du": "2020-01-01", "service": "comparaison", "assureur": "Assureur B (fictif)",
+        "numero_police": "IFC-B-2020-17", "date_effet_police": "2020-01-01"}))
+    ok(client.post(f"{V1}/organisations/{org}/contrats", headers=h("conseiller"), json={
+        "en_vigueur_du": "2025-01-01", "service": "courtage", "assureur": "Assureur A (fictif)",
+        "numero_police": "IFC-2025-0042", "date_effet_police": "2025-01-01",
+        "mandat_reference": "Mandat de courtage du 12/12/2024"}))
+    fichier = ok(client.post(f"{V1}/organisations/{org}/fichiers", headers=h("drh"),
+                             files={"fichier": ("personnel-2025.xlsx", personnel_fictif())},
+                             data={"date_donnees": "2025-12-31"}))
+
+    commerce = [{"jusqu_a": 5, "mois_par_annee": 0.45}, {"jusqu_a": 10, "mois_par_annee": 0.50},
+                {"jusqu_a": 15, "mois_par_annee": 0.65}, {"jusqu_a": 20, "mois_par_annee": 0.75},
+                {"jusqu_a": None, "mois_par_annee": 0.80}]
+    cadres = [{"jusqu_a": 5, "mois_par_annee": 0.60}, {"jusqu_a": 10, "mois_par_annee": 0.70},
+              {"jusqu_a": 15, "mois_par_annee": 0.85}, {"jusqu_a": 20, "mois_par_annee": 1.00},
+              {"jusqu_a": None, "mois_par_annee": 1.10}]
+    regime = ok(client.post(f"{V1}/organisations/{org}/regimes", json={"nom": "Accord IFC Société Démo"}, headers=h("drh")))
+    version = ok(client.post(f"{V1}/organisations/{org}/regimes/{regime['id']}/versions", headers=h("drh"), json={
+        "en_vigueur_du": "2024-02-01", "fondement": "accord_entreprise",
+        "document_reference": "Accord d'entreprise du 01/02/2024, article 9",
+        "categories": [
+            {"categorie": "Cadre", "convention_code": "CM_COMMERCE", "bareme": {"forme": "tranches_cumulatives", "tranches": cadres}},
+            {"categorie": "*", "convention_code": "CM_COMMERCE", "bareme": {"forme": "tranches_cumulatives", "tranches": commerce},
+             "base_salaire": "moyenne_12_mois"}]}))
+    ok(client.post(f"{V1}/organisations/{org}/regimes/versions/{version['id']}/adoption", headers=h("drh"),
+                   json={"accepte_non_conformite": False}))
+    projet = ok(client.post(f"{V1}/organisations/{org}/regimes/{regime['id']}/versions", headers=h("conseiller"), json={
+        "en_vigueur_du": "2026-07-01", "fondement": "accord_entreprise",
+        "document_reference": "Projet d'avenant 2026 (en discussion)",
+        "categories": [
+            {"categorie": "Cadre", "convention_code": "CM_COMMERCE", "bareme": {"forme": "tranches_cumulatives", "tranches": [
+                {"jusqu_a": None, "mois_par_annee": 1.5}]}},
+            {"categorie": "*", "convention_code": "CM_COMMERCE", "bareme": {"forme": "tranches_cumulatives", "tranches": [
+                {"jusqu_a": None, "mois_par_annee": 0.40}]}}]}))
+
+    # Des départs passés, repris par tableur (inventés, comme le personnel).
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Matricule", "Date d'embauche", "Date de départ", "Motif", "Salaire mensuel de référence",
+               "Montant versé", "Payé par le fonds", "Date de paiement"])
+    for ligne in (("X101", date(1990, 3, 1), date(2021, 6, 30), "Retraite", 410_000, 7_700_000, 7_500_000, date(2021, 8, 20)),
+                  ("X102", date(2012, 1, 1), date(2022, 2, 28), "Démission", 280_000, None, None, None),
+                  ("X103", date(1994, 9, 1), date(2023, 12, 31), "Retraite", 520_000, 9_000_000, 8_970_000, date(2024, 2, 10)),
+                  ("X104", date(2016, 4, 1), date(2024, 5, 31), "Licenciement", 350_000, None, None, None),
+                  ("X105", date(1992, 1, 1), date(2025, 3, 31), "Retraite", 780_000, 10_500_000, None, None)):
+        ws.append(list(ligne))
+    tampon = BytesIO()
+    wb.save(tampon)
+    ok(client.post(f"{V1}/organisations/{org}/prestations/import", headers=h("conseiller"),
+                   files={"fichier": ("departs-2021-2025.xlsx", tampon.getvalue())},
+                   data={"convention_code": "CM_COMMERCE", "enregistrer": "true"}))
+    # En courtage : un dossier de prise en charge, bénéficiaire FICTIF, vérifié et transmis à l'assureur.
+    x105 = next(p for p in ok(client.get(f"{V1}/organisations/{org}/prestations", headers=h("drh")))["prestations"]
+                if p["matricule"] == "X105")
+    dossier = ok(client.post(f"{V1}/organisations/{org}/dossiers", headers=h("drh"), json={
+        "prestation_id": x105["id"], "montant_demande": 10_500_000, "beneficiaire": {
+            "qualite": "salarie", "nom": "FICTIF", "prenoms": "Bénéficiaire de démonstration", "piece_type": "cni",
+            "piece_numero": "000000000", "moyen_paiement": "virement", "coordonnees_paiement": "CM00 0000 0000 0000"}}))
+    ok(client.post(f"{V1}/organisations/{org}/dossiers/{dossier['id']}/verification", headers=h("conseiller"),
+                   json={"conforme": True}))
+    ok(client.post(f"{V1}/organisations/{org}/dossiers/{dossier['id']}/transmission", headers=h("conseiller"),
+                   json={}))
+    etude = ok(client.post(f"{V1}/organisations/{org}/etudes", headers=h("drh"), json={
+        "fichier_id": fichier["id"], "date_evaluation": "2025-12-31", "regime_version_id": version["id"],
+        "fonds_disponible": 45_000_000}))
+    ok(client.post(f"{V1}/organisations/{org}/etudes/{etude['id']}/emission", headers=h("conseiller")))
+    brouillon = ok(client.post(f"{V1}/organisations/{org}/etudes", headers=h("drh"), json={
+        "fichier_id": fichier["id"], "date_evaluation": "2025-12-31", "convention_code": "CM_COMMERCE",
+        "fonds_disponible": 45_000_000}))
+    fiche = ok(client.post(f"{V1}/organisations/{org}/fiches", headers=h("conseiller"), json={
+        "etude_id": etude["id"], "date_limite_reponse": (date.today() + timedelta(days=30)).isoformat(),
+        "conditions": {"taux_garanti_minimum": 0.025, "participation_benefices_minimum": 0.85,
+                       "frais_sur_cotisations_maximum": 0.03, "frais_sur_encours_maximum": 0.005,
+                       "transfert_preavis_mois_maximum": 3, "transfert_penalite_maximum": 0.0,
+                       "delai_paiement_jours_maximum": 30}}))
+
+    # Trois assureurs FICTIFS répondent le jour même : le moins cher impose une pénalité de transfert (non
+    # conforme), le recommandé est conforme, le troisième est conforme et plus cher.
+    for assureur, tg, pb, fc, fe, penalite, recue in (
+            ("Assureur C (fictif)", 0.025, 0.85, 0.0, 0.0, 0.05, 0),
+            ("Assureur A (fictif)", 0.03, 0.9, 0.02, 0.004, 0.0, 0),
+            ("Assureur D (fictif)", 0.025, 0.85, 0.03, 0.005, 0.0, 0)):
+        ok(client.post(f"{V1}/organisations/{org}/fiches/{fiche['id']}/reponses", headers=h("conseiller"), data={
+            "donnees": json.dumps({"assureur": assureur, "recue_le": (date.today() + timedelta(days=recue)).isoformat(),
+                                   "taux_garanti": tg, "participation_benefices": pb, "frais_sur_cotisations": fc,
+                                   "frais_sur_encours": fe, "delai_paiement_jours": 25, "transfert_preavis_mois": 3,
+                                   "transfert_penalite": penalite, "accepte_etude_plateforme": True,
+                                   "reporting_annuel": True})}))
+
+    return {"org": org, "fichier": fichier, "version": version, "projet": projet, "dossier": dossier,
+            "etude": etude, "brouillon": brouillon, "fiche": fiche}
+
+
 def personnel_fictif(n: int = 40, graine: int = 2026) -> bytes:
     """Un personnel inventé (tirage fixe) : 8 cadres, 32 employés, dates et salaires tirés au sort."""
     hasard = random.Random(graine)
@@ -103,7 +221,54 @@ def _fichier() -> bytes:
     return tampon.getvalue()
 
 
+def depuis_environnement(env) -> str | None:
+    """`COURTAGE_DEMO=1` : sème la Société Démo SA au démarrage, une fois, et en fait suivre le dossier par
+    les administrateurs de la plateforme. Jamais en production : un client n'y verrait que du faux."""
+    if (env.get("COURTAGE_DEMO") or "").strip().lower() not in ("1", "oui", "true"):
+        return None
+    if env.get("COURTAGE_ENV") == "production":
+        return "démonstration refusée en production (retirer COURTAGE_DEMO)"
+    from courtage.deploiement import _psycopg, url_applicative
+    proprio = create_engine(_psycopg(env["COURTAGE_URL_PROPRIETAIRE"]))
+    ids = {}
+    with proprio.begin() as c:
+        if c.execute(text("SELECT 1 FROM journal WHERE action = 'demo.semee'")).first():
+            return f"{NOM_DEMO} déjà semée"
+        # La marque d'abord : si la suite échoue, le redémarrage ne sème pas un second dossier.
+        c.execute(text("INSERT INTO journal (action, cible, details) VALUES ('demo.semee', 'plateforme', '{}')"))
+        admins = [str(i) for i in c.execute(text(
+            "SELECT id FROM utilisateurs WHERE admin_plateforme ORDER BY cree_le")).scalars()]
+        suffixe = uuid.uuid4().hex[:6]
+        for cle, nom, admin in (("admin", "Plateforme (démonstration)", True),
+                                ("conseiller", "Awa Nkoulou, actuaire conseil (fictive)", False),
+                                ("drh", "Direction RH, Société Démo (fictive)", False)):
+            # Des personnes sans téléphone : personne ne se connecte sous leur nom.
+            ids[cle] = str(c.execute(text("INSERT INTO utilisateurs (email, nom_affiche, admin_plateforme) "
+                                          "VALUES (:e, :n, :a) RETURNING id"),
+                                     {"e": f"{cle}-{suffixe}@demo.courtage", "n": nom, "a": admin}).scalar_one())
+    cle_sceau = env.get("COURTAGE_CLE_SCEAU")
+    client = TestClient(creer_app(moteur=create_engine(url_applicative(env)), authentification="entete_dev",
+                                  cle_sceau=cle_sceau.encode("utf-8") if cle_sceau else None,
+                                  url_publique=env.get("COURTAGE_URL_PUBLIQUE") or env.get("RENDER_EXTERNAL_URL")))
+    h = lambda qui: {"X-Utilisateur": ids.get(qui, qui)}  # noqa: E731
+    org = societe_demo(client, h)["org"]
+    for admin in admins:
+        r = client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": admin, "role": "conseiller"},
+                        headers=h("admin"))
+        assert r.status_code == 201, r.text
+    return f"{NOM_DEMO} semée ({org}), suivie par {len(admins)} administrateur(s)"
+
+
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--depuis-env"]:
+        import os
+        try:
+            message = depuis_environnement(os.environ)
+        except Exception as erreur:  # la démonstration ne doit jamais empêcher le site de démarrer
+            message = f"échec du semis : {erreur!r}"
+        if message:
+            print(f"[demo] {message}")
+        sys.exit(0)
     url = sys.argv[1]
     url_app = sys.argv[2] if len(sys.argv) > 2 else None
     ids = semer(create_engine(url), create_engine(url_app) if url_app else None)

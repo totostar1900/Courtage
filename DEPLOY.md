@@ -43,6 +43,7 @@ répond 503 dès que la base ne porte pas la révision attendue par le code.
 | `COURTAGE_CLE_AUTH` | clé des codes de connexion (la changer invalide seulement les codes en cours) |
 | `COURTAGE_URL_PUBLIQUE` | `https://…`, imprimée sur les rapports pour la vérification |
 | `TWILIO_COMPTE`, `TWILIO_JETON`, `TWILIO_EMETTEUR`, `TWILIO_CANAL` | envoi des codes (`whatsapp` ou `sms`) |
+| `COURTAGE_DEMO` | `1` : sème au premier démarrage la Société Démo SA (fictive), suivie par les administrateurs. Refusée en production. `1` dans `render.essai.yaml` |
 | `COURTAGE_ADMIN_TELEPHONE`, `COURTAGE_ADMIN_NOM` | le premier administrateur, créé au démarrage s'il ne l'est pas déjà (§4c). Facultatives |
 | `COURTAGE_EXTRACTION` | `regles` (défaut : lecture sur la plateforme, aucun envoi) \| `claude` (lecture par Claude, l'accord de la personne est demandé avant chaque envoi) |
 | `ANTHROPIC_API_KEY` | avec `COURTAGE_EXTRACTION=claude` seulement |
@@ -145,6 +146,12 @@ La même plateforme sur les offres gratuites de Render, pour un essai en ligne s
    envoyé », « numéro inconnu » (ce n'est pas le numéro de `COURTAGE_ADMIN_TELEPHONE`), « limite atteinte »
    (3 demandes en 15 minutes : attendre), et à chaque essai « code refusé » avec sa raison ou « connecté ».
    Seul le **dernier** code demandé est valable.
+5. Le dossier de démonstration : avec `COURTAGE_DEMO=1` (déjà dans `render.essai.yaml`), le premier démarrage
+   sème la Société Démo SA, la même que la démonstration statique : 40 salariés inventés, l'accord et son
+   projet d'avenant, des départs, un dossier de prise en charge, une étude émise, un cahier des charges et trois
+   réponses d'assureurs fictifs. Le journal écrit `[demo] Société Démo SA semée`. Les administrateurs en sont
+   conseillers ; ceux créés APRÈS le semis l'ouvrent depuis rien — ajouter la variable avant le premier
+   démarrage, ou déclarer l'administrateur d'abord. Le semis n'a lieu qu'une fois.
 
 Ce que l'offre gratuite ne fait pas :
 
