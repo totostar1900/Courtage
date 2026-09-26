@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur } from "../composants/communs";
@@ -12,6 +12,9 @@ export default function Etudes() {
   const d = useDossier();
   const naviguer = useNavigate();
   const [erreur, setErreur] = useState<unknown>(null);
+  // Une hypothèse proposée par l'expérience réelle arrive ici, à confirmer : jamais appliquée sans décision.
+  const [params] = useSearchParams();
+  const proposee = params.get("turnover");
   const versions = d.regimes.flatMap((r) => r.versions.map((v) => ({ ...v, nomRegime: r.nom })));
 
   async function lancer(ev: FormEvent<HTMLFormElement>) {
@@ -23,6 +26,8 @@ export default function Etudes() {
       const e = await api.post<Etude>(`/organisations/${d.org.id}/etudes`, {
         fichier_id: f.get("fichier_id"), date_evaluation: f.get("date_evaluation"),
         fonds_disponible: Number(f.get("fonds_disponible") || 0),
+        ...(f.get("taux_turnover") ? { hypotheses: { taux_turnover: Number(f.get("taux_turnover")) / 100 },
+                                       justification: f.get("justification") } : {}),
         ...(version ? { regime_version_id: version } : { convention_code: f.get("convention_code") }),
       });
       d.recharger();
@@ -53,6 +58,17 @@ export default function Etudes() {
             <label>Convention (sans régime)<input name="convention_code" defaultValue={CONVENTION_PAR_PAYS[d.org.pays]} /></label>
           </div>
           <label style={{ maxWidth: 260 }}>Fonds déjà constitué (F)<input name="fonds_disponible" type="number" min={0} defaultValue={0} /></label>
+          {proposee && (
+            <div className="constat informe section">
+              <div className="titre">Rotation proposée par l'expérience réelle</div>
+              <div className="grille g3">
+                <label>Rotation retenue (% par an)<input name="taux_turnover" type="number" step={0.1} min={0} max={50}
+                       defaultValue={Math.round(Number(proposee) * 1000) / 10} /></label>
+                <label style={{ gridColumn: "span 2" }}>Justification (figurera au rapport)
+                  <input name="justification" required defaultValue={params.get("justification") ?? ""} /></label>
+              </div>
+            </div>
+          )}
           <div className="actions"><button className="principal">Calculer</button></div>
           <Erreur erreur={erreur} />
         </form>

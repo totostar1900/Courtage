@@ -393,3 +393,45 @@ describe("en comparaison, l'orientation vers l'assureur", () => {
     expect(screen.queryByRole("button", { name: "Télécharger la fiche scellée" })).not.toBeInTheDocument();
   });
 });
+
+describe("l'expérience réelle", () => {
+  const experience = {
+    etude_precedente: { date_evaluation: "2018-12-31" },
+    attendu_contre_reel: [{ annee: 2019, attendu_retraites: 2, attendu_prestations: 4000000, reel_retraites: 1, reel_du: 3625000, reel_verse: 3625000 }],
+    rotation: { taux: 0.065, departs: 6, annees: 4, effectif: 23, taux_hypothese: 0.02, credible: true,
+      proposition: { taux_turnover: 0.065, justification: "Rotation observée : 6 départs." }, message: "Rotation observée 6,5 % par an, contre 2,0 % supposés : à discuter." },
+    paiements_du_fonds: { depuis: "2018-12-31", montant: 3000000 },
+  };
+
+  it("l'étude montre l'attendu contre le réel et propose la rotation sans l'appliquer", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: { ...etude({ possible: true, motifs: [] }), experience } });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    const bloc = within(await screen.findByText("L'expérience réelle").then((h) => h.closest("[data-experience]") as HTMLElement));
+    expect(bloc.getByText("2019")).toBeInTheDocument();
+    expect(bloc.getByText("Hypothèse proposée : 6,5 %")).toBeInTheDocument();
+    expect(bloc.getByText(/n'est pas appliquée à cette étude/)).toBeInTheDocument();
+    expect(bloc.getByRole("link", { name: "Préparer une étude avec cette rotation" }).getAttribute("href")).toContain("turnover=0.065");
+    expect(bloc.getByText(/Le fonds a payé 3 000 000 F/)).toBeInTheDocument();
+  });
+
+  it("la nouvelle étude reprend la rotation proposée, à confirmer et justifiée", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`POST /organisations/${ORG}/etudes`]: { ...etude({ possible: true, motifs: [] }), id: "e2" },
+      [`/organisations/${ORG}/etudes/e2`]: etude({ possible: true, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}/etudes?turnover=0.065&justification=${encodeURIComponent("Rotation observée : 6 départs.")}`);
+    expect(await screen.findByLabelText("Rotation retenue (% par an)")).toHaveValue(6.5);
+    await userEvent.click(screen.getByRole("button", { name: "Calculer" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    const corps = JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string);
+    expect(corps.hypotheses).toEqual({ taux_turnover: 0.065 });
+    expect(corps.justification).toBe("Rotation observée : 6 départs.");
+  });
+
+  it("sans proposition, le formulaire ne touche à aucune hypothèse", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`POST /organisations/${ORG}/etudes`]: { ...etude({ possible: true, motifs: [] }), id: "e2" },
+      [`/organisations/${ORG}/etudes/e2`]: etude({ possible: true, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}/etudes`);
+    await userEvent.click(await screen.findByRole("button", { name: "Calculer" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string).hypotheses).toBeUndefined();
+  });
+});

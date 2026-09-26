@@ -6,6 +6,7 @@ import { Anomalies, Cle, Echeancier, Erreur, libelleMotif, useCharge } from "../
 import { dateFr, millions, montant, pct } from "../format";
 import type { Etude } from "../types";
 import { useDossier } from "./Dossier";
+import Experience from "../composants/Experience";
 import Rapprochement, { sousCotisation } from "../composants/Rapprochement";
 
 const SENSIBILITES: Record<string, string> = {
@@ -47,6 +48,7 @@ export default function EtudeDetail() {
         <Cle etiquette="Cotisation à verser" terme="cotisation" valeur={millions(e.totaux.cotisation_totale ?? 0)} sous={sousCotisation(e)} />
       </div>
       <div className="carte section"><Rapprochement etude={e} /></div>
+      {e.experience && <Experience x={e.experience} peutProposer={d.role !== "lecteur_client"} />}
       {e.totaux_convention && (
         <p className="section">Votre régime représente <strong>{montant(e.totaux.dette - e.totaux_convention.dette)}</strong> de
           dette au-delà de la seule convention ({montant(e.totaux_convention.dette)}).</p>

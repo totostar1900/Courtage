@@ -165,6 +165,11 @@ export const CHAPITRES: Chapitre[] = [
         "La liste des pièces que les assureurs demandent d'ordinaire se coche au fil de la préparation ; elle vous aide et ne s'enregistre pas.",
         "La fiche de calcul de la plateforme est un PDF scellé (numéro FC-…), sans aucune donnée personnelle : joignez-la, l'assureur vérifie en ligne qu'elle n'a pas été retouchée.",
         "Une fois payé, déclarez le montant et la date : sans nom, cela suffit pour que vos rapports tiennent compte du départ." ] },
+      { titre: "Ce que les rapports en font", texte: [
+        "L'étude lit les départs enregistrés à sa date : les retraites que l'étude précédente prévoyait contre celles qui ont eu lieu, année par année — c'est scellé avec l'étude.",
+        "La rotation observée (démissions et licenciements, rapportés à l'effectif) est comparée à l'hypothèse. Avec au moins cinq départs et un écart d'un demi-point, elle est PROPOSÉE ; jamais appliquée d'office : la retenir se fait dans une nouvelle étude, avec une justification qui figure au rapport.",
+        "Un salarié enregistré comme parti mais encore présent dans le fichier est signalé : l'engagement le compterait.",
+        "Le cahier des charges montre aux assureurs les retraites passées par années regroupées — au moins trois par période — et les délais de paiement constatés sur les dossiers suivis." ] },
     ],
     termes: ["turnover", "fonds", "prise_en_charge", "courtage", "comparaison"],
   },

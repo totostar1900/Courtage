@@ -1,6 +1,6 @@
 # Prestations IFC : déclarer un départ, reprendre les départs passés
 
-*Statut : proposition révisée le 26/09 après la décision sur les deux services.*
+*Statut : réalisée (plan `docs/plans/2026-09-26-prestations.md`, P1 à P5), après la décision du 26/09 sur les deux services.*
 
 Demande du 26/09 : « pouvoir renseigner une nouvelle prestation pour prise en charge,
 ou une ancienne pour intégration aux rapports ». Décision du même jour : la plateforme

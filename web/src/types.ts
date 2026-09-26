@@ -122,6 +122,16 @@ export interface Etude {
   honoraires_ht: number | null;
   emise_le: string | null;
   rapport: { numero: string } | null;
+  experience?: Experience | null;
+}
+
+export interface Experience {
+  etude_precedente: { date_evaluation: string } | null;
+  attendu_contre_reel: { annee: number; attendu_retraites: number | null; attendu_prestations: number | null;
+    reel_retraites: number; reel_du: number; reel_verse: number }[];
+  rotation: { taux: number | null; departs: number; annees: number; effectif: number; taux_hypothese: number;
+    credible: boolean; proposition: { taux_turnover: number; justification: string } | null; message: string };
+  paiements_du_fonds: { depuis: string | null; montant: number };
 }
 
 export interface Conditions {

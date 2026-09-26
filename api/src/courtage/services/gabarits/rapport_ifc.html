@@ -151,6 +151,26 @@ l'exercice en est l'acquisition d'une année. Moteur {{ e.version_moteur }}, ré
   {% endfor %}
 </table>
 
+{% if e.experience %}{% set x = e.experience %}
+<h2>L'expérience réelle</h2>
+<p>Les départs enregistrés sur la plateforme, lus à la date d'évaluation{% if x.etude_precedente %}, face à l'étude du {{ x.etude_precedente.date_evaluation | date_fr }}{% endif %}.</p>
+{% if x.attendu_contre_reel %}
+<table>
+  <tr><th>Année</th><th class="n">Retraites prévues</th><th class="n">Prestations prévues</th><th class="n">Retraites réelles</th><th class="n">Dû</th><th class="n">Versé</th></tr>
+  {% for l in x.attendu_contre_reel %}<tr><td>{{ l.annee }}</td>
+    <td class="n">{{ "—" if l.attendu_retraites is none else l.attendu_retraites }}</td>
+    <td class="n">{{ "—" if l.attendu_prestations is none else (l.attendu_prestations | montant) }}</td>
+    <td class="n">{{ l.reel_retraites }}</td><td class="n">{{ l.reel_du | montant }}</td><td class="n">{{ l.reel_verse | montant }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+<p><strong>Rotation du personnel.</strong> {{ x.rotation.message }}{% if x.rotation.proposition %} Hypothèse proposée :
+{{ x.rotation.proposition.taux_turnover | pct }} — elle n'est pas appliquée à cette étude ; la retenir est une décision,
+justifiée, dans une nouvelle étude.{% endif %}</p>
+{% if x.paiements_du_fonds.montant %}<p class="note">Le fonds a payé {{ x.paiements_du_fonds.montant | montant }} de
+prestations{% if x.paiements_du_fonds.depuis %} depuis le {{ x.paiements_du_fonds.depuis | date_fr }}{% endif %} : le fonds
+déclaré pour cette étude doit en tenir compte.</p>{% endif %}
+{% endif %}
+
 <h2>Sensibilités</h2>
 <table>
   <tr><th>Variante</th><th class="n">Dette actuarielle</th><th class="n">Écart</th></tr>

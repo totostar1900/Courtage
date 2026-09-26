@@ -19,7 +19,7 @@ from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fiche import agreger_population, regrouper_echeancier
 from courtage.referentiel import referentiel_courant
 
-from . import etudes, fichiers, journaliser, rapport, regimes
+from . import etudes, experience, fichiers, journaliser, rapport, regimes
 
 GRILLE_DE_REPONSE = {
     "taux_garanti": "Taux minimum garanti annuel sur le fonds (ex. 0,025 pour 2,5 %)",
@@ -112,6 +112,8 @@ def _contenu(session: Session, org: Organisation, etude: Etude, conditions: dict
                   "sensibilites": e["sensibilites"]},
         "population": population,
         "echeancier": regrouper_echeancier(e["echeancier"], depuis=etude.date_evaluation.year),
+        # L'expérience réelle : les retraites passées par années regroupées, les délais de paiement constatés.
+        "experience": experience.pour_cahier(session, etude.date_evaluation),
         "conditions_demandees": conditions,
         "date_limite_reponse": date_limite.isoformat(),
         "grille_de_reponse": GRILLE_DE_REPONSE,

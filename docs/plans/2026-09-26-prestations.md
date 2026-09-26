@@ -32,7 +32,8 @@ Commit : `feat(prestations): dossier de prise en charge en courtage`
 Commit : `feat(prestations): orientation vers l'assureur en comparaison`
 
 ## P5 — Les rapports lisent l'expérience
-- [ ] Étude : attendu contre réel par année ; rotation observée proposée ; fonds réduit des paiements.
-- [ ] Cahier des charges : historique agrégé (≥ 3 par ligne), délais constatés.
-- [ ] Guide : chapitre « Un salarié part », leçon, astuces.
+- [x] Module pur `courtage/experience.py` : attendu (échéancier de l'étude émise précédente) contre réel par année ; rotation observée (démissions et licenciements, sur cinq ans au plus, rapportés à l'effectif ; un décès n'en est pas) — PROPOSÉE à partir de 5 départs et un demi-point d'écart, jamais appliquée ; paiements du fonds depuis la dernière évaluation ; historique publiable par années regroupées (≥ 3 retraites) ; délais constatés (≥ 3 dossiers).
+- [x] Étude : `resultats.experience`, scellée avec elle, et dans le rapport PDF ; anomalie `parti_mais_dans_le_fichier`. « Préparer une étude avec cette rotation » préremplit la nouvelle étude, hypothèse et justification à confirmer.
+- [x] Cahier des charges : `contenu.experience` (historique regroupé, délais), sans matricule, et dans le PDF.
+- [x] Guide (chapitre, astuce) ; démonstration.
 Commit : `feat(rapports): l'expérience réelle des prestations`

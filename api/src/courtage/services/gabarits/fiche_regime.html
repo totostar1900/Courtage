@@ -85,6 +85,18 @@ regroupés par périodes d'au moins trois départs.</p>
   {% for g in c.echeancier %}<tr><td>{{ g.periode }}</td><td class="n">{{ g.departs }}</td><td class="n">{{ g.prestations_probables | montant }}</td></tr>{% endfor %}
 </table>
 
+{% if c.experience and c.experience.historique %}
+<h2>L'expérience : les retraites passées</h2>
+<table>
+  <tr><th>Période</th><th class="n">Retraites</th><th class="n">Indemnités dues</th><th class="n">Payé par le fonds</th></tr>
+  {% for g in c.experience.historique %}<tr><td>{{ g.periode }}</td><td class="n">{{ g.retraites }}</td>
+    <td class="n">{{ "—" if g.du is none else (g.du | montant) }}</td><td class="n">{{ "—" if g.paye is none else (g.paye | montant) }}</td></tr>{% endfor %}
+</table>
+{% if c.experience.delais %}<p class="note">Délai de paiement constaté sur {{ c.experience.delais.dossiers }} dossiers :
+{{ c.experience.delais.median }} jours en médiane, {{ c.experience.delais.max }} au plus.</p>{% endif %}
+<p class="note">Par années regroupées, chaque période d'au moins trois retraites : aucun montant ne décrit une personne.</p>
+{% endif %}
+
 <h2>Conditions demandées</h2>
 <table>
   {% set cd = c.conditions_demandees %}

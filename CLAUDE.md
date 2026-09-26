@@ -214,3 +214,15 @@ le délai attendu, les pièces d'usage (une aide, pas une liste officielle), et 
 (`prestations.declarer_paiement`, une ligne de correction). Si un dossier de
 courtage porte le départ, c'est ce dossier qui écrit son paiement.
 
+## Expérience réelle
+
+`courtage/experience.py` (pur) et `services/experience.py`. L'étude lit les départs
+enregistrés **à sa date** et les scelle avec elle (`resultats.experience`) :
+- l'attendu (échéancier de l'étude émise précédente) contre le réel ;
+- la rotation observée, **proposée** à partir de 5 départs et d'un écart d'un
+  demi-point, **jamais appliquée**. La retenir passe par une nouvelle étude, avec une
+  justification.
+
+Le cahier des charges en publie l'historique par années regroupées (≥ 3 retraites
+par ligne), sans matricule.
+

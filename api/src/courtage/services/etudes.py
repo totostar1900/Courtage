@@ -22,7 +22,7 @@ from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie, controler, controler_parametres, controler_resultat, salaries
 from courtage.referentiel import HYPOTHESES_PAR_DEFAUT, motifs_de_refus, referentiel_courant
 
-from . import baremes, fichiers, journaliser, regimes, remuneration
+from . import baremes, experience, fichiers, journaliser, regimes, remuneration
 
 ECART_MAX_ETUDE_PRECEDENTE = 0.25
 AGE_PREMIER_EMPLOI = 18
@@ -155,6 +155,7 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
         "par_categorie": r.get("par_categorie"),
         "totaux": r["totaux"], "echeancier": r["echeancier"], "sensibilites": r["sensibilites"],
         "lignes": r["lignes"], "anomalies": r["anomalies"], "emission": emission,
+        "experience": r.get("experience"),
         "empreinte": etude.empreinte, "honoraires_ht": etude.honoraires_ht,
         "emise_le": etude.emise_le.isoformat() if etude.emise_le else None,
         "emise_par": str(etude.emise_par) if etude.emise_par else None,
@@ -223,6 +224,7 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         *controler_resultat(resultat),
         *_ecart_etude_precedente(session, saisie.date_evaluation, resultat, sauf),
         *_anomalies_du_regime(constats_regime),
+        *experience.anomalies(session, {s.matricule for s in sal}, saisie.date_evaluation),
     ]
     resultats = {
         "totaux": _totaux(resultat),
@@ -231,6 +233,9 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         "sensibilites": _sensibilites(sal, h, convention, regles),
         "anomalies": [asdict(a) for a in anomalies],
         "constats_regime": constats_regime,
+        # Les départs enregistrés, lus à la date d'évaluation : scellés avec l'étude.
+        "experience": experience.pour_etude(session, date_evaluation=saisie.date_evaluation, effectif=len(sal),
+                                            taux_turnover=valeurs["taux_turnover"], sauf=sauf),
     }
     if regles is not None:
         resultats["par_categorie"] = resultat.par_categorie
