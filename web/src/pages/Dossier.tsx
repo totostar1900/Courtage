@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
+import { AidePage } from "../composants/AidePage";
 import { BoutonAller, FilAriane, niveauxDe, PaletteAller } from "../composants/Navigation";
 import Visite, { lancerVisite } from "../composants/Visite";
 import { VISITE_DOSSIER } from "../guide/visite";
@@ -117,7 +118,10 @@ export default function Dossier() {
             <NavLink to="/guide">Le guide</NavLink>
           </div>
         </aside>
-        <section><FilAriane d={donnee} /><Outlet /></section>
+        <section>
+          <div className="entete-page"><FilAriane d={donnee} /><AidePage base={`/dossier/${donnee.org.id}`} /></div>
+          <Outlet />
+        </section>
         <PaletteAller d={donnee} />
         <Visite etapes={VISITE_DOSSIER} auto />
       </div>

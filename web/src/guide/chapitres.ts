@@ -46,7 +46,8 @@ export const CHAPITRES: Chapitre[] = [
       { titre: "Reprendre où vous en étiez", texte: [
         "« Vos dossiers » propose de reprendre la dernière page que vous avez ouverte dans un dossier (une étude, votre régime…), avec le temps écoulé : un clic, et vous y êtes.",
         "Ce souvenir reste dans ce navigateur, pour vous seul ; un dossier que vous ne suivez plus n'est pas proposé.",
-        "Pour aller ailleurs sans chercher dans les menus : Ctrl+K (⌘K sur Mac), ou « Aller à… » sous le nom du dossier." ] },
+        "Pour aller ailleurs sans chercher dans les menus : Ctrl+K (⌘K sur Mac), ou « Aller à… » sous le nom du dossier.",
+        "Sur chaque page d'un dossier, « Aide sur cette page » (ou la touche ?) ouvre ce que le guide en dit, et les mots du métier qu'elle emploie." ] },
     ],
   },
   {
@@ -194,6 +195,33 @@ export const CHAPITRES: Chapitre[] = [
         "Le cahier des charges montre aux assureurs les retraites passées par années regroupées — au moins trois par période — et les délais de paiement constatés sur les dossiers suivis." ] },
     ],
     termes: ["turnover", "fonds", "prise_en_charge", "courtage", "comparaison"],
+  },
+  {
+    id: "remuneration", groupe: "Le parcours", titre: "Comment nous sommes rémunérés", ecran: "remuneration",
+    resume: "Ce que vous payez, ce que l'assureur nous verse : écrit avant que vous ne signiez.",
+    sections: [
+      { titre: "Trois façons d'être rémunéré", texte: [
+        "Des honoraires, que vous payez : par étude actuarielle et, le cas échéant, par salarié évalué, hors taxes.",
+        "Une commission, que l'assureur retenu nous verse : un pourcentage des primes, affiché tel quel.",
+        "Ou les deux. La page dit toujours lequel, et depuis quand." ] },
+      { titre: "Qui les fixe, et ce que ça change", texte: [
+        "Votre conseiller enregistre les conditions, datées ; les anciennes restent dans l'historique.",
+        "Tant qu'aucune condition n'est fixée, une étude ne peut pas être émise : vous savez ce qu'elle coûte avant de la recevoir.",
+        "Une commission suppose un mandat de courtage : sans mandat enregistré au contrat, la plateforme le signale." ] },
+    ],
+  },
+  {
+    id: "equipe", groupe: "Le parcours", titre: "L'équipe du dossier", ecran: "equipe",
+    resume: "Qui suit le dossier, ce que chacun peut faire, et comment inscrire quelqu'un.",
+    sections: [
+      { titre: "Les rôles", texte: [
+        "La DRH de l'entreprise dépose le personnel, décrit et adopte le régime, lance les études et choisit l'assureur : l'entreprise décide.",
+        "Le conseiller suit le dossier : il relit et émet les études, fixe les conditions de rémunération, inscrit les personnes.",
+        "La lecture seule consulte tout, sans rien modifier." ] },
+      { titre: "Inscrire quelqu'un", texte: [
+        "Le conseiller inscrit une personne par son nom et son numéro de téléphone, avec son rôle.",
+        "Elle se connecte ensuite avec ce numéro, par un code reçu par message : aucun mot de passe à transmettre." ] },
+    ],
   },
   {
     id: "comprendre", groupe: "Comprendre", titre: "Comment se calcule l'engagement",
