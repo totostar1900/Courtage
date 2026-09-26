@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
-from courtage.services import analyse, etudes, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.financement import Offre, Scenario
+from courtage.services import analyse, etudes, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 
@@ -296,6 +297,41 @@ def telecharger_rapport(etude_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     nom = f"etude-ifc-{a.organisation.nom}-{e.date_evaluation.isoformat()}-{document.numero}.pdf".replace(" ", "-")
     return Response(document.contenu, media_type=document.type_contenu,
                     headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+
+
+# --- Financement ---------------------------------------------------------------
+
+class OffreSaisie(_Corps):
+    nom: str = Field(min_length=1)
+    taux_garanti: float = Field(default=0.0, ge=-0.05, le=0.2)
+    participation_benefices: float = Field(default=0.0, ge=0, le=1)
+    frais_sur_cotisations: float = Field(default=0.0, ge=0, le=0.2)
+    frais_sur_encours: float = Field(default=0.0, ge=0, le=0.2)
+    interne: bool = False
+
+
+class ScenarioSaisi(_Corps):
+    nom: str = Field(min_length=1)
+    rendement: float = Field(ge=-0.1, le=0.3)
+
+
+class ParametresFinancement(_Corps):
+    horizon: int = Field(default=10, ge=1, le=40)
+    amortissement_annees: int = Field(default=1, ge=1, le=40)
+    taux_actualisation: float | None = Field(default=None, ge=-0.05, le=0.2)
+    croissance_salaires: float | None = Field(default=None, ge=-0.05, le=0.2)
+    offres: list[OffreSaisie] = []
+    scenarios: list[ScenarioSaisi] | None = None
+
+
+@routeur.post("/organisations/{organisation_id}/etudes/{etude_id}/financement")
+def financer_etude(etude_id: uuid.UUID, corps: ParametresFinancement, a: Acces = Depends(acces(*TOUS))):
+    """Projection du fonds sous chaque offre et chaque scénario ; rien d'enregistré."""
+    return financement.financer(
+        etudes.obtenir(a.session, etude_id), offres=[Offre(**o.model_dump()) for o in corps.offres],
+        scenarios=[Scenario(**x.model_dump()) for x in corps.scenarios] if corps.scenarios else None,
+        horizon=corps.horizon, amortissement_annees=corps.amortissement_annees,
+        taux_actualisation=corps.taux_actualisation, croissance_salaires=corps.croissance_salaires)
 
 
 # --- Vérification publique (sans compte) --------------------------------------

@@ -334,13 +334,16 @@ def _lignes(r: Resultat) -> list[dict]:
 
 def echeancier(r: Resultat, date_evaluation: date) -> list[dict]:
     """Les départs par année : ce que l'entreprise devra payer, et quand."""
-    par_annee: dict[int, dict] = defaultdict(lambda: {"effectif": 0, "ifc": 0.0, "vapf": 0.0})
+    par_annee: dict[int, dict] = defaultdict(lambda: {"effectif": 0, "ifc": 0.0, "prob": 0.0, "vapf": 0.0})
     for l in r.lignes:
         annee = max(l.date_retraite.year, date_evaluation.year)
         par_annee[annee]["effectif"] += 1
         par_annee[annee]["ifc"] += l.ifc
+        # Ce que l'entreprise versera probablement : l'indemnité pondérée par la survie et la présence.
+        par_annee[annee]["prob"] += l.ifc * l.probabilite_survie * l.probabilite_presence
         par_annee[annee]["vapf"] += l.vapf
-    return [{"annee": a, "effectif": v["effectif"], "ifc": round(v["ifc"]), "vapf": round(v["vapf"])}
+    return [{"annee": a, "effectif": v["effectif"], "ifc": round(v["ifc"]),
+             "prestations_probables": round(v["prob"]), "vapf": round(v["vapf"])}
             for a, v in sorted(par_annee.items())]
 
 

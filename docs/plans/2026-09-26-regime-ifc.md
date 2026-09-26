@@ -86,12 +86,27 @@ Commit : `feat(simulation): convention, régime et variantes côte à côte`
 
 ## R5 — Le financement
 
-- [ ] Cotisation initiale et annuelle ; plan d'amortissement sur N années.
-- [ ] Projection du fonds paramétrable (horizon, taux garanti, frais sur
-      cotisations et sur encours, participation aux bénéfices) sous plusieurs
-      scénarios ; décaissements aux dates des départs ; années de découvert.
-- [ ] Offres d'assureurs comme jeux de conditions ; coût total actualisé ;
-      provision interne comme offre de référence.
+- [x] Module pur `courtage.financement` : `projeter(engagement, offres,
+      scénarios, paramètres)`. Une année : cotisation (charge indexée +
+      annuité d'amortissement du déficit sur N années), frais sur cotisations,
+      intérêts au taux garanti plus la participation aux bénéfices au-delà,
+      frais sur encours, prestations probables payées PAR LE FONDS dans la
+      limite de ce qu'il contient ; le reste est un découvert payé par
+      l'entreprise.
+- [x] Horizon, taux d'actualisation, croissance, amortissement paramétrables ;
+      scénarios de rendement paramétrables (par défaut prudent 3,5 %, central
+      5 %, favorable 6,5 %) ; offres bornées (frais ≤ 20 %, PB entre 0 et 1).
+- [x] Par offre et par scénario : l'année par année, le coût total, les frais,
+      les années de découvert, le fonds final, le coût net actualisé (critère
+      de comparaison) et la couverture des départs restants à l'horizon.
+      Classement sur le scénario de référence.
+- [x] La provision interne est toujours comparée (ajoutée si absente).
+- [x] L'échéancier des études donne les prestations probables par année ;
+      `POST /organisations/{id}/etudes/{eid}/financement`, rien d'enregistré.
+
+Reste pour le placement : enregistrer les offres reçues des assureurs.
+
+Commit : `feat(financement): projection du fonds, scénarios et offres comparées`
 
 ## R6 — La fiche régime
 
