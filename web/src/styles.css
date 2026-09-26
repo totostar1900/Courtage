@@ -45,6 +45,8 @@ p { margin: 0 0 10px; color: var(--encre-2); max-width: 72ch; }
 .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .dossier { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; }
 @media (max-width: 900px) { .g2, .g3, .g4, .dossier { grid-template-columns: 1fr; } }
+/* Sur téléphone, un tableau large défile dans son cadre au lieu d'élargir la colonne (et le menu) du dossier. */
+@media (max-width: 900px) { .dossier { grid-template-columns: minmax(0, 1fr); } }
 
 .carte { background: var(--surface); border: 1px solid var(--trait); border-radius: var(--rayon); padding: 18px 20px; }
 .carte.lien { text-decoration: none; color: inherit; display: block; transition: border-color .15s; }
@@ -303,3 +305,31 @@ a.bouton { display: inline-block; text-decoration: none; font-weight: 600; paddi
   border: 1px solid var(--trait); background: var(--surface); color: var(--encre); }
 a.bouton.principal { background: var(--indigo); border-color: var(--indigo); color: #fff; }
 a.bouton.principal:hover { background: var(--indigo-vif); }
+
+/* L'aide propre à chaque page : un bouton à droite du fil d'Ariane, un panneau qui glisse depuis la droite. */
+.entete-page { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px;
+  margin-bottom: 14px; }
+.entete-page .fil-ariane ol { margin: 0; }
+.bouton-aide { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 6px; border-radius: 999px;
+  font-size: 13px; font-weight: 500; color: var(--encre-2); background: var(--surface); }
+.bouton-aide .rond { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--encre); color: #fff; font-size: 12px; font-weight: 700; }
+.bouton-aide:hover, .bouton-aide[aria-expanded="true"] { border-color: var(--encre-2); color: var(--encre); }
+.aide-fond { position: fixed; inset: 0; z-index: 80; background: #141a3333; display: flex; justify-content: flex-end; }
+.aide-panneau { width: min(420px, 100%); height: 100%; overflow-y: auto; background: var(--surface); outline: none;
+  box-shadow: -16px 0 40px #141a3326; padding: max(18px, env(safe-area-inset-top, 0px)) 22px
+  max(22px, env(safe-area-inset-bottom, 0px)); animation: aide-entre .16s ease-out; }
+@keyframes aide-entre { from { translate: 24px 0; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .aide-panneau { animation: none; } }
+.aide-tete { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.aide-chapitre { padding: 14px 0; border-bottom: 1px solid var(--trait); }
+.aide-chapitre h2 { font-size: 19px; margin: 0 0 4px; }
+.aide-resume { color: var(--encre-2); margin: 0 0 10px; }
+.aide-chapitre details { border-top: 1px solid var(--trait); padding: 8px 0; }
+.aide-chapitre summary { cursor: pointer; font-weight: 600; }
+.aide-chapitre details p { margin: 8px 0 0; font-size: 14px; color: var(--encre-2); }
+.aide-lien { display: inline-block; margin-top: 10px; font-size: 14px; }
+.aide-mots { display: grid; gap: 10px; margin: 8px 0 0; }
+.aide-mots dt { font-weight: 600; }
+.aide-mots dd { margin: 2px 0 0; font-size: 14px; color: var(--encre-2); }
+.aide-pied { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding-top: 14px; font-size: 14px; }

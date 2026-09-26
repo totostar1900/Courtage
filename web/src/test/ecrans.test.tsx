@@ -872,3 +872,41 @@ describe("reprendre où l'on s'était arrêté", () => {
     expect(screen.queryByRole("region", { name: "Reprendre où vous en étiez" })).not.toBeInTheDocument();
   });
 });
+
+describe("l'aide propre à chaque page", () => {
+  it("chaque page du dossier a son aide", async () => {
+    const { chapitresDe } = await import("../composants/AidePage");
+    for (const page of ["", "personnel", "regime", "simulation", "etudes", "financement", "cahier", "remuneration",
+                        "contrat", "departs", "dossiers", "equipe"]) {
+      expect(chapitresDe(page).length, `page « ${page} »`).toBeGreaterThan(0);
+    }
+    expect(chapitresDe("etudes").map((c) => c.id)).toEqual(["etude", "comprendre", "methode"]);
+  });
+
+  it("le bouton ouvre le chapitre de la page, ses mots, et le lien vers le guide", async () => {
+    simulerApi(dossier("admin_client"));
+    ouvrir(`/dossier/${ORG}/personnel`);
+    await userEvent.click(await screen.findByRole("button", { name: /Aide sur cette page/ }));
+    const aide = screen.getByRole("dialog", { name: "Aide sur cette page" });
+    expect(within(aide).getByRole("heading", { name: "1. Déposer le personnel" })).toBeInTheDocument();
+    expect(within(aide).getByText("Ancienneté")).toBeInTheDocument();
+    expect(within(aide).getByRole("link", { name: /Lire le chapitre dans le guide/ })).toHaveAttribute("href", "/guide/personnel");
+    await userEvent.click(within(aide).getByRole("button", { name: "Fermer l'aide" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("la touche « ? » l'ouvre, Échap la ferme ; « ? » tapé dans un champ reste un caractère", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    await screen.findByRole("button", { name: /Aide sur cette page/ });
+    await userEvent.keyboard("?");
+    const aide = screen.getByRole("dialog", { name: "Aide sur cette page" });
+    expect(within(aide).getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(
+      ["3. L'étude et le rapport", "Comment se calcule l'engagement", "La méthode actuarielle en détail", "Les mots de cette page"]);
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await userEvent.keyboard("{Control>}k{/Control}");
+    await userEvent.type(screen.getByRole("textbox", { name: "Rechercher" }), "?");
+    expect(screen.queryByRole("dialog", { name: "Aide sur cette page" })).not.toBeInTheDocument();
+  });
+});
