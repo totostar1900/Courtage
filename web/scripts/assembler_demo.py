@@ -9,8 +9,6 @@ dist = racine / "dist-demo"
 css = "".join(p.read_text("utf-8") for p in (dist / "assets").glob("*.css"))
 js = "".join(p.read_text("utf-8") for p in (dist / "assets").glob("*.js")).replace("</script", "<\\/script")
 page = f"""<title>Démonstration Courtage</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap">
 <style>{css}</style>
 <div id="racine"></div>
 <script type="module">{js}</script>

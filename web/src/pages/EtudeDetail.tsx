@@ -41,10 +41,10 @@ export default function EtudeDetail() {
       </p>
 
       <div className="grille g4 section">
-        <Cle etiquette="Dette actuarielle" valeur={millions(e.totaux.dette)} sous={montant(e.totaux.dette)} />
-        <Cle etiquette="Charge annuelle" valeur={millions(e.totaux.charge)} sous={montant(e.totaux.charge)} />
-        <Cle etiquette="Fonds constitué" valeur={millions(e.fonds_disponible)} sous={montant(e.fonds_disponible)} />
-        <Cle etiquette="Cotisation à verser" valeur={millions(e.totaux.cotisation_totale ?? 0)} sous={sousCotisation(e)} />
+        <Cle etiquette="Dette actuarielle" terme="dette" valeur={millions(e.totaux.dette)} sous={montant(e.totaux.dette)} />
+        <Cle etiquette="Charge annuelle" terme="charge" valeur={millions(e.totaux.charge)} sous={montant(e.totaux.charge)} />
+        <Cle etiquette="Fonds constitué" terme="fonds" valeur={millions(e.fonds_disponible)} sous={montant(e.fonds_disponible)} />
+        <Cle etiquette="Cotisation à verser" terme="cotisation" valeur={millions(e.totaux.cotisation_totale ?? 0)} sous={sousCotisation(e)} />
       </div>
       <div className="carte section"><Rapprochement etude={e} /></div>
       {e.totaux_convention && (

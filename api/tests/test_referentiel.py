@@ -159,3 +159,23 @@ def test_un_bareme_moins_genereux_est_refuse_avec_les_anciennetes_en_cause(ref):
     en_dessous = comparer_baremes(_tranches(0.35), ci)  # 35 % partout : rattrapé par les 40 % de la convention
     assert en_dessous[0] == 16  # 15 ans : 5,25 mois des deux côtés ; 16 ans : 5,60 contre 5,65
     assert en_dessous == list(range(16, 51))
+
+
+# --- Consultation publique --------------------------------------------------------
+
+def test_les_conventions_se_consultent_sans_compte():
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+
+    from courtage.api import creer_app
+    web = TestClient(creer_app(moteur=create_engine("postgresql+psycopg://x:y@127.0.0.1:1/rien")))
+    r = web.get("/api/v1/referentiel/conventions")
+    assert r.status_code == 200
+    cs = r.json()["conventions"]
+    assert {(c["code"], c["en_vigueur_du"]) for c in cs} >= {("CM_COMMERCE", "2012-01-01"), ("CM_COMMERCE", "2024-01-16"),
+                                                             ("CM_BANQUES", "2021-06-09"), ("CI_CCI", "1977-07-20")}
+    commerce = next(c for c in cs if c["code"] == "CM_COMMERCE" and c["en_vigueur_du"] == "2024-01-16")
+    assert commerce["pays_libelle"] == "Cameroun" and commerce["en_vigueur_aujourd_hui"]
+    assert commerce["sources"] and commerce["verification"]
+    # 5 ans à 45 % puis 5 ans à 50 % : 4,75 mois à 10 ans.
+    assert next(i for i in commerce["illustration"] if i["anciennete"] == 10)["mois"] == 4.75

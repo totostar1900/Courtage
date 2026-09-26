@@ -9,7 +9,7 @@ const demo = process.env.VITE_DEMO === "1";
 export default defineConfig({
   plugins: [react()],
   base: demo ? "./" : "/",
-  build: demo ? { outDir: "dist-demo", rollupOptions: { output: { inlineDynamicImports: true } } } : {},
+  build: demo ? { outDir: "dist-demo", assetsInlineLimit: 1_000_000, rollupOptions: { output: { inlineDynamicImports: true } } } : {},
   server: { proxy: { "/api": "http://127.0.0.1:8000" } },
   test: { environment: "jsdom", setupFiles: ["./src/test-setup.ts"], globals: true },
 });

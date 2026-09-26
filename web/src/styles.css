@@ -141,3 +141,58 @@ details.repli[open] > summary { margin-bottom: 8px; }
 .fermer-volet { border: 1px solid var(--trait); background: var(--surface); border-radius: 50%; width: 32px; height: 32px;
   padding: 0; font-size: 20px; line-height: 1; color: var(--encre-2); cursor: pointer; flex: none; }
 .fermer-volet:hover { border-color: var(--encre); color: var(--encre); }
+
+/* Infobulles : un mot du métier et son « ? » */
+.terme { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+.terme .aide { width: 16px; height: 16px; padding: 0; border-radius: 50%; border: 1px solid var(--trait); background: var(--surface);
+  color: var(--discret); font-size: 10px; font-weight: 700; line-height: 1; cursor: help; text-transform: none; letter-spacing: 0; }
+.terme .aide:hover, .terme .aide:focus-visible { border-color: var(--indigo-vif); color: var(--indigo-vif); }
+.terme .bulle { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; width: min(300px, 80vw); background: var(--encre);
+  color: #fff; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 400; line-height: 1.45; text-transform: none;
+  letter-spacing: 0; box-shadow: 0 8px 24px #141a3340; }
+
+/* Visite guidée */
+.visite { position: fixed; inset: 0; z-index: 100; }
+.visite-halo { position: fixed; border-radius: 12px; box-shadow: 0 0 0 9999px #141a33a6; transition: all .25s ease; pointer-events: none;
+  outline: 2px solid #f2c27a; }
+.visite-bulle { position: fixed; width: 380px; max-width: calc(100vw - 24px); background: var(--surface); border-radius: var(--rayon);
+  padding: 16px 18px; box-shadow: 0 12px 40px #141a3355; transition: top .25s ease, left .25s ease; }
+.visite-bulle h3 { margin-top: 4px; }
+
+/* Le saviez-vous ? */
+.astuce { border-left: 4px solid var(--ocre); background: var(--ocre-doux); }
+.astuce .actions { gap: 14px; align-items: center; }
+button.lien { background: none; border: none; padding: 0; color: var(--indigo-vif); text-decoration: underline; cursor: pointer; font: inherit; }
+
+/* Le guide */
+.guide { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 32px; }
+.guide-nav { position: sticky; top: 16px; align-self: start; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.guide-nav input { margin-bottom: 10px; }
+.guide-nav a { text-decoration: none; color: var(--encre-2); padding: 5px 10px; border-radius: 8px; }
+.guide-nav a:hover { background: var(--indigo-doux); }
+.guide-nav a.actif { background: var(--indigo-doux); color: var(--indigo); font-weight: 600; }
+.guide-groupe { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--discret); margin: 14px 10px 4px; }
+.guide-texte { max-width: 760px; }
+.guide-resume { font-size: 17px; color: var(--encre-2); }
+.guide-suite { justify-content: space-between; border-top: 1px solid var(--trait); padding-top: 14px; }
+.definitions div { padding: 10px 0; border-bottom: 1px solid var(--trait); }
+.definitions dt { font-weight: 700; }
+.definitions dd { margin: 2px 0 0; color: var(--encre-2); }
+.progression { display: flex; gap: 6px; margin: 8px 0 4px; }
+.progression span { flex: 1; height: 5px; border-radius: 3px; background: var(--trait); }
+.progression span.fait { background: var(--indigo-vif); }
+.lecon h2 { font-size: 20px; }
+.choix { display: grid; gap: 8px; margin: 10px 0; }
+.choix button { text-align: left; padding: 10px 14px; }
+.choix button.bonne { border-color: var(--bien); background: var(--bien-doux); color: var(--bien); font-weight: 600; }
+.choix button.mauvaise { border-color: var(--grave); background: var(--grave-doux); color: var(--grave); }
+.convention summary { cursor: pointer; list-style: none; }
+.convention summary::-webkit-details-marker { display: none; }
+.convention summary::before { content: "▸ "; color: var(--discret); }
+.convention[open] summary::before { content: "▾ "; }
+@media (max-width: 900px) { .guide { grid-template-columns: 1fr; } .guide-nav { position: static; } }
+.guide-nav a { display: block; }
+.choix button:disabled { opacity: 1; cursor: default; }
+.terme .bulle.a-droite { left: auto; right: 0; }
+.visite-bulle .actions { flex-wrap: nowrap; gap: 8px; }
+.visite-bulle .actions button { padding: 8px 12px; white-space: nowrap; }

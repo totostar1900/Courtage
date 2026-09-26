@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { ErreurApi } from "../api";
 import type { Anomalie, Annee, Constat } from "../types";
 import { montant } from "../format";
+import type { CleTerme } from "../guide/glossaire";
+import { Terme } from "./Terme";
 
 /** Charge une donnée, garde l'erreur, sait recharger. */
 export function useCharge<T>(charger: () => Promise<T>, deps: unknown[]) {
@@ -33,10 +35,11 @@ export function Erreur({ erreur }: { erreur: unknown }) {
   );
 }
 
-export function Cle({ etiquette, valeur, sous }: { etiquette: string; valeur: ReactNode; sous?: ReactNode }) {
+export function Cle({ etiquette, valeur, sous, terme }:
+  { etiquette: string; valeur: ReactNode; sous?: ReactNode; terme?: CleTerme }) {
   return (
     <div className="carte cle">
-      <div className="etiquette">{etiquette}</div>
+      <div className="etiquette">{terme ? <Terme cle={terme}>{etiquette}</Terme> : etiquette}</div>
       <div className="valeur">{valeur}</div>
       {sous && <div className="sous">{sous}</div>}
     </div>

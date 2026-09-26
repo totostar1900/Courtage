@@ -152,3 +152,19 @@ organisation soit connue). Les polices sont servies par la plateforme (`@fontsou
 aucune ressource tierce. Les limites de fréquence (`api/limites.py`) vivent en mémoire,
 par processus.
 
+## Guide
+
+`web/src/guide/` est un seul texte lu par quatre instruments :
+- `chapitres.ts` : le guide, par groupes (Commencer, Le parcours, Comprendre, Référence) ;
+- `glossaire.ts` : une phrase par mot, lue par l'infobulle `<Terme cle=…>` (et `Cle terme=…`) comme par le glossaire ;
+- `lecons.ts` : les leçons rapides (écrans, puis une question dont la raison s'affiche toujours) ;
+- `astuces.ts` : « Le saviez-vous ? », une par jour sur le tableau de bord.
+
+`visite.ts` pose des bulles sur `[data-visite=…]`. La visite se lance seule au premier
+dossier ouvert (`courtage:visite-faite`), puis depuis « Visite guidée » ; une étape dont
+l'élément manque est sautée. `/guide/*` est public, comme `/verifier`, car rien d'un client
+n'y figure. `/guide/conventions-preremplies` lit `GET /api/v1/referentiel/conventions`
+(public). `guide.test.tsx` refuse un renvoi vers un chapitre ou une leçon qui n'existe
+pas, et une étape de visite dont le code ne pose pas la cible. Un panneau qui s'ouvre
+sur une page est un `Volet` (croix en haut, voir `communs.tsx`).
+

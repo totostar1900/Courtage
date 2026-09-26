@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { api, seConnecter } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
@@ -69,6 +69,8 @@ export default function Connexion() {
         </div>
       )}
       {choixPersonne && <ChoixPersonne demo={mode?.mode === "demonstration"} />}
+      <p className="section discret">Première fois ? <Link to="/guide">Découvrez la plateforme dans le guide</Link>,
+        sans compte.</p>
     </div>
   );
 }

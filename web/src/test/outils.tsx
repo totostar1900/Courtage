@@ -22,8 +22,11 @@ export function simulerApi(reponses: Record<string, unknown | ((init?: RequestIn
   return appels;
 }
 
-export function ouvrir(chemin: string, utilisateur: string | null = "u-drh") {
+/** `premiereVisite` : la visite guidée n'a jamais été faite (sinon, elle est tenue pour faite : elle se
+ *  lancerait seule sur chaque dossier et masquerait l'écran testé). */
+export function ouvrir(chemin: string, utilisateur: string | null = "u-drh", { premiereVisite = false } = {}) {
   localStorage.clear();
+  if (!premiereVisite) localStorage.setItem("courtage:visite-faite", "1");
   seConnecter(utilisateur);
   return render(<MemoryRouter initialEntries={[chemin]}><App /></MemoryRouter>);
 }

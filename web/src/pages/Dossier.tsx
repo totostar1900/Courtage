@@ -3,6 +3,8 @@ import { NavLink, Outlet, useParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
+import Visite, { lancerVisite } from "../composants/Visite";
+import { VISITE_DOSSIER } from "../guide/visite";
 import { etapes, type EtatDossier } from "../parcours";
 import type { EtudeResume, Fiche, Fichier, Moi, Regime, Role } from "../types";
 
@@ -64,7 +66,7 @@ export default function Dossier() {
             <h2 style={{ marginBottom: 2 }}>{donnee.org.nom}</h2>
           </NavLink>
           <div className="discret" style={{ marginBottom: 16 }}>Tableau de bord du dossier</div>
-          <ol className="parcours">
+          <ol className="parcours" data-visite="parcours">
             {etapes(donnee.etat).map((e, i) => (
               <li key={e.cle} className={e.fait ? "fait" : e.suivant ? "suivant" : ""}>
                 <NavLink to={e.cle} className={({ isActive }) => (isActive ? "actif" : "")}>
@@ -73,14 +75,14 @@ export default function Dossier() {
               </li>
             ))}
           </ol>
-          <ol className="parcours" style={{ marginTop: 14 }}>
+          <ol className="parcours" style={{ marginTop: 14 }} data-visite="outils">
             <li><NavLink to="simulation" className={({ isActive }) => (isActive ? "actif" : "")}>
               <span className="pastille">≈</span>Simuler</NavLink></li>
             <li><NavLink to="remuneration" className={({ isActive }) => (isActive ? "actif" : "")}>
               <span className="pastille">F</span>Rémunération</NavLink></li>
           </ol>
           {conseiller && (
-            <div className="carte" style={{ marginTop: 20 }}>
+            <div className="carte" style={{ marginTop: 20 }} data-visite="conseiller">
               <div className="discret" style={{ marginBottom: 8 }}>
                 {donnee.role === "conseiller" ? "Vous suivez ce dossier" : "Votre conseiller"}
               </div>
@@ -93,8 +95,13 @@ export default function Dossier() {
               </div>
             </div>
           )}
+          <div className="actions" style={{ marginTop: 16 }}>
+            <button type="button" className="lien" onClick={lancerVisite}>Visite guidée</button>
+            <NavLink to="/guide">Le guide</NavLink>
+          </div>
         </aside>
         <section><Outlet /></section>
+        <Visite etapes={VISITE_DOSSIER} auto />
       </div>
     </Contexte.Provider>
   );
