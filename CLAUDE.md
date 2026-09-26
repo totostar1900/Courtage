@@ -246,6 +246,15 @@ test le vérifie de 1 à 45 ans. Servis comme une `VersionProposee` : le formula
 enregistré sans relecture. Aucune donnée d'entreprise. Première étape de « consulter des régimes » ; le
 catalogue anonyme et la comparaison chiffrée viendront après (docs/specs/2026-09-26-modeles-types-design.md).
 
+## L'échéancier des départs
+
+`services/etudes.echeancier` rend chaque année ET son découpage `par_categorie` (les études émises avant
+ne l'ont pas : leur graphique reste d'un seul tenant, le réglage le dit). `web/src/echeancier.ts` (pur) met
+en forme ; `composants/Echeancier.tsx` dessine : mesure (probables, si tous partent, valeur actuelle,
+départs), lecture annuelle ou cumulée, ensemble ou par catégorie, horizon ; en cumulé, le fonds constitué
+en repère et l'année où les versements le dépassent. Palette catégorielle validée (ordre fixe, huit au plus,
+puis « Autres catégories ») ; légende, tableau et bulle par barre.
+
 ## Catalogue anonyme
 
 `courtage/catalogue.py` (pur : `groupes_visibles`, `anonymiser_categories`), `services/catalogue.py`,

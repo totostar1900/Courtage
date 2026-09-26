@@ -737,3 +737,51 @@ describe("le catalogue anonyme", () => {
     expect(await screen.findByText(/s'ouvre quand au moins 5 entreprises.*Aujourd'hui : 3/)).toBeInTheDocument();
   });
 });
+
+describe("l'échéancier modulable", () => {
+  const part = (effectif: number, prob: number) => ({ effectif, ifc: prob + 1_000_000, prestations_probables: prob, vapf: prob - 1_000_000 });
+  const decoupee = () => ({ ...etude({ possible: false, motifs: [] }), fonds_disponible: 9_000_000, echeancier: [
+    { annee: 2021, effectif: 2, ifc: 8_000_000, prestations_probables: 6_000_000, vapf: 4_000_000,
+      par_categorie: { Cadre: part(1, 4_000_000), "*": part(1, 2_000_000) } },
+    { annee: 2022, effectif: 1, ifc: 6_000_000, prestations_probables: 5_000_000, vapf: 4_000_000,
+      par_categorie: { "*": part(1, 5_000_000) } }] });
+
+  it("par catégorie : une légende, et la bulle détaille chaque catégorie", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: decoupee() });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    await userEvent.click(await screen.findByRole("radio", { name: "Par catégorie" }));
+    const legende = screen.getByRole("list", { name: "Légende" });
+    expect(within(legende).getAllByRole("listitem").map((l) => l.textContent)).toEqual(["Autres salariés", "Cadre"]);
+    await userEvent.hover(screen.getByRole("button", { name: /^2021/ }));
+    const bulle = screen.getByRole("tooltip");
+    expect(bulle).toHaveTextContent(/Cadre\s*4\s000\s000/);
+    expect(bulle).toHaveTextContent(/Autres salariés\s*2\s000\s000/);
+  });
+
+  it("cumulée : le fonds constitué en repère, et l'année où les versements le dépassent", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: decoupee() });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    await userEvent.click(await screen.findByRole("radio", { name: "Cumulée" }));
+    expect(screen.getByText(/Fonds constitué 9 M/)).toBeInTheDocument();
+    expect(screen.getByText(/couvre les départs jusqu'en/)).toHaveTextContent("jusqu'en 2021");
+    await userEvent.hover(screen.getByRole("button", { name: /^2022/ }));
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/Au-delà du fonds\s*2\s000\s000/);
+  });
+
+  it("la mesure change, et le tableau montre les mêmes chiffres", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: decoupee() });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    await userEvent.click(await screen.findByRole("radio", { name: "Départs" }));
+    await userEvent.click(screen.getByRole("button", { name: "Voir le tableau" }));
+    const table = screen.getByRole("columnheader", { name: "Départs à la retraite" }).closest("table") as HTMLElement;
+    const lignes = within(table).getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell").map((c) => c.textContent));
+    expect(lignes).toContainEqual(["2021", "2"]);
+    expect(lignes).toContainEqual(["2022", "1"]);
+  });
+
+  it("une étude ancienne, sans découpage, le dit plutôt que d'inventer", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    expect(await screen.findByRole("radio", { name: "Par catégorie" })).toBeDisabled();
+  });
+});

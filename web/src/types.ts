@@ -42,6 +42,8 @@ export interface Annee {
   ifc: number;
   prestations_probables?: number;
   vapf: number;
+  /** Absent des études émises avant le découpage par catégorie : leur graphique reste d'un seul tenant. */
+  par_categorie?: Record<string, { effectif: number; ifc: number; prestations_probables: number; vapf: number }>;
 }
 
 export interface Constat {

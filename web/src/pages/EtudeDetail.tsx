@@ -78,11 +78,11 @@ export default function EtudeDetail() {
         )}
       </div>
 
+      <div className="carte section">
+        <h3>Départs prévus</h3>
+        <Echeancier annees={e.echeancier} fonds={e.fonds_disponible} />
+      </div>
       <div className="grille g2 section">
-        <div className="carte">
-          <h3>Départs prévus : prestations probables par année</h3>
-          <Echeancier annees={e.echeancier} />
-        </div>
         <div className="carte">
           <h3>Sensibilités</h3>
           <table><tbody>
