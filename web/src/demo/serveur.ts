@@ -12,7 +12,12 @@ export const DOCUMENTS = documents as Record<string, string[]>;
 
 export async function repondre(methode: string, chemin: string, corps: unknown, utilisateur: string | null): Promise<unknown> {
   const m = methode.toUpperCase();
-  if (m === "GET" && chemin === "/moi") return trouver(`GET /moi@${utilisateur}`);
+  if (m === "GET" && chemin === "/auth/mode") return { mode: "demonstration" };
+  if (m === "GET" && chemin === "/moi") {
+    if (!utilisateur) throw new ErreurApi(401, "non_authentifie", "Choisissez une personne.");
+    return trouver(`GET /moi@${utilisateur}`);
+  }
+  if (m === "POST" && chemin === "/auth/deconnexion") return { message: "Déconnecté." };
   if (m === "GET") return trouver(`GET ${chemin}`);
   if (m === "POST" && chemin.endsWith("/simulations")) return trouver(`POST ${chemin}`);
   const f = chemin.match(/^\/organisations\/[^/]+\/etudes\/([^/]+)\/financement$/);

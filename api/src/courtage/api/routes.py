@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
@@ -92,6 +93,39 @@ def equipe(a: Acces = Depends(acces(*TOUS))):
                               .where(Adhesion.organisation_id == a.organisation.id)).all()
     return [{"id": str(u.id), "nom": u.nom_affiche or u.email or u.telephone, "email": u.email,
              "telephone": u.telephone, "role": r} for u, r in rangs]
+
+
+class NouveauMembre(_Corps):
+    telephone: str = Field(min_length=1, max_length=30)
+    nom_affiche: str = Field(min_length=1)
+    role: Literal["admin_client", "lecteur_client", "conseiller"]
+
+
+@routeur.post("/organisations/{organisation_id}/membres", status_code=201)
+def inscrire_membre(organisation_id: uuid.UUID, corps: NouveauMembre, session: Session = Depends(session_db),
+                    utilisateur: Utilisateur = Depends(identite)):
+    """Inscrire quelqu'un par son numéro : il se connectera avec le code qu'il recevra."""
+    role_appelant = session.scalar(select(Adhesion.role).where(
+        Adhesion.utilisateur_id == utilisateur.id, Adhesion.organisation_id == organisation_id))
+    if not (utilisateur.admin_plateforme or role_appelant == "conseiller"):
+        raise ErreurMetier("acces_refuse", "Seuls la plateforme et le conseiller du dossier inscrivent un membre.", 403)
+    if session.get(Organisation, organisation_id) is None:
+        raise ErreurMetier("introuvable", "Organisation introuvable.", 404)
+    try:
+        telephone = normaliser(corps.telephone)
+    except ValueError:
+        raise ErreurMetier("telephone_invalide", "Numéro de téléphone invalide.", 422) from None
+    membre = session.scalars(select(Utilisateur).where(Utilisateur.telephone == telephone)).first()
+    if membre is None:
+        membre = Utilisateur(telephone=telephone, nom_affiche=corps.nom_affiche.strip())
+        session.add(membre)
+        session.flush()
+    if session.get(Adhesion, (membre.id, organisation_id)) is not None:
+        raise ErreurMetier("deja_membre", "Cette personne est déjà membre du dossier.", 409)
+    session.add(Adhesion(utilisateur_id=membre.id, organisation_id=organisation_id, role=corps.role))
+    contexte(session.connection(), organisation_id)
+    journaliser(session, organisation_id, utilisateur.id, "membre.inscrit", membre.id, {"role": corps.role})
+    return {"utilisateur_id": str(membre.id), "telephone": telephone, "role": corps.role}
 
 
 # --- Rémunération -------------------------------------------------------------

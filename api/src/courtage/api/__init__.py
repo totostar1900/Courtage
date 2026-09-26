@@ -5,47 +5,63 @@ adhésions, puis la transaction est placée dans le contexte de l'organisation
 (RLS) avant tout accès aux données du client. Une erreur annule tout ce que la
 requête avait écrit.
 
-L'authentification réelle arrive à la tâche 8. D'ici là, le mode `entete_dev`
-lit l'identité dans l'en-tête `X-Utilisateur` : il est refusé au démarrage en
-production.
+Identité (tâche 8) : une session ouverte par un code reçu par téléphone
+(`courtage.auth`), portée par le cookie `courtage_session` (navigateur) ou par
+`Authorization: Bearer` (application). Une ÉCRITURE authentifiée par cookie
+exige l'en-tête `X-Courtage: 1` : un autre site peut faire envoyer le cookie,
+pas poser un en-tête (protection CSRF). Le mode `entete_dev` accepte en plus
+l'en-tête `X-Utilisateur` ; il est refusé au démarrage en production.
 """
 import os
 import uuid
 from dataclasses import dataclass
 from typing import Literal
 
-from fastapi import Depends, FastAPI, Header, Request
+from fastapi import Cookie, Depends, FastAPI, Header, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
+from courtage import auth
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
+from courtage.messagerie import ExpediteurJournal
 from courtage.services.rapport import ConfigSceau
 
 __all__ = ["creer_app"]
 
-ModeAuthentification = Literal["entete_dev", "aucune"]
+ModeAuthentification = Literal["session", "entete_dev"]
+COOKIE = "courtage_session"
+_SURES = {"GET", "HEAD", "OPTIONS"}
 
 
-def creer_app(moteur: Engine, authentification: ModeAuthentification = "aucune",
-              cle_sceau: bytes | None = None, url_publique: str | None = None) -> FastAPI:
+def creer_app(moteur: Engine, authentification: ModeAuthentification = "session",
+              cle_sceau: bytes | None = None, url_publique: str | None = None,
+              expediteur=None, cle_auth: bytes | None = None) -> FastAPI:
     production = os.environ.get("COURTAGE_ENV") == "production"
     if production and authentification == "entete_dev":
         raise RuntimeError("L'identité par en-tête est réservée au développement et aux tests.")
     if production and not cle_sceau:
         raise RuntimeError("Clé de sceau absente : un rapport émis en production doit être probant.")
+    if production and (not cle_auth or expediteur is None or isinstance(expediteur, ExpediteurJournal)):
+        raise RuntimeError("Connexion : en production, il faut une clé d'authentification et un vrai "
+                           "fournisseur d'envoi de messages.")
     app = FastAPI(title="Courtage", version="0.1.0")
     app.state.moteur = moteur
     app.state.authentification = authentification
     app.state.sceau = ConfigSceau.depuis(cle_sceau, url_publique)
+    app.state.expediteur = expediteur or ExpediteurJournal()
+    app.state.cle_auth = cle_auth or auth.CLE_DE_DEVELOPPEMENT
+    app.state.cookie_securise = production
 
     @app.exception_handler(ErreurMetier)
     async def _erreur_metier(_: Request, e: ErreurMetier):
         return JSONResponse({"code": e.code, "message": e.message, "details": e.details}, status_code=e.statut)
 
+    from .connexion import routeur_connexion
     from .routes import routeur
+    app.include_router(routeur_connexion, prefix="/api/v1/auth")
     app.include_router(routeur, prefix="/api/v1")
     if authentification == "entete_dev":
         from .dev import routeur_dev
@@ -62,16 +78,25 @@ def session_db(request: Request):
 
 
 def identite(request: Request, session: Session = Depends(session_db),
-             x_utilisateur: str | None = Header(default=None)) -> Utilisateur:
-    if request.app.state.authentification != "entete_dev" or not x_utilisateur:
-        raise ErreurMetier("non_authentifie", "Identifiez-vous.", 401)
-    try:
-        utilisateur = session.get(Utilisateur, uuid.UUID(x_utilisateur))
-    except ValueError:
-        utilisateur = None
-    if utilisateur is None:
-        raise ErreurMetier("non_authentifie", "Identité inconnue.", 401)
-    return utilisateur
+             x_utilisateur: str | None = Header(default=None),
+             authorization: str | None = Header(default=None),
+             courtage_session: str | None = Cookie(default=None)) -> Utilisateur:
+    porteur = authorization[7:].strip() if authorization and authorization.lower().startswith("bearer ") else None
+    jeton = porteur or courtage_session
+    if jeton:
+        utilisateur = auth.utilisateur_du_jeton(session, jeton)
+        if utilisateur is not None:
+            if porteur is None and request.method not in _SURES and request.headers.get("x-courtage") != "1":
+                raise ErreurMetier("csrf", "Requête refusée : elle ne vient pas de l'application.", 403)
+            return utilisateur
+    if request.app.state.authentification == "entete_dev" and x_utilisateur:
+        try:
+            utilisateur = session.get(Utilisateur, uuid.UUID(x_utilisateur))
+        except ValueError:
+            utilisateur = None
+        if utilisateur is not None:
+            return utilisateur
+    raise ErreurMetier("non_authentifie", "Connectez-vous.", 401)
 
 
 @dataclass

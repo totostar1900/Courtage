@@ -4,19 +4,44 @@ import { describe, expect, it } from "vitest";
 
 import { dossier, etude, ORG, ouvrir, simulerApi } from "./outils";
 
-describe("connexion de développement", () => {
-  it("liste les personnes et retient celle choisie", async () => {
-    simulerApi({ "/dev/utilisateurs": [{ id: "u-1", nom_affiche: "Awa Nkoulou", email: "a@x", admin_plateforme: false }],
-                 "/moi": { organisations: [] } });
+const NON_CONNECTE = () => new Response(JSON.stringify({ code: "non_authentifie", message: "Connectez-vous." }),
+  { status: 401, headers: { "content-type": "application/json" } });
+
+describe("connexion", () => {
+  it("par téléphone : le numéro, puis le code", async () => {
+    const appels = simulerApi({
+      "/auth/mode": { mode: "session" },
+      "POST /auth/code": { message: "Si ce numéro est inscrit, un code vient d'être envoyé." },
+      "POST /auth/verification": { utilisateur: { id: "u", nom_affiche: "Mme Test" } },
+      "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [] },
+    });
+    ouvrir("/connexion", null);
+    await userEvent.type(await screen.findByLabelText("Téléphone"), "699123456");
+    await userEvent.click(screen.getByRole("button", { name: "Recevoir un code" }));
+    const code = await screen.findByLabelText("Code reçu");
+    expect(code).toHaveValue("");            // le numéro ne reste pas dans la case du code
+    await userEvent.type(code, "123456");
+    await userEvent.click(screen.getByRole("button", { name: "Se connecter" }));
+    expect(await screen.findByText("Vos dossiers")).toBeInTheDocument();
+    const verification = appels.find((a) => a.chemin === "/auth/verification")!;
+    expect(JSON.parse(verification.init!.body as string)).toEqual({ telephone: "699123456", code: "123456" });
+    expect(new Headers(verification.init!.headers).get("X-Courtage")).toBe("1");
+    expect(screen.queryByText("Mode développement")).not.toBeInTheDocument();
+  });
+
+  it("en développement, on peut aussi choisir une personne", async () => {
+    simulerApi({ "/auth/mode": { mode: "entete_dev" },
+                 "/dev/utilisateurs": [{ id: "u-1", nom_affiche: "Awa Nkoulou", email: "a@x", admin_plateforme: false }],
+                 "/moi": NON_CONNECTE });
     ouvrir("/connexion", null);
     await userEvent.click(await screen.findByText("Awa Nkoulou"));
     expect(localStorage.getItem("courtage:utilisateur")).toBe("u-1");
   });
 
-  it("sans personne choisie, on arrive à la connexion", async () => {
-    simulerApi({ "/dev/utilisateurs": [] });
+  it("sans session, un dossier renvoie à la connexion", async () => {
+    simulerApi({ "/auth/mode": { mode: "session" }, "/moi": NON_CONNECTE });
     ouvrir(`/dossier/${ORG}`, null);
-    expect(await screen.findByText("Bienvenue")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Connexion" })).toBeInTheDocument();
   });
 });
 

@@ -103,6 +103,19 @@ api/src/courtage/
   cache un bouton que pour la clarté.
 - Tous les textes en français ; montants par `format.ts`.
 
+## Connexion
+
+- Code à usage unique reçu par SMS ou WhatsApp (`courtage.auth`,
+  `courtage.messagerie`), puis session : cookie `courtage_session` (HttpOnly)
+  ou `Authorization: Bearer`. Ni code ni jeton ne sont stockés en clair.
+- Toute écriture authentifiée par cookie porte `X-Courtage: 1` (l'interface
+  le pose toujours) ; sans lui, 403 `csrf`.
+- Un numéro inconnu reçoit la même réponse qu'un numéro connu : ne jamais
+  faire varier la réponse selon qu'une personne existe.
+- `COURTAGE_AUTH=entete_dev` (en-tête `X-Utilisateur`) : développement et
+  tests seulement ; refusé en production, comme l'absence de clé ou de
+  fournisseur d'envoi.
+
 ## Rapport et sceau
 
 - Le rapport est rendu UNE fois, à l'émission, dans la même transaction

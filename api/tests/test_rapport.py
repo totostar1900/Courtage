@@ -116,7 +116,7 @@ def test_si_le_rapport_echoue_l_etude_n_est_pas_emise(client, azito, monkeypatch
 def test_en_production_la_cle_de_sceau_est_obligatoire(bases, monkeypatch):
     monkeypatch.setenv("COURTAGE_ENV", "production")
     with pytest.raises(RuntimeError, match="sceau"):
-        creer_app(moteur=bases[1], authentification="aucune")
+        creer_app(moteur=bases[1], authentification="session")
 
 
 def test_le_rapport_dit_ce_que_coute_le_regime(client, azito):

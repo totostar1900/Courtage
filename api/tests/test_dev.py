@@ -12,7 +12,7 @@ def test_la_liste_des_personnes_n_existe_qu_en_developpement(bases, personnes):
     r = dev.get(f"{V1}/dev/utilisateurs")
     assert r.status_code == 200
     assert {"id", "nom_affiche", "email", "admin_plateforme"} <= set(r.json()[0])
-    prod = TestClient(creer_app(moteur=bases[1], authentification="aucune"))
+    prod = TestClient(creer_app(moteur=bases[1], authentification="session"))
     assert prod.get(f"{V1}/dev/utilisateurs").status_code == 404
 
 

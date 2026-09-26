@@ -1,10 +1,10 @@
 """Jeu de démonstration : `python -m courtage.demo <url propriétaire>`.
 
 Crée trois personnes (une administratrice de plateforme, une conseillère, une
-DRH), le client AZITO avec ses conditions de rémunération, et dépose le
-fichier du personnel d'AZITO (23 salariés, sans nom) comme la DRH l'aurait
-fait. Imprime les identifiants. Tout passe par l'API sauf la création des
-personnes, qui appartiendra à l'authentification (tâche 8).
+DRH ; téléphones +237 690 00 00 03, 02 et 01, pour se connecter par code), le
+client AZITO avec ses conditions de rémunération, et dépose le fichier du
+personnel d'AZITO (23 salariés, sans nom) comme la DRH l'aurait fait. Imprime
+les identifiants. Tout passe par l'API sauf la création des trois personnes.
 
 Les données du fichier viennent du cas de test AZITO : dépôt privé seulement.
 """
@@ -31,12 +31,15 @@ def semer(proprio: Engine, moteur_app: Engine | None = None) -> dict:
     suffixe = uuid.uuid4().hex[:6]
     ids = {}
     with proprio.begin() as c:
-        for cle, nom, admin in (("admin", "Admin plateforme", True),
-                                ("conseiller", "Awa Nkoulou, actuaire conseil", False),
-                                ("drh", "Direction RH AZITO", False)):
+        for cle, nom, admin, tel in (("admin", "Admin plateforme", True, "+237690000003"),
+                                     ("conseiller", "Awa Nkoulou, actuaire conseil", False, "+237690000002"),
+                                     ("drh", "Direction RH AZITO", False, "+237690000001")):
+            # Un numéro de démonstration, libéré s'il sert déjà (le jeu peut être semé plusieurs fois).
+            c.execute(text("UPDATE utilisateurs SET telephone = NULL WHERE telephone = :t"), {"t": tel})
             ids[cle] = c.execute(text(
-                "INSERT INTO utilisateurs (email, nom_affiche, admin_plateforme) VALUES (:e, :n, :a) RETURNING id"),
-                {"e": f"{cle}-{suffixe}@demo.courtage", "n": nom, "a": admin}).scalar_one()
+                "INSERT INTO utilisateurs (email, telephone, nom_affiche, admin_plateforme) "
+                "VALUES (:e, :t, :n, :a) RETURNING id"),
+                {"e": f"{cle}-{suffixe}@demo.courtage", "t": tel, "n": nom, "a": admin}).scalar_one()
         moteur_app = moteur_app or proprio
 
     client = TestClient(creer_app(moteur=moteur_app, authentification="entete_dev"))

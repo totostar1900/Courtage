@@ -1,6 +1,7 @@
-import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
-import { DEMO, seConnecter, utilisateurCourant } from "./api";
+import { api, DEMO, ErreurApi, seConnecter } from "./api";
+import { useCharge } from "./composants/communs";
 import Visionneuse from "./composants/Visionneuse";
 import Accueil from "./pages/Accueil";
 import Cahier from "./pages/Cahier";
@@ -52,13 +53,18 @@ export default function App() {
   );
 }
 
+/** Une page réservée : la session (ou, en développement, la personne choisie) doit être valable. */
 function Protege({ children }: { children: React.ReactNode }) {
-  return utilisateurCourant() ? <>{children}</> : <Navigate to="/connexion" replace />;
+  const { donnee, erreur } = useCharge(() => api.get("/moi"), []);
+  if (erreur instanceof ErreurApi && erreur.statut === 401) return <Navigate to="/connexion" replace />;
+  if (erreur) return <div className="erreur">{erreur.message}</div>;
+  return donnee ? <>{children}</> : <p className="discret">Chargement…</p>;
 }
 
 function Entete() {
   const naviguer = useNavigate();
-  const connecte = !!utilisateurCourant();
+  const { pathname } = useLocation();
+  const connecte = !pathname.startsWith("/connexion") && !pathname.startsWith("/verifier");
   return (
     <header className="entete">
       <div className="interieur">
@@ -67,7 +73,11 @@ function Entete() {
         <div className="droite">
           <Link to="/verifier" style={{ color: "#fff" }}>Vérifier un document</Link>
           {connecte && (
-            <button onClick={() => { seConnecter(null); naviguer("/connexion"); }}>Changer de personne</button>
+            <button onClick={async () => {
+              await api.post("/auth/deconnexion").catch(() => undefined);
+              seConnecter(null);
+              naviguer("/connexion");
+            }}>Se déconnecter</button>
           )}
         </div>
       </div>

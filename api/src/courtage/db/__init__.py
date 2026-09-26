@@ -235,3 +235,27 @@ class FicheRegime(Base):
     empreinte: Mapped[str] = mapped_column(Text)
     emise_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
     emise_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class CodeConnexion(Base):
+    __tablename__ = "codes_connexion"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    telephone: Mapped[str] = mapped_column(Text)
+    code_hash: Mapped[str] = mapped_column(Text)
+    canal: Mapped[str] = mapped_column(Text)
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    expire_le: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    tentatives: Mapped[int] = mapped_column(Integer, server_default=FetchedValue())
+    utilise_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class SessionUtilisateur(Base):
+    __tablename__ = "sessions"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    utilisateur_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    jeton_hash: Mapped[str] = mapped_column(Text)
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    expire_le: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    derniere_activite: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    revoquee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    agent: Mapped[str | None] = mapped_column(Text)

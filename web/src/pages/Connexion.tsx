@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { api, seConnecter } from "../api";
@@ -5,14 +6,81 @@ import { Erreur, useCharge } from "../composants/communs";
 
 interface Personne { id: string; nom_affiche: string | null; email: string | null; admin_plateforme: boolean }
 
-/** Connexion de DÉVELOPPEMENT : on choisit en tant que qui naviguer. La vraie connexion arrive à la tâche 8. */
+/** Connexion par téléphone : le numéro, puis le code reçu par SMS ou WhatsApp. */
 export default function Connexion() {
+  const naviguer = useNavigate();
+  const { donnee: mode } = useCharge(() => api.get<{ mode: string }>("/auth/mode"), []);
+  const [telephone, setTelephone] = useState("");
+  const [codeDemande, setCodeDemande] = useState(false);
+  const [erreur, setErreur] = useState<unknown>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function demander(ev: FormEvent) {
+    ev.preventDefault();
+    setErreur(null);
+    try {
+      const r = await api.post<{ message: string }>("/auth/code", { telephone });
+      setMessage(r.message);
+      setCodeDemande(true);
+    } catch (e) { setErreur(e); }
+  }
+
+  async function verifier(ev: FormEvent<HTMLFormElement>) {
+    ev.preventDefault();
+    setErreur(null);
+    try {
+      await api.post("/auth/verification", { telephone, code: new FormData(ev.currentTarget).get("code") });
+      seConnecter(null);
+      naviguer("/");
+    } catch (e) { setErreur(e); }
+  }
+
+  const choixPersonne = mode?.mode === "entete_dev" || mode?.mode === "demonstration";
+
+  return (
+    <div style={{ maxWidth: 480 }}>
+      <h1>Connexion</h1>
+      {mode?.mode !== "demonstration" && (
+        <div className="carte">
+          {!codeDemande ? (
+            <form key="numero" className="formulaire" onSubmit={demander}>
+              <p>Saisissez votre numéro : vous recevez un code par message.</p>
+              <label>Téléphone
+                <input id="telephone" type="tel" inputMode="tel" autoComplete="tel" required value={telephone}
+                       onChange={(e) => setTelephone(e.target.value)} placeholder="6 99 12 34 56" />
+              </label>
+              <div className="actions"><button className="principal">Recevoir un code</button></div>
+            </form>
+          ) : (
+            // Une clé propre : sans elle, React réutiliserait le champ du numéro, qui resterait affiché dans celui du code.
+            <form key="code" className="formulaire" onSubmit={verifier}>
+              <p>{message}</p>
+              <label>Code reçu
+                <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"
+                       maxLength={6} required placeholder="123456" />
+              </label>
+              <div className="actions">
+                <button className="principal">Se connecter</button>
+                <button type="button" onClick={() => { setCodeDemande(false); setErreur(null); }}>Changer de numéro</button>
+              </div>
+            </form>
+          )}
+          <Erreur erreur={erreur} />
+        </div>
+      )}
+      {choixPersonne && <ChoixPersonne demo={mode?.mode === "demonstration"} />}
+    </div>
+  );
+}
+
+/** Développement et démonstration : on choisit la personne dont on veut voir l'écran. */
+function ChoixPersonne({ demo }: { demo: boolean }) {
   const naviguer = useNavigate();
   const { donnee, erreur } = useCharge(() => api.get<Personne[]>("/dev/utilisateurs"), []);
   return (
-    <div style={{ maxWidth: 560 }}>
-      <h1>Bienvenue</h1>
-      <p>Version de démonstration : choisissez la personne dont vous voulez voir l'écran.</p>
+    <div className="section">
+      <h2>{demo ? "Choisissez un point de vue" : "Mode développement"}</h2>
+      <p className="discret">{demo ? "La démonstration se visite sans compte." : "Sans code : réservé au développement."}</p>
       <Erreur erreur={erreur} />
       <div className="grille">
         {donnee?.map((p) => (
@@ -23,9 +91,6 @@ export default function Connexion() {
           </button>
         ))}
       </div>
-      {donnee && donnee.length === 0 && (
-        <p className="discret">Aucune personne : lancez <code>python -m courtage.demo</code>.</p>
-      )}
     </div>
   );
 }

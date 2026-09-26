@@ -21,3 +21,4 @@ jamais en réécrivant l'ancienne.
 | 2026-09-26 | Catégories de personnel dès la première version du régime | colonne catégorie dans le fichier |
 | 2026-09-26 | Pas de juriste partenaire pour l'instant : le contenu juridique reste `a_valider` et sourcé | la plateforme informe, elle ne donne pas d'avis juridique |
 | 2026-09-26 | Valeur propre de l'assureur : rendement, sinistres (et, aujourd'hui, actuariat et reporting) ; la plateforme accompagne tout le processus IFC et prend les régimes existants tels quels | spec régime IFC §2 |
+| 2026-09-26 | Connexion par code reçu au téléphone, intégrée (pas de service géré) ; fournisseur d'envoi interchangeable | WhatsApp/SMS au Cameroun ; identité dans notre base |

@@ -42,8 +42,9 @@ async function appel<T>(chemin: string, init: RequestInit = {}): Promise<T> {
     return (await repondre(init.method ?? "GET", chemin, corps, utilisateurCourant())) as T;
   }
   const entetes = new Headers(init.headers);
+  entetes.set("X-Courtage", "1");   // anti-CSRF : un autre site ne peut pas poser cet en-tête
   const moi = utilisateurCourant();
-  if (moi) entetes.set("X-Utilisateur", moi);
+  if (moi) entetes.set("X-Utilisateur", moi);   // mode développement seulement ; ignoré par un serveur en production
   if (init.body && !(init.body instanceof FormData)) entetes.set("Content-Type", "application/json");
   const r = await fetch(`/api/v1${chemin}`, { ...init, headers: entetes });
   if (r.status === 204) return undefined as T;
