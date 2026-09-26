@@ -13,7 +13,29 @@ commit par tâche avec le message du plan.
 
 ## Commandes
 
-`cd api && pytest` — la suite complète.
+`cd api && pytest` — la suite complète. Les tests de base demandent
+`TEST_DATABASE_URL` (rôle PROPRIÉTAIRE, base jetable : le schéma `public` y est
+détruit à chaque session) ; sans elle ils sont ignorés.
+
+```bash
+TEST_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost/courtage_test pytest
+```
+
+## Base de données
+
+- Le schéma vient des migrations `api/src/courtage/db/migrations/versions/`,
+  écrites à la main en SQL ; les modèles de `courtage.db` le décrivent et un
+  test vérifie qu'ils concordent. Une migration nouvelle s'ajoute ; on ne
+  réécrit pas une migration appliquée, et il n'y a pas de retour arrière.
+- **Les migrations s'exécutent avec le rôle propriétaire**, jamais avec
+  `courtage_app` : qui crée une table la possède, et un propriétaire contourne
+  la RLS. La migration crée `courtage_app` sans connexion ; le déploiement lui
+  donne `LOGIN` et un mot de passe.
+- Toute donnée d'un client se lit dans une transaction ouverte par
+  `contexte(connexion, organisation_id)`.
+- Une étude émise est immuable pour tous les rôles (déclencheur
+  `etude_immuable`) ; le journal, les fichiers et les sceaux sont en ajout seul
+  pour le rôle applicatif.
 
 ## Invariants (spec 2026-09-26, §2)
 
