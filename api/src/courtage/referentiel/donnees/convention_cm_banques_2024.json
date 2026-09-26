@@ -1,0 +1,47 @@
+{
+ "pays": "CM",
+ "code": "CM_BANQUES",
+ "libelle": "Convention collective nationale des banques et autres établissements financiers du Cameroun (révisée)",
+ "statut": "a_valider",
+ "en_vigueur_du": "2024-11-18",
+ "en_vigueur_au": null,
+ "sources": [
+  {
+   "titre": "Secteur bancaire : ce qui change dans la nouvelle convention collective — La Voix des Entreprises, 29/11/2024",
+   "url": "https://lavoixdesentreprises.info/2024/11/29/secteur-bancaire-ce-qui-change-dans-la-nouvelle-convention-collective-adoptee-par-les-acteurs/",
+   "consulte_le": "2026-09-26"
+  },
+  {
+   "titre": "Convention collective nationale des banques : ce qui change — Cameroon Tribune",
+   "url": "https://www.cameroon-tribune.cm/article.html/68203/fr.html/convention-collective-nationale-banques-ce-qui",
+   "consulte_le": "2026-09-26"
+  }
+ ],
+ "verification": "Convention révisée signée le 18/11/2024 ; les sources lues ne disent pas si le barème d'IFC a changé. Barème de 2021 reporté en attendant le texte.",
+ "notes": [],
+ "bareme": {
+  "forme": "tranches_cumulatives",
+  "tranches": [
+   {
+    "jusqu_a": 5,
+    "mois_par_annee": 0.25
+   },
+   {
+    "jusqu_a": 10,
+    "mois_par_annee": 0.35
+   },
+   {
+    "jusqu_a": 15,
+    "mois_par_annee": 0.45
+   },
+   {
+    "jusqu_a": 20,
+    "mois_par_annee": 0.55
+   },
+   {
+    "jusqu_a": null,
+    "mois_par_annee": 0.65
+   }
+  ]
+ }
+}

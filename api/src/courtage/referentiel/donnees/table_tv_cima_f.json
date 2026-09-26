@@ -1,7 +1,6 @@
 {
  "code": "TV_CIMA_F",
  "libelle": "Table de mortalité CIMA F (femmes)",
- "source": "Ariane IFC, feuille Table Mortalité",
  "lx": {
   "0": 1000000,
   "1": 997151.4965635164,
@@ -110,5 +109,11 @@
   "104": 2977.6851591321806,
   "105": 986.9443547328184,
   "106": 0
- }
+ },
+ "sources": [
+  {
+   "titre": "Classeur Ariane IFC, feuille Table Mortalité",
+   "consulte_le": "2026-09-26"
+  }
+ ]
 }

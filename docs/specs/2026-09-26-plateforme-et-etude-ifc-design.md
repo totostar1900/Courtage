@@ -155,10 +155,17 @@ WhatsApp. Chacun aura sa spécification.
 
 ## 10. Questions ouvertes
 
-1. **Barème camerounais.** Le Code du travail camerounais renvoie aux
-   conventions collectives de branche ; il faut les textes applicables
-   (commerce, banques, BTP…) et les faire relire par un actuaire. Tant qu'ils
-   manquent, le Cameroun est `a_valider` et aucune étude camerounaise ne sort.
+1. ~~**Barème camerounais.**~~ **Réglé le 2026-09-26.** Le barème ivoirien
+   n'est PAS proche du camerounais : sur les salariés AZITO, le commerce
+   camerounais 2024 donne une dette 67 % plus élevée. Le référentiel porte le
+   commerce (2012, puis 2024 : 45/50/65/75/80 % par année selon la tranche) et
+   les banques (2021 : 25/35/45/55/65 % ; 2024 à valider), avec leurs sources.
+   Les textes primaires n'ont pas pu être lus (accès bloqué depuis
+   l'environnement de développement) ; les taux reposent sur des sources
+   secondaires concordantes, ce que dit le champ `verification` de chaque
+   barème. Reste à relire les textes : la lecture « chaque année au taux de sa
+   tranche », et la promotion de catégorie deux ans avant la retraite (commerce
+   2024), non modélisée.
 2. **Table de mortalité.** CIMA F pour tous (prudent, comme Ariane) ou CIMA H /
    CIMA F selon le sexe ? Proposition : selon le sexe quand il est fourni.
 3. **Attribution des droits.** Proratisation linéaire (Ariane) ou selon la

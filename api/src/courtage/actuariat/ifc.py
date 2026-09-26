@@ -7,11 +7,11 @@ Les calculs sont en flottant ; les totaux sont arrondis au franc à la sortie.
 from dataclasses import dataclass
 from datetime import date
 from math import floor
-from typing import Any, Mapping, Sequence
+from typing import Mapping, Sequence
 
 from dateutil.relativedelta import relativedelta
 
-from courtage.referentiel import Convention, TableMortalite
+from courtage.referentiel import Bareme, BaremePaliers, BaremeTranches, Convention, TableMortalite
 
 VERSION_MOTEUR = "ifc-1.0.0"
 
@@ -83,24 +83,23 @@ def annees_entre(debut: date, fin: date) -> float:
     return revolues + (fin - anniversaire).days / 365
 
 
-def mois_d_ifc(bareme: Mapping[str, Any], anciennete: int) -> float:
+def mois_d_ifc(bareme: Bareme, anciennete: int) -> float:
     """Nombre de mois de salaire dus pour une ancienneté entière."""
-    forme = bareme["forme"]
-    if forme == "tranches_cumulatives":
+    if isinstance(bareme, BaremeTranches):
         mois, plancher = 0.0, 0
-        for t in bareme["tranches"]:
-            plafond = t["jusqu_a"] if t["jusqu_a"] is not None else anciennete
-            mois += max(min(anciennete, plafond) - plancher, 0) * t["mois_par_annee"]
+        for t in bareme.tranches:
+            plafond = t.jusqu_a if t.jusqu_a is not None else anciennete
+            mois += max(min(anciennete, plafond) - plancher, 0) * t.mois_par_annee
             plancher = plafond
             if anciennete <= plancher:
                 break
         return mois
-    if forme == "paliers":
-        atteints = [p for p in bareme["paliers"] if anciennete >= p["a_partir_de"]]
+    if isinstance(bareme, BaremePaliers):
+        atteints = [p for p in bareme.paliers if anciennete >= p.a_partir_de]
         if atteints:
-            return max(atteints, key=lambda p: p["a_partir_de"])["mois"]
-        return anciennete * bareme["sous_premier_palier_mois_par_annee"]
-    raise ValueError(f"forme de barème inconnue : {forme}")
+            return max(atteints, key=lambda p: p.a_partir_de).mois
+        return anciennete * bareme.sous_premier_palier_mois_par_annee
+    raise TypeError(f"barème inconnu : {type(bareme).__name__}")
 
 
 def probabilite_presence(age: float, age_retraite: int, turnover: Mapping[int, float]) -> float:

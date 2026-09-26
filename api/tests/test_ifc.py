@@ -134,3 +134,22 @@ def test_bareme_tranches_cumulatives_cote_d_ivoire(anciennete, mois):
 ])
 def test_bareme_paliers_madagascar(anciennete, mois):
     assert mois_d_ifc(APB.bareme, anciennete) == pytest.approx(mois)
+
+
+# --- Cameroun -----------------------------------------------------------------
+
+CM_COMMERCE = charger_convention("CM_COMMERCE", date(2025, 12, 31))
+
+
+@pytest.mark.parametrize("anciennete,mois", [
+    (5, 5 * 0.45), (10, 2.25 + 5 * 0.50), (20, 2.25 + 2.5 + 5 * 0.65 + 5 * 0.75), (25, 11.75 + 5 * 0.80),
+])
+def test_bareme_commerce_cameroun_2024(anciennete, mois):
+    assert mois_d_ifc(CM_COMMERCE.bareme, anciennete) == pytest.approx(mois)
+
+
+def test_le_bareme_ivoirien_sous_estime_une_dette_camerounaise():
+    """Mêmes salariés : le commerce camerounais coûte 67 % de plus que la CCI ivoirienne."""
+    ci = evaluer(salaries(), hypotheses(), CI).totaux.dette
+    cm = evaluer(salaries(), hypotheses(), CM_COMMERCE).totaux.dette
+    assert cm / ci == pytest.approx(1.67, abs=0.01)
