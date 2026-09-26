@@ -12,6 +12,6 @@ routeur_dev = APIRouter()
 
 
 @routeur_dev.get("/utilisateurs")
-def utilisateurs(session: Session = Depends(session_db)):
+def utilisateurs(session: Session = Depends(session_db, scope="function")):
     return [{"id": str(u.id), "nom_affiche": u.nom_affiche, "email": u.email, "admin_plateforme": u.admin_plateforme}
             for u in session.scalars(select(Utilisateur).order_by(Utilisateur.cree_le.desc()).limit(50))]

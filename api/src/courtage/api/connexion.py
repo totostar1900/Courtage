@@ -36,14 +36,14 @@ def mode(request: Request):
 
 
 @routeur_connexion.post("/code", dependencies=[Depends(limite("demande_code"))])
-def demander_code(corps: DemandeCode, request: Request, session: Session = Depends(session_db)):
+def demander_code(corps: DemandeCode, request: Request, session: Session = Depends(session_db, scope="function")):
     telephone = _numero(corps.telephone)
     auth.demander_code(session, telephone, request.app.state.expediteur, request.app.state.cle_auth)
     return REPONSE_DEMANDE
 
 
 @routeur_connexion.post("/verification", dependencies=[Depends(limite("essai_code"))])
-def verifier(corps: Verification, request: Request, session: Session = Depends(session_db)):
+def verifier(corps: Verification, request: Request, session: Session = Depends(session_db, scope="function")):
     telephone = _numero(corps.telephone)
     utilisateur = auth.verifier_code(session, telephone, corps.code, request.app.state.cle_auth)
     if utilisateur is None:
@@ -62,7 +62,7 @@ def verifier(corps: Verification, request: Request, session: Session = Depends(s
 
 
 @routeur_connexion.post("/deconnexion")
-def deconnexion(request: Request, session: Session = Depends(session_db), _: Utilisateur = Depends(identite)):
+def deconnexion(request: Request, session: Session = Depends(session_db, scope="function"), _: Utilisateur = Depends(identite)):
     jeton = request.cookies.get(COOKIE)
     en_tete = request.headers.get("authorization", "")
     if en_tete.lower().startswith("bearer "):

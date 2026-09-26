@@ -246,3 +246,37 @@ def test_chaque_demande_dit_dans_le_journal_ce_qu_il_en_est(web, abonne, caplog)
     assert any("limite" in l for l in lignes)
     assert any("code refusé" in l for l in lignes)
     assert all(tel not in l for l in lignes)                      # le numéro est masqué : des chiffres de fin
+
+
+def test_la_session_est_en_base_avant_que_la_reponse_parte(bases, boite, abonne):
+    """Sur un hébergeur lent, le navigateur lit /moi dès la réponse reçue : la transaction doit être
+    validée AVANT l'envoi, sinon /moi répond 401 et l'écran revient à la connexion."""
+    vu = {}
+
+    def espion(app):
+        async def asgi(scope, receive, send):
+            async def envoyer(message):
+                if message["type"] == "http.response.start" and scope["path"].endswith("/auth/verification"):
+                    with bases[0].connect() as c:
+                        vu["sessions"] = c.execute(text(
+                            "SELECT count(*) FROM sessions WHERE utilisateur_id = :u"),
+                            {"u": abonne["id"]}).scalar()
+                await send(message)
+            await app(scope, receive, envoyer)
+        return asgi
+
+    app = creer_app(moteur=bases[1], authentification="session", expediteur=boite, cle_auth=CLE)
+    web = TestClient(espion(app))
+    r = se_connecter(web, boite, abonne["telephone"])
+    assert r.status_code == 200
+    assert vu["sessions"] == 1
+
+
+def test_toute_transaction_se_valide_avant_la_reponse():
+    """Une garde : un `Depends(session_db)` sans scope rouvrirait la course, sans qu'aucun test local la voie."""
+    import re as _re
+    from pathlib import Path
+    sources = Path(__file__).resolve().parents[1] / "src" / "courtage"
+    fautifs = [f"{f.name}:{n}" for f in sources.rglob("*.py") for n, ligne in enumerate(f.read_text().splitlines(), 1)
+               if _re.search(r"Depends\(session_db\s*\)", ligne)]
+    assert fautifs == []
