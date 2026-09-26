@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -993,5 +993,23 @@ describe("sur téléphone", () => {
     expect(await screen.findByRole("button", { name: /^2021/ })).toBeInTheDocument();
     await userEvent.click(within(barre).getByRole("button", { name: /Aller à…/ }));
     expect(screen.getByRole("dialog", { name: "Aller à" })).toBeInTheDocument();
+  });
+});
+
+describe("l'horizon de l'échéancier", () => {
+  it("un curseur de 1 à 30 ans, et les années écrites sous les barres", async () => {
+    const annees = Array.from({ length: 36 }, (_, i) => ({ annee: 2020 + i, effectif: 1, ifc: 1_000_000,
+      prestations_probables: 900_000, vapf: 800_000 }));
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: { ...etude({ possible: false, motifs: [] }), echeancier: annees } });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    const curseur = await screen.findByRole("slider", { name: "Horizon en années" });
+    expect(curseur).toHaveAttribute("max", "30");
+    expect(curseur).toHaveValue("30");
+    expect(screen.getAllByRole("button", { name: /^20[2-5]\d :/ })).toHaveLength(30);
+    fireEvent.change(curseur, { target: { value: "12" } });
+    expect(screen.getAllByRole("button", { name: /^20[2-5]\d :/ })).toHaveLength(12);
+    expect(screen.getByText(/les 12 premières années/)).toBeInTheDocument();
+    const axe = document.querySelector(".axe-annees")!;
+    expect([...axe.querySelectorAll("span")].map((s) => s.textContent).filter(Boolean)).toHaveLength(12);
   });
 });

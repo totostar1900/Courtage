@@ -88,22 +88,22 @@ export default function EtudeDetail() {
       <div className="grille g2 section">
         <div className="carte">
           <h3>Sensibilités</h3>
-          <table><tbody>
+          <div className="defile"><table><tbody>
             {Object.entries(e.sensibilites).map(([k, v]) => (
               <tr key={k}><td>{SENSIBILITES[k] ?? k}</td><td className="n">{montant(v.dette)}</td>
                 <td className="n">{pct((v.dette - e.totaux.dette) / e.totaux.dette)}</td></tr>
             ))}
-          </tbody></table>
+          </tbody></table></div>
         </div>
       </div>
 
       {e.par_categorie && (
         <div className="carte section">
           <h3>Par catégorie</h3>
-          <table><thead><tr><th>Catégorie</th><th className="n">Effectif</th><th className="n">Dette</th><th className="n">Charge</th></tr></thead>
+          <div className="defile"><table><thead><tr><th>Catégorie</th><th className="n">Effectif</th><th className="n">Dette</th><th className="n">Charge</th></tr></thead>
             <tbody>{Object.entries(e.par_categorie).map(([k, c]) => (
               <tr key={k}><td>{k === "*" ? "Autres" : k}</td><td className="n">{c.effectif}</td>
-                <td className="n">{montant(c.dette)}</td><td className="n">{montant(c.charge)}</td></tr>))}</tbody></table>
+                <td className="n">{montant(c.dette)}</td><td className="n">{montant(c.charge)}</td></tr>))}</tbody></table></div>
         </div>
       )}
 

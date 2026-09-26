@@ -371,3 +371,12 @@ a.bouton.principal:hover { background: var(--indigo-vif); }
   h1 { font-size: 26px; }
   .carte h2 { font-size: 19px; }
 }
+
+/* L'échéancier : le curseur d'horizon, et les années sous les barres (alignées sur elles). */
+.curseur-horizon { gap: 8px; padding-right: 12px; }
+.curseur-horizon input[type="range"] { width: 150px; accent-color: var(--encre); }
+.curseur-horizon output { min-width: 52px; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.axe-annees { display: flex; gap: 3px; margin-top: 4px; font-size: 11px; color: var(--discret); font-variant-numeric: tabular-nums; }
+.axe-annees span { flex: 1 1 0; min-width: 0; text-align: center; white-space: nowrap; overflow: visible; }
+.axe-annees span:first-child { text-align: left; }
+.axe-annees span:last-child { text-align: right; direction: rtl; }  /* la dernière année déborde vers la gauche : elle reste dans le graphique */

@@ -42,7 +42,7 @@ export default function Financement() {
               {d.etudes.map((e) => <option key={e.id} value={e.id}>{e.date_evaluation} · {millions(e.dette)} · {e.statut}</option>)}
             </select>
           </label>
-          <label>Horizon (années)<input type="number" min={1} max={40} value={horizon} onChange={(e) => setHorizon(Number(e.target.value))} /></label>
+          <label>Horizon (années)<input type="number" min={1} max={30} value={horizon} onChange={(e) => setHorizon(Math.min(30, Math.max(1, Number(e.target.value))))} /></label>
           <label>Rattraper le passé en (années)<input type="number" min={1} max={horizon} value={amortissement} onChange={(e) => setAmortissement(Number(e.target.value))} /></label>
         </div>
         <h3>Offres reçues ou envisagées</h3>

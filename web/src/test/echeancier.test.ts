@@ -55,3 +55,14 @@ describe("l'échéancier mis en forme", () => {
     expect(epuisement(v.colonnes, 1000)).toBeNull();
   });
 });
+
+describe("les années sous l'axe", () => {
+  it("toutes jusqu'à douze colonnes, puis les multiples de cinq et les bouts", async () => {
+    const { reperesAnnees } = await import("../echeancier");
+    expect([...reperesAnnees([2026, 2027, 2028])]).toEqual([2026, 2027, 2028]);
+    const longues = Array.from({ length: 31 }, (_, i) => 2025 + i);   // 2025 → 2055
+    expect([...reperesAnnees(longues)].sort()).toEqual([2025, 2030, 2035, 2040, 2045, 2050, 2055]);
+    const decalees = Array.from({ length: 20 }, (_, i) => 2027 + i);  // 2027 → 2046 : 2046 colle à 2045, il se tait
+    expect([...reperesAnnees(decalees)].sort()).toEqual([2027, 2030, 2035, 2040, 2045]);
+  });
+});
