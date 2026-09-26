@@ -56,19 +56,30 @@ def sceller(session: Session, org: Organisation, etude: Etude, config: ConfigSce
         "convention": etude.convention_code, "effectif": etude.resultats["totaux"]["effectif"],
         "dette": etude.resultats["totaux"]["dette"], "charge": etude.resultats["totaux"]["charge"],
         "cotisation_totale": etude.resultats["totaux"]["cotisation_totale"],
-        "emis_le": etude.emise_le.date().isoformat(), "emetteur": _nom(emetteur), "probant": config.probant,
+        "emis_le": etude.emise_le.date().isoformat(), "emetteur": nom_de(emetteur), "probant": config.probant,
     }
-    sceau = _signer(config.cle, numero, "etude_ifc", etude.empreinte, resume)
+    return sceller_document(
+        session, org, nature="etude_ifc", empreinte=etude.empreinte, resume=resume, config=config,
+        gabarit="rapport_ifc.html", etude_id=etude.id,
+        contexte=lambda numero, sceau: _contexte(session, org, etude, emetteur, numero, sceau, config, aujourd_hui),
+        numero=numero)
 
-    contexte = _contexte(session, org, etude, emetteur, numero, sceau, config, aujourd_hui)
-    pdf = rendre_pdf(contexte)
+
+def sceller_document(session: Session, org: Organisation, *, nature: str, empreinte: str, resume: dict,
+                     config: ConfigSceau, gabarit: str, contexte, etude_id=None, fiche_id=None,
+                     numero: str | None = None) -> Document:
+    """Signe ce que le papier affirme, rend le PDF (qui imprime le sceau), le signe à son tour, le range.
+
+    `contexte(numero, sceau)` fournit au gabarit ce qu'il affiche."""
+    numero = numero or _nouveau_numero(session)
+    sceau = _signer(config.cle, numero, nature, empreinte, resume)
+    pdf = rendre_pdf(contexte(numero, sceau), gabarit)
     empreinte_document = hashlib.sha256(pdf).hexdigest()
-
-    session.add(Sceau(numero=numero, nature="etude_ifc", empreinte=etude.empreinte, sceau=sceau, resume=resume,
+    session.add(Sceau(numero=numero, nature=nature, empreinte=empreinte, sceau=sceau, resume=resume,
                       empreinte_document=empreinte_document,
                       sceau_document=_hmac(config.cle, f"{numero}|{empreinte_document}")))
     session.flush()
-    document = Document(organisation_id=org.id, etude_id=etude.id, numero=numero, contenu=pdf,
+    document = Document(organisation_id=org.id, etude_id=etude_id, fiche_id=fiche_id, numero=numero, contenu=pdf,
                         empreinte_document=empreinte_document)
     session.add(document)
     session.flush()
@@ -106,9 +117,9 @@ def est_conforme(session: Session, numero: str, contenu: bytes) -> bool:
 
 # --- Rendu --------------------------------------------------------------------
 
-def rendre_pdf(contexte: dict) -> bytes:
+def rendre_pdf(contexte: dict, gabarit: str = "rapport_ifc.html") -> bytes:
     from weasyprint import HTML  # import tardif : lourd, et inutile hors émission
-    html = _gabarits().get_template("rapport_ifc.html").render(**contexte)
+    html = gabarits().get_template(gabarit).render(**contexte)
     return HTML(string=html).write_pdf()
 
 
@@ -125,13 +136,13 @@ def _contexte(session: Session, org: Organisation, etude: Etude, emetteur, numer
         "age_moyen": sum(l["age"] for l in lignes) / n,
         "anciennete_moyenne": sum(l["anciennete"] for l in lignes) / n,
         "avertissements": [a for a in e["anomalies"] if a["niveau"] == "avertissement"],
-        "emetteur": _nom(emetteur), "numero": numero, "sceau": sceau, "empreinte": etude.empreinte,
+        "emetteur": nom_de(emetteur), "numero": numero, "sceau": sceau, "empreinte": etude.empreinte,
         "url_verification": f"{config.url_publique}/verifier/{numero}", "probant": config.probant,
         "emis_le": etude.emise_le,
     }
 
 
-def _gabarits() -> Environment:
+def gabarits() -> Environment:
     env = Environment(autoescape=select_autoescape(default=True))
     env.loader = _Chargeur()
     env.filters.update(montant=_montant, pct=_pct, date_fr=_date_fr, annees=_annees)
@@ -191,7 +202,7 @@ def _sceau(session: Session, numero: str) -> Sceau:
     return s
 
 
-def _nom(u: Utilisateur | None) -> str:
+def nom_de(u: Utilisateur | None) -> str:
     if u is None:
         return "—"
     return u.nom_affiche or u.email or u.telephone or str(u.id)

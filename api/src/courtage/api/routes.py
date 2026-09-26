@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import analyse, etudes, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import analyse, etudes, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 
@@ -332,6 +332,55 @@ def financer_etude(etude_id: uuid.UUID, corps: ParametresFinancement, a: Acces =
         scenarios=[Scenario(**x.model_dump()) for x in corps.scenarios] if corps.scenarios else None,
         horizon=corps.horizon, amortissement_annees=corps.amortissement_annees,
         taux_actualisation=corps.taux_actualisation, croissance_salaires=corps.croissance_salaires)
+
+
+# --- Fiches régime (cahier des charges) -----------------------------------------
+
+class ConditionsDemandees(_Corps):
+    taux_garanti_minimum: float | None = Field(default=None, ge=-0.05, le=0.2)
+    participation_benefices_minimum: float | None = Field(default=None, ge=0, le=1)
+    frais_sur_cotisations_maximum: float | None = Field(default=None, ge=0, le=0.2)
+    frais_sur_encours_maximum: float | None = Field(default=None, ge=0, le=0.2)
+    transfert_preavis_mois_maximum: int | None = Field(default=None, ge=0, le=24)
+    transfert_penalite_maximum: float | None = Field(default=None, ge=0, le=0.2)
+    delai_paiement_jours_maximum: int | None = Field(default=None, ge=1, le=365)
+    base_etude_plateforme: bool = True
+    reporting_annuel: bool = True
+    note: str | None = None
+
+
+class NouvelleFiche(_Corps):
+    etude_id: uuid.UUID
+    date_limite_reponse: date
+    conditions: ConditionsDemandees
+
+
+@routeur.post("/organisations/{organisation_id}/fiches", status_code=201)
+def emettre_fiche(corps: NouvelleFiche, request: Request, a: Acces = Depends(acces(*CONSEIL))):
+    """Le cahier des charges : émis, scellé, rendu, en un seul acte."""
+    f, document = fiches.emettre(a.session, a.organisation, a.utilisateur.id, etude_id=corps.etude_id,
+                                 conditions=corps.conditions.model_dump(), date_limite_reponse=corps.date_limite_reponse,
+                                 config=request.app.state.sceau, aujourd_hui=date.today())
+    return fiches.en_clair(f, document.numero)
+
+
+@routeur.get("/organisations/{organisation_id}/fiches")
+def lister_fiches(a: Acces = Depends(acces(*TOUS))):
+    return [{k: v for k, v in fiches.en_clair(f, n).items() if k != "contenu"} for f, n in fiches.lister(a.session)]
+
+
+@routeur.get("/organisations/{organisation_id}/fiches/{fiche_id}")
+def lire_fiche(fiche_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    f, document = fiches.obtenir(a.session, fiche_id)
+    return fiches.en_clair(f, document.numero)
+
+
+@routeur.get("/organisations/{organisation_id}/fiches/{fiche_id}/document")
+def telecharger_fiche(fiche_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    f, document = fiches.obtenir(a.session, fiche_id)
+    nom = f"cahier-des-charges-{a.organisation.nom}-{document.numero}.pdf".replace(" ", "-")
+    return Response(document.contenu, media_type=document.type_contenu,
+                    headers={"Content-Disposition": f'attachment; filename="{nom}"'})
 
 
 # --- Vérification publique (sans compte) --------------------------------------

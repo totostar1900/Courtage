@@ -165,7 +165,8 @@ class Document(Base):
     __tablename__ = "documents"
     id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
     organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
-    etude_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etudes.id"))
+    etude_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("etudes.id"))
+    fiche_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("fiches_regime.id"))
     numero: Mapped[str] = mapped_column(ForeignKey("sceaux.numero"))
     type_contenu: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
     contenu: Mapped[bytes] = mapped_column(LargeBinary)
@@ -220,3 +221,17 @@ class CategorieRegime(Base):
     base_salaire: Mapped[str] = mapped_column(BaseSalaire)
     avec_primes: Mapped[bool] = mapped_column(Boolean)
     evenements: Mapped[list[str]] = mapped_column(ARRAY(Text))
+
+
+class FicheRegime(Base):
+    __tablename__ = "fiches_regime"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    etude_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etudes.id"))
+    regime_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("regimes_versions.id"))
+    date_limite_reponse: Mapped[date] = mapped_column(Date)
+    conditions: Mapped[dict] = mapped_column(JSONB)
+    contenu: Mapped[dict] = mapped_column(JSONB)
+    empreinte: Mapped[str] = mapped_column(Text)
+    emise_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    emise_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cahier des charges — {{ org.nom }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 26mm 18mm;
+    @bottom-left {
+      content: "N° {{ numero }} · empreinte {{ empreinte[:16] }}… · sceau {{ sceau[:16] }}…{% if not probant %} · NON PROBANT{% endif %}\A Vérifier : {{ url_verification }}";
+      white-space: pre; font: 7pt "DejaVu Sans", sans-serif; color: #55607a;
+    }
+    @bottom-right { content: "Page " counter(page) " / " counter(pages); font: 7pt "DejaVu Sans", sans-serif; color: #55607a; }
+  }
+  body { font: 9.5pt/1.45 "DejaVu Sans", sans-serif; color: #1b2240; }
+  h1 { font-size: 18pt; margin: 0 0 2mm; color: #fff; }
+  h2 { font-size: 12pt; margin: 7mm 0 3mm; color: #1f2d6b; border-bottom: 0.4mm solid #1f2d6b; padding-bottom: 1mm; }
+  .bandeau { background: #1f2d6b; color: #fff; padding: 6mm; margin-bottom: 5mm; }
+  .bandeau .sous { color: #c9cfee; }
+  .non-probant { border: 0.5mm solid #a93a2c; color: #a93a2c; padding: 2mm 3mm; margin-bottom: 4mm; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 8.5pt; }
+  th, td { padding: 1.3mm 2mm; border-bottom: 0.2mm solid #dfe2ee; text-align: left; vertical-align: top; }
+  th { background: #e8ebf8; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.04em; color: #3d4566; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .note { font-size: 8pt; color: #55607a; }
+  .reponse td:last-child { border-bottom: 0.3mm dotted #55607a; width: 35%; }
+</style>
+</head>
+<body>
+
+<div class="bandeau">
+  <div class="sous">Cahier des charges · Financement d'un régime d'indemnités de fin de carrière</div>
+  <h1>{{ c.organisation.nom }}</h1>
+  <div class="sous">Réponse attendue avant le {{ c.date_limite_reponse | date_fr }} · document N° {{ numero }} · émis le {{ emis_le | date_fr }} par {{ emetteur }}</div>
+</div>
+{% if not probant %}<div class="non-probant">Sceau de développement : ce document n'est pas probant.</div>{% endif %}
+
+<h2>Le régime</h2>
+<p><strong>{{ c.regime.nom }}</strong>{% if c.regime.numero %}, version {{ c.regime.numero }} en vigueur depuis le {{ c.regime.en_vigueur_du | date_fr }} ({{ c.regime.document_reference }}){% endif %}.</p>
+<table>
+  <tr><th>Catégorie</th><th>Convention plancher</th><th>Barème</th><th>Conditions</th></tr>
+  {% for k in c.regime.categories %}
+  <tr><td>{{ "Tout le personnel" if k.categorie == "*" else k.categorie }}</td><td>{{ k.convention_code }}</td>
+      <td>{% if k.bareme.forme == "tranches_cumulatives" %}{% for t in k.bareme.tranches %}{{ t.mois_par_annee | pct(0) }}{% if t.jusqu_a %} jusqu'à {{ t.jusqu_a }} ans{% else %} au-delà{% endif %}{% if not loop.last %} ; {% endif %}{% endfor %} d'un mois par année{% else %}paliers{% endif %}</td>
+      <td>{% if k.anciennete_minimale %}{{ k.anciennete_minimale }} ans minimum ; {% endif %}{% if k.plafond_mois %}plafond {{ k.plafond_mois }} mois ; {% endif %}{% if k.base_salaire %}base : {{ "moyenne des 12 mois" if k.base_salaire == "moyenne_12_mois" else "dernier salaire" }}{% endif %}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>L'engagement</h2>
+<table>
+  <tr><td>Étude actuarielle de référence (document scellé)</td><td class="n">{{ c.etude.rapport }}</td></tr>
+  <tr><td>Date d'évaluation</td><td class="n">{{ c.etude.date_evaluation | date_fr }}</td></tr>
+  <tr><td>Dette actuarielle</td><td class="n">{{ c.etude.totaux.dette | montant }}</td></tr>
+  <tr><td>Charge annuelle</td><td class="n">{{ c.etude.totaux.charge | montant }}</td></tr>
+  <tr><td>Engagement total (VAPF)</td><td class="n">{{ c.etude.totaux.vapf | montant }}</td></tr>
+  <tr><td>Fonds déjà constitué</td><td class="n">{{ c.etude.fonds_disponible | montant }}</td></tr>
+</table>
+<p class="note">Hypothèses : actualisation {{ c.etude.hypotheses.taux_actualisation | pct }}, croissance des salaires
+{{ c.etude.hypotheses.croissance_salaires | pct }}, retraite à {{ c.etude.hypotheses.age_retraite }} ans, rotation
+{{ c.etude.hypotheses.taux_turnover | pct }}, table {{ c.etude.hypotheses.table }}.</p>
+
+<h2>La population (agrégats)</h2>
+<table>
+  <tr><td>Effectif</td><td class="n">{{ c.population.effectif }}</td></tr>
+  <tr><td>Masse salariale annuelle</td><td class="n">{{ c.population.masse_salariale | montant }}</td></tr>
+  <tr><td>Âge moyen</td><td class="n">{{ c.population.age_moyen | annees }}</td></tr>
+  <tr><td>Ancienneté moyenne</td><td class="n">{{ c.population.anciennete_moyenne | annees }}</td></tr>
+</table>
+<table>
+  <tr><th>Âge</th><th class="n">Effectif</th><th>Ancienneté</th><th class="n">Effectif</th></tr>
+  {% for i in range([c.population.pyramide_des_ages | length, c.population.anciennetes | length] | max) %}
+  {% set a = c.population.pyramide_des_ages[i] if i < c.population.pyramide_des_ages | length else None %}
+  {% set b = c.population.anciennetes[i] if i < c.population.anciennetes | length else None %}
+  <tr><td>{{ a.tranche ~ " ans" if a else "" }}</td><td class="n">{{ a.effectif if a else "" }}</td>
+      <td>{{ b.tranche ~ " ans" if b else "" }}</td><td class="n">{{ b.effectif if b else "" }}</td></tr>
+  {% endfor %}
+</table>
+<p class="note">Aucune donnée individuelle : les cases de moins de trois personnes sont masquées, et les départs sont
+regroupés par périodes d'au moins trois départs.</p>
+
+<h2>Les départs prévus</h2>
+<table>
+  <tr><th>Période</th><th class="n">Départs</th><th class="n">Prestations probables</th></tr>
+  {% for g in c.echeancier %}<tr><td>{{ g.periode }}</td><td class="n">{{ g.departs }}</td><td class="n">{{ g.prestations_probables | montant }}</td></tr>{% endfor %}
+</table>
+
+<h2>Conditions demandées</h2>
+<table>
+  {% set cd = c.conditions_demandees %}
+  {% if cd.taux_garanti_minimum is not none %}<tr><td>Taux garanti minimum</td><td class="n">{{ cd.taux_garanti_minimum | pct }}</td></tr>{% endif %}
+  {% if cd.participation_benefices_minimum is not none %}<tr><td>Participation aux bénéfices minimum</td><td class="n">{{ cd.participation_benefices_minimum | pct(0) }}</td></tr>{% endif %}
+  {% if cd.frais_sur_cotisations_maximum is not none %}<tr><td>Frais sur cotisations, au plus</td><td class="n">{{ cd.frais_sur_cotisations_maximum | pct }}</td></tr>{% endif %}
+  {% if cd.frais_sur_encours_maximum is not none %}<tr><td>Frais sur encours, au plus</td><td class="n">{{ cd.frais_sur_encours_maximum | pct }}</td></tr>{% endif %}
+  {% if cd.transfert_preavis_mois_maximum is not none %}<tr><td>Préavis de transfert, au plus</td><td class="n">{{ cd.transfert_preavis_mois_maximum }} mois</td></tr>{% endif %}
+  {% if cd.transfert_penalite_maximum is not none %}<tr><td>Pénalité de transfert, au plus</td><td class="n">{{ cd.transfert_penalite_maximum | pct }}</td></tr>{% endif %}
+  {% if cd.delai_paiement_jours_maximum is not none %}<tr><td>Délai de paiement d'une indemnité, au plus</td><td class="n">{{ cd.delai_paiement_jours_maximum }} jours</td></tr>{% endif %}
+  {% if cd.base_etude_plateforme %}<tr><td colspan="2">L'étude jointe sert de base au contrat.</td></tr>{% endif %}
+  {% if cd.reporting_annuel %}<tr><td colspan="2">Relevé annuel du fonds, rapproché de l'étude.</td></tr>{% endif %}
+</table>
+{% if cd.note %}<p class="note">{{ cd.note }}</p>{% endif %}
+
+<h2>Grille de réponse</h2>
+<table class="reponse">
+  {% for cle, question in grille.items() %}<tr><td>{{ question }}</td><td></td></tr>{% endfor %}
+</table>
+<p class="note">Les réponses sont comparées sur une base commune : même engagement, mêmes cotisations, mêmes départs,
+projetés sous plusieurs scénarios de rendement. Document N° {{ numero }}, vérifiable : {{ url_verification }}</p>
+
+</body>
+</html>

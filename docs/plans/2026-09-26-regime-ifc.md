@@ -110,5 +110,20 @@ Commit : `feat(financement): projection du fonds, scénarios et offres comparée
 
 ## R6 — La fiche régime
 
-- [ ] Le cahier des charges exportable (régime, population agrégée, étude,
-      conditions demandées), scellé comme le rapport.
+- [x] Module pur `courtage.fiche` : agrégats publiables. Case de moins de 3
+      personnes masquée (« <3 »), masse salariale d'une catégorie masquée
+      retenue ; échéancier par périodes de cinq ans, une période de moins de
+      3 départs fusionnée avec la suivante. Aucun matricule, aucune date,
+      aucun salaire individuel.
+- [x] Migration `0006_fiches_regime` : la fiche (étude émise, version du
+      régime, conditions, contenu, empreinte), en ajout seul ; `documents`
+      accueille une étude OU une fiche.
+- [x] Contenu : organisation, régime (ou convention seule), engagement
+      (numéro du rapport scellé, dette, charge, VAPF, fonds, hypothèses,
+      sensibilités), population agrégée, départs, conditions demandées,
+      date limite, grille de réponse alignée sur les offres du financement.
+- [x] Émise par le conseiller, d'un seul acte scellé et rendu ; lue par le
+      client ; vérifiable publiquement (nature `fiche_regime`).
+- [x] Le scellement est commun aux deux documents (`sceller_document`).
+
+Commit : `feat(fiche): le cahier des charges scellé pour les assureurs`
