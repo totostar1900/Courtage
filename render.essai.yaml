@@ -37,6 +37,10 @@ services:
       - key: COURTAGE_CLE_AUTH
         generateValue: true
       # COURTAGE_URL_PUBLIQUE : inutile ici, l'application prend l'adresse que Render fournit (RENDER_EXTERNAL_URL).
+      - key: COURTAGE_ADMIN_TELEPHONE      # le premier administrateur, créé au démarrage (DEPLOY.md §4c)
+        sync: false
+      - key: COURTAGE_ADMIN_NOM
+        sync: false
       - key: COURTAGE_EXTRACTION           # « claude » pour la lecture par Claude (et ANTHROPIC_API_KEY)
         value: regles
       - key: ANTHROPIC_API_KEY

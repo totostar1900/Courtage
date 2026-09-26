@@ -36,6 +36,10 @@ services:
         generateValue: true
       - key: COURTAGE_URL_PUBLIQUE
         value: https://courtage.purposecapital.africa
+      - key: COURTAGE_ADMIN_TELEPHONE      # le premier administrateur, créé au démarrage (DEPLOY.md §4c)
+        sync: false
+      - key: COURTAGE_ADMIN_NOM
+        sync: false
       - key: COURTAGE_EXTRACTION           # « claude » pour la lecture par Claude (et ANTHROPIC_API_KEY)
         value: regles
       - key: ANTHROPIC_API_KEY

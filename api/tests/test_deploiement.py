@@ -178,3 +178,19 @@ def test_le_plan_d_essai_est_gratuit_et_n_a_pas_de_domaine():
     # Les mêmes secrets, générés, dans les deux plans.
     cles = lambda plan: {v["key"] for v in plan["services"][0]["envVars"] if v.get("generateValue")}  # noqa: E731
     assert cles(essai) == cles(production) == {"COURTAGE_MOT_DE_PASSE_APP", "COURTAGE_CLE_SCEAU", "COURTAGE_CLE_AUTH"}
+
+
+def test_le_premier_administrateur_se_declare_par_l_environnement(bases):
+    """Sans Shell (offre gratuite de Render), l'administrateur naît au démarrage, une fois."""
+    import uuid as _uuid
+    from courtage.amorcer import depuis_environnement
+    url = bases[0].url.render_as_string(hide_password=False)
+    assert depuis_environnement({"COURTAGE_URL_PROPRIETAIRE": url}) is None      # rien de déclaré : rien à faire
+    tel = f"+2376{_uuid.uuid4().int % 10**8:08d}"
+    env = {"COURTAGE_URL_PROPRIETAIRE": url, "COURTAGE_ADMIN_TELEPHONE": tel, "COURTAGE_ADMIN_NOM": "Admin Essai"}
+    assert "créé" in depuis_environnement(env)
+    assert "déjà" in depuis_environnement(env)                                   # chaque redémarrage : rien de neuf
+    with bases[0].connect() as c:
+        lignes = c.execute(text("SELECT count(*) FROM journal j JOIN utilisateurs u ON j.cible = u.id::text "
+                                "WHERE u.telephone = :t"), {"t": tel}).scalar()
+    assert lignes == 1                                                           # un seul événement au journal

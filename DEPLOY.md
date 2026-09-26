@@ -43,6 +43,7 @@ répond 503 dès que la base ne porte pas la révision attendue par le code.
 | `COURTAGE_CLE_AUTH` | clé des codes de connexion (la changer invalide seulement les codes en cours) |
 | `COURTAGE_URL_PUBLIQUE` | `https://…`, imprimée sur les rapports pour la vérification |
 | `TWILIO_COMPTE`, `TWILIO_JETON`, `TWILIO_EMETTEUR`, `TWILIO_CANAL` | envoi des codes (`whatsapp` ou `sms`) |
+| `COURTAGE_ADMIN_TELEPHONE`, `COURTAGE_ADMIN_NOM` | le premier administrateur, créé au démarrage s'il ne l'est pas déjà (§4c). Facultatives |
 | `COURTAGE_EXTRACTION` | `regles` (défaut : lecture sur la plateforme, aucun envoi) \| `claude` (lecture par Claude, l'accord de la personne est demandé avant chaque envoi) |
 | `ANTHROPIC_API_KEY` | avec `COURTAGE_EXTRACTION=claude` seulement |
 | `COURTAGE_PROXYS` | adresses de proxy de confiance pour `X-Forwarded-For` (défaut `*`) |
@@ -92,7 +93,18 @@ avec un utilisateur qui en a le droit, ou demander au support de Render, puis re
 
 ### 4c. Le premier administrateur
 
-Depuis l'onglet **Shell** du service `courtage` :
+Sur le service, onglet **Environment**, renseigner deux variables (le Blueprint les demande déjà) :
+
+| Variable | Exemple |
+|---|---|
+| `COURTAGE_ADMIN_TELEPHONE` | `+237690000000` |
+| `COURTAGE_ADMIN_NOM` | `Prénom Nom` |
+
+puis **Save, rebuild and deploy**. Au démarrage, le journal écrit `[amorcer] administrateur créé : …`. Aux
+démarrages suivants, `administrateur déjà en place` : rien n'est réécrit. Aucun Shell n'est nécessaire, ce qui
+compte sur l'offre gratuite, qui n'en a pas.
+
+Avec un Shell (offres payantes), la commande directe fait la même chose, pour un autre numéro par exemple :
 
 ```bash
 python -m courtage.amorcer +237690000000 "Prénom Nom"
@@ -126,9 +138,8 @@ La même plateforme sur les offres gratuites de Render, pour un essai en ligne s
    `render.essai.yaml`. Si le champ n'est pas proposé, copier ce fichier sur `render.yaml` dans une branche d'essai.
 2. **Apply**. Le site répond à l'adresse `https://courtage-essai….onrender.com` affichée par Render. Les rapports
    l'impriment d'eux-mêmes, par `RENDER_EXTERNAL_URL`.
-3. Premier administrateur : onglet **Shell** du service, `python -m courtage.amorcer +237… "Prénom Nom"`. Si le
-   Shell n'est pas offert sur l'offre gratuite, le lancer en **one-off job**, ou depuis un poste avec
-   `COURTAGE_URL_PROPRIETAIRE` (l'URL externe de la base, onglet **Connect**).
+3. Premier administrateur : l'offre gratuite n'a ni Shell ni accès à la base depuis Internet. Renseigner
+   `COURTAGE_ADMIN_TELEPHONE` et `COURTAGE_ADMIN_NOM` (§4c), puis redéployer.
 4. Connexion : les codes s'écrivent dans l'onglet **Logs** du service. L'essai tourne en recette, sans Twilio.
 
 Ce que l'offre gratuite ne fait pas :
