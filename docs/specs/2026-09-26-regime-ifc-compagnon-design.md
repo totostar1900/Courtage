@@ -183,15 +183,14 @@ rembourser par le fonds (montant du régime, ou montant versé plafonné).
 L'interface (tâche 7 du premier plan) vient ensuite et couvre le parcours
 complet : lire → analyser → simuler → adopter → évaluer → financer.
 
-## 12. Questions ouvertes
+## 12. Questions tranchées (2026-09-26)
 
-1. L'étude peut-elle être **émise** avec un régime non conforme ? Proposition :
-   oui, évaluée au plancher là où il est plus favorable, la non-conformité en
-   tête du rapport — l'entreprise est souveraine, le rapport dit la vérité.
-2. **Base de salaire** quand le fichier ne donne que le salaire courant et que
-   le régime dit « moyenne des 12 mois » : retenir le salaire courant et le
-   dire, ou demander la colonne ?
-3. **Horizon et taux** de la projection du fonds : 10 ans et le taux garanti
-   de chaque offre, ou des scénarios de participation aux bénéfices ?
-4. **Lecture des textes existants** : saisie guidée par le conseiller d'abord,
-   extraction assistée par un modèle de langue ensuite (toujours relue) ?
+1. **Une étude s'émet avec un régime non conforme** : évaluée au plus
+   favorable du régime et du plancher, ancienneté par ancienneté, la
+   non-conformité en tête du rapport.
+2. **Base « moyenne des 12 mois » et fichier au salaire courant** : le salaire
+   courant est retenu, et l'étude le signale.
+3. **Projection du fonds** : horizon et taux paramétrables, plusieurs
+   scénarios (dont la participation aux bénéfices).
+4. **Lecture des textes existants** : saisie guidée par le conseiller d'abord ;
+   extraction assistée par un modèle de langue ensuite, toujours relue.
