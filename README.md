@@ -30,3 +30,15 @@ cd ../../web && npm install && npm run dev      # http://localhost:5173
 ```
 
 Tests de l'interface : `cd web && npm test` ; typage et construction : `npm run build`.
+
+## Démonstration statique
+
+Une page autonome, publiable sans serveur : l'interface rejoue des réponses de la
+vraie API, enregistrées sur une entreprise FICTIVE (Société Démo SA, 40 salariés
+inventés), et calcule le financement dans le navigateur (portage vérifié contre
+le moteur Python).
+
+```bash
+cd api && PYTHONPATH=src python scripts/capturer_demo.py <url propriétaire d'une base JETABLE> ../web/src/demo
+cd ../web && npm run demo        # -> dist-demo/demo-courtage.html
+```

@@ -75,7 +75,8 @@ def _nature(ctx: Contexte) -> list[Constat]:
         if c.get("avec_primes"):
             constats.append(Constat(
                 "avertit", "base_avec_primes", "La base de salaire inclut les primes",
-                f"Catégorie « {c['categorie']} » : inclure les primes gonfle la dette et rend le calcul "
+                ("Tout le personnel" if c["categorie"] == "*" else f"Catégorie « {c['categorie']} »")
+                + " : inclure les primes gonfle la dette et rend le calcul "
                 "dépendant de leur définition. Préciser lesquelles, et vérifier que le fichier les contient.",
                 categorie=c["categorie"]))
     return constats

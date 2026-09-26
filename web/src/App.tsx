@@ -1,6 +1,7 @@
 import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
-import { seConnecter, utilisateurCourant } from "./api";
+import { DEMO, seConnecter, utilisateurCourant } from "./api";
+import Visionneuse from "./composants/Visionneuse";
 import Accueil from "./pages/Accueil";
 import Cahier from "./pages/Cahier";
 import Connexion from "./pages/Connexion";
@@ -19,6 +20,13 @@ export default function App() {
   return (
     <>
       <Entete />
+      {DEMO && (
+        <div className="bandeau-demo">
+          Démonstration : la Société Démo SA et ses 40 salariés sont fictifs. Les chiffres viennent du vrai moteur ;
+          les actions qui modifieraient le dossier sont désactivées.
+        </div>
+      )}
+      <Visionneuse />
       <main className="page">
         <Routes>
           <Route path="/verifier/:numero" element={<Verifier />} />

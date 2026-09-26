@@ -1,0 +1,178 @@
+"""Enregistre les réponses de la VRAIE API sur une entreprise FICTIVE, pour la démonstration statique.
+
+    python scripts/capturer_demo.py <url propriétaire d'une base JETABLE> <dossier de sortie>
+
+La base est remise à zéro (schéma public détruit), migrée, puis remplie par
+l'API elle-même : « Société Démo SA », Cameroun, 40 salariés inventés (tirage
+fixe), un accord plus favorable pour les cadres, une étude émise, un brouillon,
+un cahier des charges. Aucune donnée réelle : le cas AZITO n'est PAS utilisé.
+
+Sortie : `donnees.json` (réponses par « MÉTHODE chemin ») et `documents.json`
+(les PDF émis, rendus en images de pages).
+"""
+import base64
+import json
+import random
+import sys
+from datetime import date, timedelta
+from io import BytesIO
+from pathlib import Path
+
+import openpyxl
+import pymupdf
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
+
+from courtage.api import creer_app
+from courtage.db.migrations import migrer
+
+V1 = "/api/v1"
+MOT_DE_PASSE = "demo-statique"
+
+
+def personnel(n=40, graine=2026) -> bytes:
+    """Un personnel inventé : 8 cadres, 32 employés, dates et salaires tirés au sort."""
+    hasard = random.Random(graine)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Société Démo SA — état du personnel au 31/12/2025"])
+    ws.append([])
+    ws.append(["Matricule", "Nom", "Date de naissance", "Date d'embauche", "Salaire brut mensuel", "Catégorie"])
+    for i in range(n):
+        cadre = i < 8
+        naissance = date(1964, 1, 1) + timedelta(days=hasard.randint(0, 365 * 32))
+        embauche_min = naissance.replace(year=naissance.year + 21)
+        embauche = embauche_min + timedelta(days=hasard.randint(0, max((date(2025, 6, 30) - embauche_min).days, 1)))
+        salaire = hasard.randint(900, 2600) * 1000 if cadre else hasard.randint(160, 620) * 1000
+        ws.append([f"D{i + 1:03d}", "Nom fictif", naissance, embauche, salaire, "Cadre" if cadre else "Employé"])
+    tampon = BytesIO()
+    wb.save(tampon)
+    return tampon.getvalue()
+
+
+def main(url: str, sortie: Path) -> None:
+    proprio = create_engine(url)
+    with proprio.begin() as c:
+        c.execute(text("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"))
+        c.execute(text(f"""DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'courtage_app') THEN
+              CREATE ROLE courtage_app LOGIN PASSWORD '{MOT_DE_PASSE}';
+            ELSE ALTER ROLE courtage_app LOGIN PASSWORD '{MOT_DE_PASSE}'; END IF; END $$;"""))
+    migrer(url)
+    app = create_engine(make_url(url).set(username="courtage_app", password=MOT_DE_PASSE))
+    client = TestClient(creer_app(moteur=app, authentification="entete_dev", url_publique="https://demo.courtage"))
+
+    ids = {}
+    with proprio.begin() as c:
+        for cle, nom, admin in (("admin", "Plateforme (démo)", True),
+                                ("conseiller", "Awa Nkoulou, actuaire conseil", False),
+                                ("drh", "Direction RH, Société Démo", False)):
+            ids[cle] = str(c.execute(text("INSERT INTO utilisateurs (email, nom_affiche, admin_plateforme) "
+                                          "VALUES (:e, :n, :a) RETURNING id"),
+                                     {"e": f"{cle}@demo.courtage", "n": nom, "a": admin}).scalar_one())
+    h = lambda qui: {"X-Utilisateur": ids[qui]}  # noqa: E731
+
+    def ok(r):
+        assert r.status_code < 300, r.text
+        return r.json() if r.content and r.headers.get("content-type", "").startswith("application/json") else r
+
+    org = ok(client.post(f"{V1}/organisations", json={"nom": "Société Démo SA", "pays": "CM", "secteur": "Commerce"},
+                         headers=h("admin")))["id"]
+    for qui, role in (("conseiller", "conseiller"), ("drh", "admin_client")):
+        ok(client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": ids[qui], "role": role},
+                       headers=h("admin")))
+    ok(client.post(f"{V1}/organisations/{org}/remuneration", headers=h("conseiller"), json={
+        "en_vigueur_du": "2025-01-01", "mode": "mixte", "honoraires_etude_ifc": 900_000,
+        "honoraires_par_salarie": 2_500, "commission_bps": 800}))
+    fichier = ok(client.post(f"{V1}/organisations/{org}/fichiers", headers=h("drh"),
+                             files={"fichier": ("personnel-2025.xlsx", personnel())},
+                             data={"date_donnees": "2025-12-31"}))
+
+    commerce = [{"jusqu_a": 5, "mois_par_annee": 0.45}, {"jusqu_a": 10, "mois_par_annee": 0.50},
+                {"jusqu_a": 15, "mois_par_annee": 0.65}, {"jusqu_a": 20, "mois_par_annee": 0.75},
+                {"jusqu_a": None, "mois_par_annee": 0.80}]
+    cadres = [{"jusqu_a": 5, "mois_par_annee": 0.60}, {"jusqu_a": 10, "mois_par_annee": 0.70},
+              {"jusqu_a": 15, "mois_par_annee": 0.85}, {"jusqu_a": 20, "mois_par_annee": 1.00},
+              {"jusqu_a": None, "mois_par_annee": 1.10}]
+    regime = ok(client.post(f"{V1}/organisations/{org}/regimes", json={"nom": "Accord IFC Société Démo"}, headers=h("drh")))
+    version = ok(client.post(f"{V1}/organisations/{org}/regimes/{regime['id']}/versions", headers=h("drh"), json={
+        "en_vigueur_du": "2024-02-01", "fondement": "accord_entreprise",
+        "document_reference": "Accord d'entreprise du 01/02/2024, article 9",
+        "categories": [
+            {"categorie": "Cadre", "convention_code": "CM_COMMERCE", "bareme": {"forme": "tranches_cumulatives", "tranches": cadres}},
+            {"categorie": "*", "convention_code": "CM_COMMERCE", "bareme": {"forme": "tranches_cumulatives", "tranches": commerce},
+             "base_salaire": "moyenne_12_mois"}]}))
+    ok(client.post(f"{V1}/organisations/{org}/regimes/versions/{version['id']}/adoption", headers=h("drh"),
+                   json={"accepte_non_conformite": False}))
+    projet = ok(client.post(f"{V1}/organisations/{org}/regimes/{regime['id']}/versions", headers=h("conseiller"), json={
+        "en_vigueur_du": "2026-07-01", "fondement": "accord_entreprise",
+        "document_reference": "Projet d'avenant 2026 (en discussion)",
+        "categories": [
+            {"categorie": "Cadre", "convention_code": "CM_COMMERCE", "bareme": {"forme": "tranches_cumulatives", "tranches": [
+                {"jusqu_a": None, "mois_par_annee": 1.5}]}},
+            {"categorie": "*", "convention_code": "CM_COMMERCE", "bareme": {"forme": "tranches_cumulatives", "tranches": [
+                {"jusqu_a": None, "mois_par_annee": 0.40}]}}]}))
+
+    etude = ok(client.post(f"{V1}/organisations/{org}/etudes", headers=h("drh"), json={
+        "fichier_id": fichier["id"], "date_evaluation": "2025-12-31", "regime_version_id": version["id"],
+        "fonds_disponible": 45_000_000}))
+    ok(client.post(f"{V1}/organisations/{org}/etudes/{etude['id']}/emission", headers=h("conseiller")))
+    brouillon = ok(client.post(f"{V1}/organisations/{org}/etudes", headers=h("drh"), json={
+        "fichier_id": fichier["id"], "date_evaluation": "2025-12-31", "convention_code": "CM_COMMERCE",
+        "fonds_disponible": 45_000_000}))
+    fiche = ok(client.post(f"{V1}/organisations/{org}/fiches", headers=h("conseiller"), json={
+        "etude_id": etude["id"], "date_limite_reponse": (date.today() + timedelta(days=30)).isoformat(),
+        "conditions": {"taux_garanti_minimum": 0.025, "participation_benefices_minimum": 0.85,
+                       "frais_sur_cotisations_maximum": 0.03, "frais_sur_encours_maximum": 0.005,
+                       "transfert_preavis_mois_maximum": 3, "transfert_penalite_maximum": 0.0,
+                       "delai_paiement_jours_maximum": 30}}))
+
+    reponses: dict[str, object] = {}
+
+    def capter(chemin: str, qui="drh", methode="GET", corps=None, cle=None):
+        r = client.request(methode, f"{V1}{chemin}", headers=h(qui), json=corps)
+        assert r.status_code < 300, (chemin, r.text)
+        reponses[cle or f"{methode} {chemin}"] = r.json()
+
+    capter("/dev/utilisateurs")
+    reponses["GET /dev/utilisateurs"] = [u for u in reponses["GET /dev/utilisateurs"] if not u["admin_plateforme"]]
+    for qui in ("drh", "conseiller"):
+        capter("/moi", qui=qui, cle=f"GET /moi@{ids[qui]}")
+    base = f"/organisations/{org}"
+    for chemin in ("/fichiers", "/regimes", "/etudes", "/fiches", "/equipe", "/remuneration",
+                   f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}"):
+        capter(base + chemin)
+    for v in (version["id"], projet["id"]):
+        capter(f"{base}/regimes/versions/{v}/analyse")
+        capter(f"{base}/regimes/versions/{v}/analyse?fichier_id={fichier['id']}")
+    capter(f"{base}/simulations", methode="POST", cle=f"POST {base}/simulations", corps={
+        "fichier_id": fichier["id"], "date_evaluation": "2025-12-31", "convention_code": "CM_COMMERCE",
+        "fonds_disponible": 45_000_000, "variantes": [
+            {"nom": "Accord IFC Société Démo, version 1", "regime_version_id": version["id"]},
+            {"nom": "Accord IFC Société Démo, version 2", "regime_version_id": projet["id"]}]})
+    # La référence du calcul de financement, pour vérifier la version TypeScript.
+    capter(f"{base}/etudes/{etude['id']}/financement", methode="POST", cle="REFERENCE financement", corps={
+        "horizon": 10, "amortissement_annees": 3, "offres": [
+            {"nom": "Assureur A", "taux_garanti": 0.025, "participation_benefices": 0.85, "frais_sur_cotisations": 0.04},
+            {"nom": "Assureur B", "taux_garanti": 0.02, "participation_benefices": 0.9, "frais_sur_cotisations": 0.02,
+             "frais_sur_encours": 0.005}]})
+
+    documents = {}
+    rapport = reponses[f"GET {base}/etudes/{etude['id']}"]["rapport"]["numero"]
+    for numero, chemin in ((rapport, f"{base}/etudes/{etude['id']}/rapport"),
+                           (fiche["numero"], f"{base}/fiches/{fiche['id']}/document")):
+        capter(f"/verifier/{numero}")
+        pdf = client.get(f"{V1}{chemin}", headers=h("drh")).content
+        with pymupdf.open(stream=pdf, filetype="pdf") as doc:
+            documents[chemin] = ["data:image/jpeg;base64," + base64.b64encode(p.get_pixmap(dpi=90).tobytes("jpeg", 80)).decode()
+                                 for p in doc]
+
+    sortie.mkdir(parents=True, exist_ok=True)
+    (sortie / "donnees.json").write_text(json.dumps({"organisation": org, "reponses": reponses}, ensure_ascii=False), "utf-8")
+    (sortie / "documents.json").write_text(json.dumps(documents), "utf-8")
+    print(f"{len(reponses)} réponses, {sum(len(v) for v in documents.values())} pages -> {sortie}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1], Path(sys.argv[2]))

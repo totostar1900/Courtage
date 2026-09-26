@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
+import { seConnecter } from "../api";
 import App from "../App";
 
 /** Une API simulée : chemin (sans /api/v1) → réponse JSON. Une fonction reçoit la requête. */
@@ -23,7 +24,7 @@ export function simulerApi(reponses: Record<string, unknown | ((init?: RequestIn
 
 export function ouvrir(chemin: string, utilisateur: string | null = "u-drh") {
   localStorage.clear();
-  if (utilisateur) localStorage.setItem("courtage:utilisateur", utilisateur);
+  seConnecter(utilisateur);
   return render(<MemoryRouter initialEntries={[chemin]}><App /></MemoryRouter>);
 }
 

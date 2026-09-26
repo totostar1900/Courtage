@@ -184,17 +184,17 @@ def constats_categories(categories, jour: date) -> list[dict]:
         if sous:
             releves.append(_constat(
                 "bloque", "sous_le_plancher", c.categorie,
-                f"Catégorie « {c.categorie} » : le régime donne moins que {convention.libelle} "
+                f"{_libelle(c.categorie)} : le régime donne moins que {convention.libelle} "
                 f"pour {_plages(sous)} d'ancienneté. Les salariés gardent droit au plancher.",
                 {"anciennetes": sous, "convention": convention.code}))
         if c.base_salaire == "moyenne_12_mois":
             releves.append(_constat("avertit", "base_salaire_approchee", c.categorie,
-                                    f"Catégorie « {c.categorie} » : la base est la moyenne des 12 derniers mois ; "
+                                    f"{_libelle(c.categorie)} : la base est la moyenne des 12 derniers mois ; "
                                     "l'évaluation retient le salaire courant du fichier."))
         autres = sorted(set(c.evenements) - {"retraite"})
         if autres:
             releves.append(_constat("avertit", "evenements_non_evalues", c.categorie,
-                                    f"Catégorie « {c.categorie} » : le régime couvre aussi {', '.join(autres)}, "
+                                    f"{_libelle(c.categorie)} : le régime couvre aussi {', '.join(autres)}, "
                                     "que l'évaluation ne chiffre pas encore.", {"evenements": autres}))
     return releves
 
@@ -239,6 +239,10 @@ def regles_de(c, convention: Convention) -> Regles:
     """Les règles du moteur pour une catégorie (enregistrée ou saisie), la convention pour plancher."""
     return Regles(bareme=_BAREME.validate_python(c.bareme), plancher=Regles(bareme=convention.bareme),
                   anciennete_minimale=c.anciennete_minimale, plafond_mois=c.plafond_mois, arrondi=c.arrondi)
+
+
+def _libelle(categorie: str) -> str:
+    return "Tout le personnel" if categorie == AUTRES else f"Catégorie « {categorie} »"
 
 
 def _constat(niveau: str, code: str, categorie: str, message: str, details: dict | None = None) -> dict:

@@ -13,16 +13,20 @@ export class ErreurApi extends Error {
 }
 
 const CLE = "courtage:utilisateur";
+/** La démonstration statique : l'API est rejouée dans le navigateur (src/demo). */
+export const DEMO = import.meta.env.VITE_DEMO === "1";
+let enMemoire: string | null = null;   // quand le navigateur refuse le stockage local
 
 export function utilisateurCourant(): string | null {
   try {
-    return localStorage.getItem(CLE);
+    return localStorage.getItem(CLE) ?? enMemoire;
   } catch {
-    return null;
+    return enMemoire;
   }
 }
 
 export function seConnecter(id: string | null) {
+  enMemoire = id;
   try {
     if (id) localStorage.setItem(CLE, id);
     else localStorage.removeItem(CLE);
@@ -32,6 +36,11 @@ export function seConnecter(id: string | null) {
 }
 
 async function appel<T>(chemin: string, init: RequestInit = {}): Promise<T> {
+  if (DEMO) {
+    const { repondre } = await import("./demo/serveur");
+    const corps = typeof init.body === "string" ? JSON.parse(init.body) : init.body;
+    return (await repondre(init.method ?? "GET", chemin, corps, utilisateurCourant())) as T;
+  }
   const entetes = new Headers(init.headers);
   const moi = utilisateurCourant();
   if (moi) entetes.set("X-Utilisateur", moi);
@@ -54,8 +63,13 @@ export const api = {
     appel<T>(chemin, { method: "POST", body: corps instanceof FormData ? corps : JSON.stringify(corps ?? {}) }),
   put: <T>(chemin: string, corps: unknown) => appel<T>(chemin, { method: "PUT", body: JSON.stringify(corps) }),
   del: (chemin: string) => appel<void>(chemin, { method: "DELETE" }),
-  /** Un PDF : ouvert dans un nouvel onglet. */
+  /** Un PDF : ouvert dans un nouvel onglet (dans la démonstration, ses pages s'affichent sur place). */
   async ouvrir(chemin: string) {
+    if (DEMO) {
+      const { DOCUMENTS } = await import("./demo/serveur");
+      window.dispatchEvent(new CustomEvent("courtage:document", { detail: DOCUMENTS[chemin] ?? [] }));
+      return;
+    }
     const moi = utilisateurCourant();
     const r = await fetch(`/api/v1${chemin}`, { headers: moi ? { "X-Utilisateur": moi } : {} });
     if (!r.ok) throw new ErreurApi(r.status, "document_indisponible", "Document indisponible.");

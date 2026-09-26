@@ -1,7 +1,9 @@
 """Routes de l'API. Les droits se lisent sur la signature : `acces(...)` nomme les rôles admis."""
+import unicodedata
 import uuid
 from datetime import date
 from typing import Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import Response
@@ -303,9 +305,8 @@ def emettre_etude(etude_id: uuid.UUID, request: Request, a: Acces = Depends(acce
 def telecharger_rapport(etude_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     e = etudes.obtenir(a.session, etude_id)
     document = rapport.document_de(a.session, e)
-    nom = f"etude-ifc-{a.organisation.nom}-{e.date_evaluation.isoformat()}-{document.numero}.pdf".replace(" ", "-")
-    return Response(document.contenu, media_type=document.type_contenu,
-                    headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+    nom = f"etude-ifc-{a.organisation.nom}-{e.date_evaluation.isoformat()}-{document.numero}.pdf"
+    return Response(document.contenu, media_type=document.type_contenu, headers=_piece_jointe(nom))
 
 
 # --- Financement ---------------------------------------------------------------
@@ -387,9 +388,16 @@ def lire_fiche(fiche_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
 @routeur.get("/organisations/{organisation_id}/fiches/{fiche_id}/document")
 def telecharger_fiche(fiche_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     f, document = fiches.obtenir(a.session, fiche_id)
-    nom = f"cahier-des-charges-{a.organisation.nom}-{document.numero}.pdf".replace(" ", "-")
-    return Response(document.contenu, media_type=document.type_contenu,
-                    headers={"Content-Disposition": f'attachment; filename="{nom}"'})
+    nom = f"cahier-des-charges-{a.organisation.nom}-{document.numero}.pdf"
+    return Response(document.contenu, media_type=document.type_contenu, headers=_piece_jointe(nom))
+
+
+def _piece_jointe(nom: str) -> dict:
+    """Un nom de fichier sûr dans un en-tête HTTP : une version ASCII, et l'originale en UTF-8 (RFC 5987).
+    Un nom d'organisation accentué (« Société ») cassait l'en-tête, qui n'admet que le latin-1."""
+    nom = nom.replace(" ", "-")
+    ascii_ = unicodedata.normalize("NFKD", nom).encode("ascii", "ignore").decode() or "document.pdf"
+    return {"Content-Disposition": f"attachment; filename=\"{ascii_}\"; filename*=UTF-8''{quote(nom)}"}
 
 
 # --- Vérification publique (sans compte) --------------------------------------

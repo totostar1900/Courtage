@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "demo": "VITE_DEMO=1 vite build && python3 scripts/assembler_demo.py"
   },
   "dependencies": {
     "react": "^19.0.0",

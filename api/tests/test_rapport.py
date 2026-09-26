@@ -136,3 +136,21 @@ def test_le_rapport_met_la_non_conformite_en_tete(client, azito):
     e = emettre(client, azito, convention_code=None, regime_version_id=v["id"])
     premiere = pages(rapport(client, azito, e["id"]))[0]
     assert premiere.index("Régime non conforme") < premiere.index("Synthèse")
+
+
+def test_un_nom_d_organisation_accentue_ne_casse_pas_le_telechargement(client, personnes):
+    """« Société » dans le nom du fichier téléchargé : l'en-tête HTTP n'admet que le latin-1."""
+    from tests.outils import deposer, fichier_azito
+    org = client.post(f"{V1}/organisations", json={"nom": "Société Générale d'Énergie", "pays": "CI"},
+                      headers=en_tant_que(personnes["admin"])).json()["id"]
+    for qui, role in (("conseiller", "conseiller"), ("drh", "admin_client")):
+        client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": str(personnes[qui]), "role": role},
+                    headers=en_tant_que(personnes["admin"]))
+    client.post(f"{V1}/organisations/{org}/remuneration", headers=en_tant_que(personnes["conseiller"]),
+                json={"en_vigueur_du": "2019-01-01", "mode": "honoraires", "honoraires_etude_ifc": 1})
+    f = deposer(client, org, personnes["drh"], fichier_azito())
+    a = {"org": org, "fichier": f["id"], **personnes}
+    e = emettre(client, a)
+    r = client.get(f"{V1}/organisations/{org}/etudes/{e['id']}/rapport", headers=en_tant_que(personnes["drh"]))
+    assert r.status_code == 200
+    assert "filename*=UTF-8''etude-ifc-Soci%C3%A9t%C3%A9" in r.headers["content-disposition"]

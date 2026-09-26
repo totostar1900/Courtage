@@ -37,8 +37,8 @@ def controler(lecture: Lecture, *, date_evaluation: date, age_retraite: int) -> 
                                           ligne=l.numero, colonne="date de naissance"))
             elif age >= age_retraite:
                 anomalies.append(Anomalie("avertissement", "au_dela_de_la_retraite",
-                                          f"{age:.1f} ans, au-delà de l'âge de départ ({age_retraite} ans) : "
-                                          "son IFC est due, pas future.", ligne=l.numero))
+                                          f"{age:.1f} ans".replace(".", ",") + f", au-delà de l'âge de départ "
+                                          f"({age_retraite} ans) : son IFC est due, pas future.", ligne=l.numero))
         if l.embauche and l.embauche > date_evaluation:
             anomalies.append(Anomalie("bloquant", "embauche_apres_evaluation",
                                       "Embauché(e) après la date d'évaluation.",
