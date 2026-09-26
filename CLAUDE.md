@@ -70,6 +70,19 @@ api/src/courtage/
 - Toute écriture appelle `journaliser(...)`.
 - Les services ne vérifient pas les droits, l'API ne calcule rien.
 
+## Régimes
+
+- Un régime se prend TEL QUEL : sous le plancher, il est enregistré et
+  signalé, jamais refusé ; le moteur retient le plus favorable du régime et
+  de la convention, ancienneté par ancienneté.
+- Seule l'entreprise (`admin_client`) adopte, d'un seul acte ; une version
+  adoptée et ses catégories sont immuables (déclencheurs). Une modification
+  est une nouvelle version, avec sa date d'effet.
+- Les barèmes d'entreprise (0003) sont repris en régimes (0005) ; la table
+  reste en lecture pour les études qui les citent.
+- Dans un routeur, les chemins littéraux (`/regimes/versions/{id}`) sont
+  déclarés AVANT les chemins à paramètre (`/regimes/{id}/versions`).
+
 ## Rapport et sceau
 
 - Le rapport est rendu UNE fois, à l'émission, dans la même transaction

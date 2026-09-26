@@ -16,13 +16,13 @@ from datetime import date, datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from courtage.actuariat.ifc import VERSION_MOTEUR, Hypotheses, Resultat, comparer_baremes, evaluer
+from courtage.actuariat.ifc import VERSION_MOTEUR, Hypotheses, Regles, Resultat, comparer_baremes, evaluer
 from courtage.db import Document, Etude, Organisation
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie, controler, controler_parametres, controler_resultat, salaries
 from courtage.referentiel import HYPOTHESES_PAR_DEFAUT, motifs_de_refus, referentiel_courant
 
-from . import baremes, fichiers, journaliser, remuneration
+from . import baremes, fichiers, journaliser, regimes, remuneration
 
 ECART_MAX_ETUDE_PRECEDENTE = 0.25
 AGE_PREMIER_EMPLOI = 18
@@ -34,11 +34,11 @@ _SAISISSABLES = {"taux_actualisation": float, "croissance_salaires": float, "inf
 class Saisie:
     fichier_id: uuid.UUID
     date_evaluation: date
-    convention_code: str
+    convention_code: str | None
     fonds_disponible: int
     hypotheses: dict = field(default_factory=dict)
     justification: str | None = None
-    bareme_entreprise_id: uuid.UUID | None = None
+    regime_version_id: uuid.UUID | None = None
 
 
 # --- Écritures ----------------------------------------------------------------
@@ -48,7 +48,8 @@ def creer(session: Session, org: Organisation, auteur: uuid.UUID, saisie: Saisie
     session.add(etude)
     session.flush()
     journaliser(session, org.id, auteur, "etude.creee", etude.id,
-                {"convention": saisie.convention_code, "date_evaluation": saisie.date_evaluation.isoformat()})
+                {"convention": etude.convention_code, "date_evaluation": saisie.date_evaluation.isoformat(),
+                 "regime_version_id": str(saisie.regime_version_id) if saisie.regime_version_id else None})
     return etude
 
 
@@ -103,9 +104,23 @@ def lister(session: Session) -> list[Etude]:
 def motifs_emission(session: Session, org: Organisation, etude: Etude, aujourd_hui: date) -> list[str]:
     """Tout ce qui interdit d'émettre ; vide : l'étude peut sortir."""
     motifs = sorted({a["code"] for a in etude.resultats["anomalies"] if a["niveau"] == "bloquant"})
-    convention = referentiel_courant().convention(etude.convention_code, etude.convention_du)
-    motifs += motifs_de_refus(convention, pays_organisation=org.pays, date_evaluation=etude.date_evaluation)
-    if etude.bareme_entreprise_id is not None:
+    if etude.regime_version_id is not None:
+        version = regimes.obtenir_version(session, etude.regime_version_id)
+        conventions = regimes.conventions_de(session, version, etude.date_evaluation)
+        if version.statut != "adoptee":
+            motifs.append("regime_non_adopte")
+        else:
+            en_vigueur = regimes.version_en_vigueur(session, version.regime_id, etude.date_evaluation)
+            if en_vigueur is None or en_vigueur.id != version.id:
+                motifs.append("regime_hors_vigueur")
+    else:
+        conventions = [referentiel_courant().convention(etude.convention_code, etude.convention_du)]
+    for convention in conventions:
+        for m in motifs_de_refus(convention, pays_organisation=org.pays, date_evaluation=etude.date_evaluation):
+            if m not in motifs:
+                motifs.append(m)
+    convention = conventions[0]
+    if etude.bareme_entreprise_id is not None:   # études antérieures aux régimes
         b = baremes.obtenir(session, etude.bareme_entreprise_id)
         if b.statut != "valide":
             motifs.append("bareme_entreprise_a_valider")
@@ -127,6 +142,8 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
         emission = {"possible": False, "motifs": []}
     convention = referentiel_courant().convention(etude.convention_code, etude.convention_du)
     bareme = baremes.en_clair(baremes.obtenir(session, etude.bareme_entreprise_id)) if etude.bareme_entreprise_id else None
+    regime = (regimes.en_clair(session, regimes.obtenir_version(session, etude.regime_version_id), etude.date_evaluation)
+              if etude.regime_version_id else None)
     return {
         "id": str(etude.id), "statut": etude.statut, "fichier_id": str(etude.fichier_id),
         "date_evaluation": etude.date_evaluation.isoformat(),
@@ -134,7 +151,8 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
                        "statut": convention.statut, "verification": convention.verification},
         "referentiel_version": etude.referentiel_version, "version_moteur": etude.version_moteur,
         "hypotheses": etude.hypotheses, "fonds_disponible": etude.fonds_disponible,
-        "bareme_entreprise": bareme, "totaux_convention": r.get("totaux_convention"),
+        "regime": regime, "bareme_entreprise": bareme, "totaux_convention": r.get("totaux_convention"),
+        "par_categorie": r.get("par_categorie"),
         "totaux": r["totaux"], "echeancier": r["echeancier"], "sensibilites": r["sensibilites"],
         "lignes": r["lignes"], "anomalies": r["anomalies"], "emission": emission,
         "empreinte": etude.empreinte, "honoraires_ht": etude.honoraires_ht,
@@ -159,6 +177,7 @@ def empreinte(etude: Etude) -> str:
         "version_moteur": etude.version_moteur, "hypotheses": etude.hypotheses,
         "fonds_disponible": etude.fonds_disponible, "resultats": etude.resultats,
         "bareme_entreprise_id": str(etude.bareme_entreprise_id) if etude.bareme_entreprise_id else None,
+        "regime_version_id": str(etude.regime_version_id) if etude.regime_version_id else None,
     }
     canonique = json.dumps(contenu, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(canonique.encode("utf-8")).hexdigest()
@@ -170,10 +189,27 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
     fichier = fichiers.obtenir(session, saisie.fichier_id)
     lecture = fichiers.relire(fichier)
     ref = referentiel_courant()
-    try:
-        convention = ref.convention(saisie.convention_code, saisie.date_evaluation)
-    except LookupError as e:
-        raise ErreurMetier("convention_introuvable", str(e), 422) from None
+
+    regles = regles_plancher = None
+    constats_regime: list[dict] = []
+    if saisie.regime_version_id is not None:
+        version = regimes.obtenir_version(session, saisie.regime_version_id)
+        regles = regimes.regles(session, version, saisie.date_evaluation)
+        regles_plancher = regimes.regles_plancher(session, version, saisie.date_evaluation)
+        _exiger_categories_connues(lecture, regles)
+        conventions = regimes.conventions_de(session, version, saisie.date_evaluation)
+        if saisie.convention_code and saisie.convention_code not in {c.code for c in conventions}:
+            raise ErreurMetier("convention_hors_regime",
+                               f"Le régime ne s'appuie pas sur {saisie.convention_code}.", 422)
+        convention = next((c for c in conventions if c.code == saisie.convention_code), conventions[0])
+        constats_regime = regimes.constats(session, version, saisie.date_evaluation)
+    elif saisie.convention_code:
+        try:
+            convention = ref.convention(saisie.convention_code, saisie.date_evaluation)
+        except LookupError as e:
+            raise ErreurMetier("convention_introuvable", str(e), 422) from None
+    else:
+        raise ErreurMetier("convention_ou_regime_requis", "Choisir une convention ou une version du régime.", 422)
 
     valeurs, ecarts = _hypotheses(saisie)
     h = Hypotheses(
@@ -184,14 +220,8 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         table=ref.table(valeurs["table"]), fonds_disponible=saisie.fonds_disponible,
         frais_sur_cotisation=valeurs["frais_sur_cotisation"],
     )
-    bareme = None
-    if saisie.bareme_entreprise_id is not None:
-        b = baremes.obtenir(session, saisie.bareme_entreprise_id)
-        if b.convention_code != convention.code:
-            raise ErreurMetier("bareme_autre_convention",
-                               f"Ce barème améliore {b.convention_code}, pas {convention.code}.", 422)
-        bareme = baremes.type_de(b.bareme)
-    resultat = evaluer(salaries(lecture), h, convention, bareme=bareme)
+    sal = salaries(lecture)
+    resultat = evaluer(sal, h, convention, regles=regles)
 
     anomalies: list[Anomalie] = [
         *lecture.anomalies,
@@ -199,23 +229,49 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         *controler_parametres(date_evaluation=saisie.date_evaluation, date_donnees=fichier.date_donnees),
         *controler_resultat(resultat),
         *_ecart_etude_precedente(session, saisie.date_evaluation, resultat, sauf),
+        *_anomalies_du_regime(constats_regime),
     ]
+    resultats = {
+        "totaux": _totaux(resultat),
+        "lignes": _lignes(resultat),
+        "echeancier": _echeancier(resultat, saisie.date_evaluation),
+        "sensibilites": _sensibilites(sal, h, convention, regles),
+        "anomalies": [asdict(a) for a in anomalies],
+        "constats_regime": constats_regime,
+    }
+    if regles is not None:
+        resultats["par_categorie"] = resultat.par_categorie
+        # Ce que le régime coûte au-delà de la seule convention.
+        resultats["totaux_convention"] = _totaux(evaluer(sal, h, convention, regles=regles_plancher))
     return {
         "fichier_id": fichier.id, "referentiel_version": ref.version, "convention_code": convention.code,
         "convention_du": convention.en_vigueur_du, "date_evaluation": saisie.date_evaluation,
         "hypotheses": {"valeurs": valeurs, "ecarts": ecarts, "justification": saisie.justification},
         "fonds_disponible": saisie.fonds_disponible, "version_moteur": VERSION_MOTEUR,
-        "bareme_entreprise_id": saisie.bareme_entreprise_id,
-        "resultats": {
-            "totaux": _totaux(resultat),
-            # Ce que l'accord coûte au-delà de la convention.
-            **({"totaux_convention": _totaux(evaluer(salaries(lecture), h, convention))} if bareme else {}),
-            "lignes": _lignes(resultat),
-            "echeancier": _echeancier(resultat, saisie.date_evaluation),
-            "sensibilites": _sensibilites(lecture, h, convention, bareme),
-            "anomalies": [asdict(a) for a in anomalies],
-        },
+        "regime_version_id": saisie.regime_version_id, "resultats": resultats,
     }
+
+
+def _exiger_categories_connues(lecture, regles: dict[str, Regles]) -> None:
+    if regimes.AUTRES in regles:
+        return
+    inconnues: dict[str, list[int]] = {}
+    for l in lecture.lignes:
+        if l.categorie not in regles:
+            inconnues.setdefault(l.categorie or "(vide)", []).append(l.numero)
+    if inconnues:
+        raise ErreurMetier("categories_inconnues",
+                           "Des salariés relèvent de catégories que le régime ne prévoit pas : "
+                           + ", ".join(sorted(inconnues)) + ". Ajouter une catégorie « * » ou ces catégories.",
+                           422, {"categories": sorted(inconnues), "lignes": inconnues})
+
+
+def _anomalies_du_regime(constats: list[dict]) -> list[Anomalie]:
+    """Les constats du régime deviennent des avertissements de l'étude : l'entreprise est
+    souveraine, l'étude se calcule au plus favorable et le rapport le dit."""
+    codes = {"sous_le_plancher": "non_conformite"}
+    return [Anomalie("avertissement", codes.get(c["code"], c["code"]), c["message"])
+            for c in constats if c["niveau"] in ("bloque", "avertit")]
 
 
 def _hypotheses(saisie: Saisie) -> tuple[dict, list[dict]]:
@@ -267,6 +323,7 @@ def _lignes(r: Resultat) -> list[dict]:
         "matricule": l.matricule, "age": round(l.age, 2), "anciennete": round(l.anciennete, 2),
         "date_retraite": l.date_retraite.isoformat(), "ifc": round(l.ifc), "vapf": round(l.vapf),
         "dette": round(l.dette), "charge": round(l.charge), "au_dela_de_la_retraite": l.au_dela_de_la_retraite,
+        "categorie": l.categorie, "mois": round(l.mois, 4), "plancher_applique": l.plancher_applique,
     } for l in r.lignes]
 
 
@@ -282,14 +339,13 @@ def _echeancier(r: Resultat, date_evaluation: date) -> list[dict]:
             for a, v in sorted(par_annee.items())]
 
 
-def _sensibilites(lecture, h: Hypotheses, convention, bareme) -> dict:
+def _sensibilites(sal, h: Hypotheses, convention, regles) -> dict:
     variantes = {
         "taux_actualisation_moins_1pt": replace(h, taux_actualisation=h.taux_actualisation - 0.01),
         "taux_actualisation_plus_1pt": replace(h, taux_actualisation=h.taux_actualisation + 0.01),
         "croissance_salaires_plus_1pt": replace(h, croissance_salaires=h.croissance_salaires + 0.01),
     }
-    sal = salaries(lecture)
-    totaux = {nom: evaluer(sal, v, convention, bareme=bareme).totaux for nom, v in variantes.items()}
+    totaux = {nom: evaluer(sal, v, convention, regles=regles).totaux for nom, v in variantes.items()}
     return {nom: {"dette": t.dette, "charge": t.charge} for nom, t in totaux.items()}
 
 

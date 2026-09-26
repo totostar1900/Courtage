@@ -11,13 +11,14 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
-from courtage.services import baremes, etudes, fichiers, journaliser, rapport, remuneration
+from courtage.services import etudes, fichiers, journaliser, rapport, regimes, remuneration
 
 from . import Acces, acces, identite, session_db
 
 routeur = APIRouter()
 
-CLIENT = ("admin_client", "conseiller")      # déposer, lancer une étude
+CLIENT = ("admin_client", "conseiller")      # déposer, lancer une étude, décrire un régime
+ENTREPRISE = ("admin_client",)               # adopter son régime : l'entreprise est souveraine
 CONSEIL = ("conseiller",)                    # émettre, fixer la rémunération
 TOUS: tuple[str, ...] = ()                   # lire
 
@@ -107,31 +108,69 @@ def lire_remuneration(a: Acces = Depends(acces(*TOUS))):
     }
 
 
-# --- Barèmes d'entreprise ----------------------------------------------------
+# --- Régimes ------------------------------------------------------------------
 
-class NouveauBareme(_Corps):
-    libelle: str = Field(min_length=1)
+class NouveauRegime(_Corps):
+    nom: str = Field(min_length=1)
+
+
+class CategorieSaisie(_Corps):
+    categorie: str = Field(min_length=1)
+    convention_code: str
+    bareme: dict
+    anciennete_minimale: int = Field(default=0, ge=0)
+    plafond_mois: float | None = Field(default=None, gt=0)
+    arrondi: Literal["annees", "mois"] = "annees"
+    base_salaire: Literal["dernier", "moyenne_12_mois"] = "dernier"
+    avec_primes: bool = False
+    evenements: list[str] = ["retraite"]
+
+
+class NouvelleVersion(_Corps):
+    en_vigueur_du: date
     fondement: Literal["accord_entreprise", "contrat_travail", "usage", "decision_direction"]
     document_reference: str = Field(min_length=1)
-    convention_code: str
-    en_vigueur_du: date
-    en_vigueur_au: date | None = None
-    bareme: dict
+    note: str | None = None
+    categories: list[CategorieSaisie]
 
 
-@routeur.post("/organisations/{organisation_id}/baremes", status_code=201)
-def proposer_bareme(corps: NouveauBareme, a: Acces = Depends(acces(*CLIENT))):
-    return baremes.en_clair(baremes.proposer(a.session, a.organisation, a.utilisateur.id, **corps.model_dump()))
+class Adoption(_Corps):
+    accepte_non_conformite: bool = False
 
 
-@routeur.get("/organisations/{organisation_id}/baremes")
-def lister_baremes(a: Acces = Depends(acces(*TOUS))):
-    return [baremes.en_clair(b) for b in baremes.lister(a.session)]
+@routeur.post("/organisations/{organisation_id}/regimes", status_code=201)
+def creer_regime(corps: NouveauRegime, a: Acces = Depends(acces(*CLIENT))):
+    r = regimes.creer(a.session, a.organisation, a.utilisateur.id, corps.nom)
+    return {"id": str(r.id), "nom": r.nom, "versions": []}
 
 
-@routeur.post("/organisations/{organisation_id}/baremes/{bareme_id}/validation")
-def valider_bareme(bareme_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))):
-    return baremes.en_clair(baremes.valider(a.session, baremes.obtenir(a.session, bareme_id), a.utilisateur.id))
+@routeur.get("/organisations/{organisation_id}/regimes")
+def lister_regimes(a: Acces = Depends(acces(*TOUS))):
+    return [{"id": str(r.id), "nom": r.nom, "versions": [regimes.en_clair(a.session, v) for v in versions]}
+            for r, versions in regimes.lister(a.session)]
+
+
+# Chemins littéraux (« versions/… ») AVANT les chemins à paramètre du même routeur.
+@routeur.get("/organisations/{organisation_id}/regimes/versions/{version_id}")
+def lire_version(version_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    return regimes.en_clair(a.session, regimes.obtenir_version(a.session, version_id))
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/adoption")
+def adopter_version(version_id: uuid.UUID, corps: Adoption, a: Acces = Depends(acces(*ENTREPRISE))):
+    v = regimes.adopter(a.session, regimes.obtenir_version(a.session, version_id), a.utilisateur.id,
+                        corps.accepte_non_conformite)
+    return regimes.en_clair(a.session, v)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/{regime_id}/versions", status_code=201)
+def creer_version(regime_id: uuid.UUID, corps: NouvelleVersion, a: Acces = Depends(acces(*CLIENT))):
+    v = regimes.nouvelle_version(
+        a.session, a.organisation, regimes.obtenir_regime(a.session, regime_id), a.utilisateur.id,
+        en_vigueur_du=corps.en_vigueur_du, fondement=corps.fondement, document_reference=corps.document_reference,
+        note=corps.note, categories=[regimes.SaisieCategorie(**{**c.model_dump(), "evenements": tuple(c.evenements)})
+                                     for c in corps.categories])
+    return regimes.en_clair(a.session, v)
 
 
 # --- Fichiers -----------------------------------------------------------------
@@ -157,11 +196,11 @@ def lister_fichiers(a: Acces = Depends(acces(*TOUS))):
 class ParametresEtude(_Corps):
     fichier_id: uuid.UUID
     date_evaluation: date
-    convention_code: str
+    convention_code: str | None = None
     fonds_disponible: int = Field(ge=0)
     hypotheses: dict[str, float] = {}
     justification: str | None = None
-    bareme_entreprise_id: uuid.UUID | None = None
+    regime_version_id: uuid.UUID | None = None
 
 
 def _saisie(p: ParametresEtude) -> etudes.Saisie:

@@ -51,6 +51,12 @@
 <div class="non-probant">Sceau de développement : ce document n'est pas probant et ne peut pas être produit comme justificatif.</div>
 {% endif %}
 
+{% set non_conformes = e.anomalies | selectattr("code", "equalto", "non_conformite") | list %}
+{% if non_conformes %}
+<div class="non-probant">Régime non conforme à la convention collective. {% for a in non_conformes %}{{ a.message }} {% endfor %}
+L'évaluation retient, ancienneté par ancienneté, le plus favorable du régime et de la convention.</div>
+{% endif %}
+
 <h2>Synthèse</h2>
 <div class="chiffres">
   <div class="chiffre"><div class="l">Dette actuarielle</div><div class="v">{{ e.totaux.dette | montant }}</div></div>
@@ -64,7 +70,20 @@
   <tr><td>Frais de gestion sur cotisation ({{ e.hypotheses.valeurs.frais_sur_cotisation | pct }})</td><td class="n">{{ (e.totaux.cotisation_totale - e.totaux.cotisation_nette) | montant }}</td></tr>
   <tr class="total"><td>Cotisation d'ajustement à verser</td><td class="n">{{ e.totaux.cotisation_totale | montant }}</td></tr>
 </table>
-{% if e.bareme_entreprise %}
+{% if e.regime %}
+<p><strong>Régime de l'entreprise.</strong> L'étude applique « {{ e.regime.nom }} », version {{ e.regime.numero }}
+en vigueur depuis le {{ e.regime.en_vigueur_du | date_fr }} ({{ e.regime.document_reference }}). À la seule convention
+collective, la dette serait de {{ e.totaux_convention.dette | montant }} : le régime représente
+{{ (e.totaux.dette - e.totaux_convention.dette) | montant }} de dette au-delà de la convention.</p>
+{% if e.par_categorie %}
+<table>
+  <tr><th>Catégorie</th><th class="n">Effectif</th><th class="n">Dette</th><th class="n">Charge</th></tr>
+  {% for nom, c in e.par_categorie | dictsort %}
+  <tr><td>{{ "Autres" if nom == "*" else nom }}</td><td class="n">{{ c.effectif }}</td><td class="n">{{ c.dette | montant }}</td><td class="n">{{ c.charge | montant }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% elif e.bareme_entreprise %}
 <p><strong>Barème de l'entreprise.</strong> L'étude applique « {{ e.bareme_entreprise.libelle }} »
 ({{ e.bareme_entreprise.document_reference }}), qui améliore la convention. Au barème de la seule convention,
 la dette serait de {{ e.totaux_convention.dette | montant }} : l'accord représente

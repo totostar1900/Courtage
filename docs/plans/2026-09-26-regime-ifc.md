@@ -26,14 +26,28 @@ Commit : `feat(actuariat): règles par catégorie, conditions et plancher`
 
 ## R2 — Le régime
 
-- [ ] Migration : `regimes` (versions, document source, statut `analyse` →
-      `adopte`, adoption par un seul acte de l'entreprise) et
-      `regimes_categories` (convention plancher, barème, conditions, base de
-      salaire, événements couverts) ; reprise des barèmes d'entreprise.
-- [ ] Un régime sous le plancher est ENREGISTRÉ (plus refusé) et signalé.
-- [ ] L'étude s'appuie sur une version du régime ; catégories du fichier
-      contrôlées ; base « moyenne 12 mois » signalée ; événements non évalués
-      signalés ; non-conformité en tête du rapport.
+- [x] Migration `0005_regimes` : `regimes`, `regimes_versions` (numéro, date
+      d'effet, fondement, document, statut `analyse` → `adoptee`, adoption par
+      un seul acte, constats figés à l'adoption) et `regimes_categories`
+      (convention plancher, barème, ancienneté minimale, plafond, arrondi,
+      base de salaire, primes, événements) ; immuables une fois adoptées.
+      La version en vigueur à une date est la dernière adoptée qui la précède.
+- [x] Reprise des barèmes d'entreprise (validé → adopté, proposé → analyse,
+      catégorie « * ») ; la table reste lisible pour les études qui les citent,
+      l'application n'y écrit plus. Vérifiée sur une base jetable.
+- [x] Un régime sous le plancher est ENREGISTRÉ et signalé
+      (`sous_le_plancher`, anciennetés en cause) ; l'adoption demande
+      `accepte_non_conformite` ; seule l'entreprise (`admin_client`) adopte.
+- [x] L'étude s'appuie sur une version (`regime_version_id`) : règles par
+      catégorie avec la convention en vigueur à la date d'évaluation pour
+      plancher ; catégorie du fichier sans règle → 422 `categories_inconnues` ;
+      totaux par catégorie et totaux de la seule convention ; avertissements
+      `non_conformite`, `base_salaire_approchee`, `evenements_non_evalues` ;
+      motifs `regime_non_adopte`, `regime_hors_vigueur`.
+- [x] Rapport : non-conformité en tête, régime et coût au-delà de la
+      convention, détail par catégorie.
+
+Commit : `feat(regime): le régime IFC de l'entreprise, par version et par catégorie`
 
 ## R3 — L'analyse
 

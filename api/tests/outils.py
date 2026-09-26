@@ -10,15 +10,19 @@ AZITO = json.loads((Path(__file__).parent / "fixtures" / "azito_2019.json").read
 V1 = "/api/v1"
 
 
-def fichier_azito(doublon: bool = False) -> bytes:
+def fichier_azito(doublon: bool = False, categories: dict[int, str] | None = None) -> bytes:
+    """Le personnel d'AZITO tel qu'une DRH l'enverrait. `categories` : rang → catégorie
+    (colonne « Catégorie » ; les rangs absents sont des « Employé »)."""
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.append(["AZITO — état du personnel au 31/12/2019"])
     ws.append([])
-    ws.append(["Matricule", "Nom et prénoms", "Date de naissance", "Date d'embauche", "Salaire brut annuel"])
-    for s in AZITO["salaries"]:
-        ws.append([s["matricule"], "Nom Prénom", datetime.fromisoformat(s["naissance"]),
-                   datetime.fromisoformat(s["embauche"]), s["salaire_annuel"]])
+    entete = ["Matricule", "Nom et prénoms", "Date de naissance", "Date d'embauche", "Salaire brut annuel"]
+    ws.append(entete + (["Catégorie"] if categories is not None else []))
+    for i, s in enumerate(AZITO["salaries"]):
+        ligne = [s["matricule"], "Nom Prénom", datetime.fromisoformat(s["naissance"]),
+                 datetime.fromisoformat(s["embauche"]), s["salaire_annuel"]]
+        ws.append(ligne + ([categories.get(i, "Employé")] if categories is not None else []))
     if doublon:
         s = AZITO["salaries"][0]
         ws.append([s["matricule"], "Autre", datetime.fromisoformat(s["naissance"]),

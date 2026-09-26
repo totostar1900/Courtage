@@ -11,7 +11,7 @@ cette organisation, et le réglage disparaît avec la transaction.
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Boolean, Date, LargeBinary, DateTime, FetchedValue, ForeignKey, Integer, Text, text
+from sqlalchemy import ARRAY, BigInteger, Boolean, Date, LargeBinary, Numeric, DateTime, FetchedValue, ForeignKey, Integer, Text, text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -96,6 +96,7 @@ class Etude(Base):
     conditions_remuneration_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("conditions_remuneration.id"))
     honoraires_ht: Mapped[int | None] = mapped_column(BigInteger)
     bareme_entreprise_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("baremes_entreprise.id"))
+    regime_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("regimes_versions.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
@@ -170,3 +171,52 @@ class Document(Base):
     contenu: Mapped[bytes] = mapped_column(LargeBinary)
     empreinte_document: Mapped[str] = mapped_column(Text)
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+StatutVersion = ENUM("analyse", "adoptee", name="statut_version_regime", create_type=False)
+BaseSalaire = ENUM("dernier", "moyenne_12_mois", name="base_salaire", create_type=False)
+Arrondi = ENUM("annees", "mois", name="arrondi_anciennete", create_type=False)
+
+
+class Regime(Base):
+    __tablename__ = "regimes"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    nom: Mapped[str] = mapped_column(Text)
+    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class VersionRegime(Base):
+    __tablename__ = "regimes_versions"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    regime_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("regimes.id"))
+    numero: Mapped[int] = mapped_column(Integer)
+    en_vigueur_du: Mapped[date] = mapped_column(Date)
+    fondement: Mapped[str] = mapped_column(Fondement)
+    document_reference: Mapped[str] = mapped_column(Text)
+    note: Mapped[str | None] = mapped_column(Text)
+    statut: Mapped[str] = mapped_column(StatutVersion, server_default=FetchedValue())
+    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    adoptee_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    adoptee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    non_conformite_acceptee: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
+    constats_a_l_adoption: Mapped[list | None] = mapped_column(JSONB)
+
+
+class CategorieRegime(Base):
+    __tablename__ = "regimes_categories"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("regimes_versions.id"))
+    categorie: Mapped[str] = mapped_column(Text)
+    convention_code: Mapped[str] = mapped_column(Text)
+    bareme: Mapped[dict] = mapped_column(JSONB)
+    anciennete_minimale: Mapped[int] = mapped_column(Integer)
+    plafond_mois: Mapped[float | None] = mapped_column(Numeric(asdecimal=False))
+    arrondi: Mapped[str] = mapped_column(Arrondi)
+    base_salaire: Mapped[str] = mapped_column(BaseSalaire)
+    avec_primes: Mapped[bool] = mapped_column(Boolean)
+    evenements: Mapped[list[str]] = mapped_column(ARRAY(Text))

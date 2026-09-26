@@ -119,11 +119,20 @@ def test_en_production_la_cle_de_sceau_est_obligatoire(bases, monkeypatch):
         creer_app(moteur=bases[1], authentification="aucune")
 
 
-def test_le_rapport_dit_ce_que_coute_l_accord_d_entreprise(client, azito):
-    from tests.test_bareme_entreprise import proposer, valider
-    b = proposer(client, azito).json()
-    valider(client, azito, b["id"])
-    e = emettre(client, azito, bareme_entreprise_id=b["id"])
+def test_le_rapport_dit_ce_que_coute_le_regime(client, azito):
+    from tests.test_regime import CADRES, adopter, categorie, regime
+    v = regime(client, azito, [categorie("*", CADRES)])
+    adopter(client, azito, v["id"])
+    e = emettre(client, azito, convention_code=None, regime_version_id=v["id"])
     tout = "\n".join(pages(rapport(client, azito, e["id"])))
-    assert "Accord d'entreprise du 12/03/2015" in tout
+    assert "Accord AZITO 2015" in tout
     assert "au-delà de la convention" in tout
+
+
+def test_le_rapport_met_la_non_conformite_en_tete(client, azito):
+    from tests.test_regime import AVARE, adopter, categorie, regime
+    v = regime(client, azito, [categorie("*", AVARE)])
+    adopter(client, azito, v["id"], accepte=True)
+    e = emettre(client, azito, convention_code=None, regime_version_id=v["id"])
+    premiere = pages(rapport(client, azito, e["id"]))[0]
+    assert premiere.index("Régime non conforme") < premiere.index("Synthèse")
