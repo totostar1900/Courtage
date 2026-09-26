@@ -841,3 +841,34 @@ describe("la navigation dans le dossier", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
+
+describe("reprendre où l'on s'était arrêté", () => {
+  it("« Vos dossiers » propose la dernière page ouverte, et y ramène", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    const fil = await screen.findByRole("navigation", { name: "Fil d'Ariane" });
+    await waitFor(() => expect(within(fil).getAllByRole("listitem")).toHaveLength(4));
+    await userEvent.click(within(fil).getByRole("link", { name: "Vos dossiers" }));
+    const carte = await screen.findByRole("region", { name: "Reprendre où vous en étiez" });
+    expect(carte).toHaveTextContent("AZITO › Études › Étude au 31/12/2019");
+    expect(carte).toHaveTextContent("à l'instant");
+    await userEvent.click(within(carte).getByRole("link", { name: "Reprendre" }));
+    expect(await screen.findByRole("button", { name: /^2021/ })).toBeInTheDocument();
+  });
+
+  const reprise = JSON.stringify({ org: ORG, chemin: `/dossier/${ORG}/regime`, pages: ["Régime"], quand: Date.now() - 3 * 3_600_000 });
+
+  it("une reprise d'une visite précédente se propose, avec son ancienneté", async () => {
+    simulerApi(dossier("admin_client"));
+    ouvrir("/", "u-drh", { stockage: { "courtage:reprise:u": reprise } });
+    expect(await screen.findByRole("region", { name: "Reprendre où vous en étiez" })).toHaveTextContent("AZITO › Régime");
+    expect(screen.getByRole("region", { name: "Reprendre où vous en étiez" })).toHaveTextContent("il y a 3 h");
+  });
+
+  it("un dossier qu'on ne suit plus ne se propose pas", async () => {
+    simulerApi({ "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [] } });
+    ouvrir("/", "u-drh", { stockage: { "courtage:reprise:u": reprise } });
+    expect(await screen.findByText(/Aucun dossier pour l'instant/)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Reprendre où vous en étiez" })).not.toBeInTheDocument();
+  });
+});

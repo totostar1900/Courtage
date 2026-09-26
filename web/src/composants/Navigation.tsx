@@ -13,13 +13,13 @@ const PAGES: Record<string, string> = {
   departs: "Départs", equipe: "Équipe", dossiers: "Départs",
 };
 
-/** Où l'on est dans le dossier : Vos dossiers › l'entreprise › la page › le détail. Chaque niveau ramène. */
-export function FilAriane({ d }: { d: Pick<ContexteDossier, "org" | "etudes" | "fiches"> }) {
-  const { pathname } = useLocation();
+export interface Niveau { libelle: string; vers?: string }
+
+/** Les niveaux du fil d'Ariane pour un chemin du dossier : Vos dossiers › l'entreprise › la page › le détail. */
+export function niveauxDe(pathname: string, d: Pick<ContexteDossier, "org" | "etudes">): Niveau[] {
   const base = `/dossier/${d.org.id}`;
   const [page, detail, suite] = pathname.slice(base.length).split("/").filter(Boolean);
-  const niveaux: { libelle: string; vers?: string }[] = [{ libelle: "Vos dossiers", vers: "/" },
-    { libelle: d.org.nom, vers: page ? base : undefined }];
+  const niveaux: Niveau[] = [{ libelle: "Vos dossiers", vers: "/" }, { libelle: d.org.nom, vers: page ? base : undefined }];
   if (page) {
     const vers = page === "dossiers" ? `${base}/departs` : `${base}/${page}`;
     niveaux.push({ libelle: PAGES[page] ?? page, vers: detail ? vers : undefined });
@@ -31,6 +31,13 @@ export function FilAriane({ d }: { d: Pick<ContexteDossier, "org" | "etudes" | "
     niveaux.push({ libelle, vers: suite ? `${base}/${page}/${detail}` : undefined });
     if (suite) niveaux.push({ libelle: PAGES[suite] ?? suite });
   }
+  return niveaux;
+}
+
+/** Où l'on est dans le dossier. Chaque niveau ramène. */
+export function FilAriane({ d }: { d: Pick<ContexteDossier, "org" | "etudes"> }) {
+  const { pathname } = useLocation();
+  const niveaux = niveauxDe(pathname, d);
   return (
     <nav className="fil-ariane" aria-label="Fil d'Ariane">
       <ol>
