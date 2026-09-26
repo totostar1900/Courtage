@@ -6,7 +6,7 @@ from typing import Literal
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import analyse, contrats, etudes, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import analyse, contrats, etudes, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -182,6 +182,81 @@ def lire_contrats(a: Acces = Depends(acces(*TOUS))):
         "historique": [contrats.en_clair(c) for c in contrats.historique(a.session)],
         "constats": contrats.constats(a.session, aujourd_hui),
     }
+
+
+# --- Prestations : un départ, sans identité ----------------------------------------------
+# Aucun champ ne nomme une personne, et `extra="forbid"` refuse qu'on en ajoute un.
+
+class NouvellePrestation(_Corps):
+    matricule: str = Field(min_length=1, max_length=50)
+    motif: Literal["retraite", "demission", "licenciement", "deces", "autre"]
+    date_embauche: date
+    date_depart: date
+    salaire_mensuel_reference: int = Field(ge=0)
+    categorie: str | None = Field(default=None, max_length=100)
+    date_naissance: date | None = None
+    verse: int | None = Field(default=None, ge=0)
+    part_fonds_demandee: int | None = Field(default=None, ge=0)
+    part_fonds_payee: int | None = Field(default=None, ge=0)
+    payee_le: date | None = None
+    soldee: bool = False
+    note: str | None = Field(default=None, max_length=2000)
+    convention_code: str | None = None
+
+    def saisie(self) -> prestations.Saisie:
+        return prestations.Saisie(**self.model_dump())
+
+
+class CorrectionPrestation(NouvellePrestation):
+    motif_correction: str = Field(max_length=500)
+
+
+class AnnulationPrestation(_Corps):
+    motif_correction: str = Field(max_length=500)
+
+
+@routeur.get("/organisations/{organisation_id}/prestations")
+def lister_prestations(a: Acces = Depends(acces(*TOUS))):
+    ps = prestations.actives(a.session)
+    presences = prestations.presences(a.session)
+    return {"prestations": [prestations.en_clair(a.session, p, presences) for p in ps],
+            "totaux": prestations.totaux(ps)}
+
+
+@routeur.post("/organisations/{organisation_id}/prestations/apercu")
+def apercu_prestation(corps: NouvellePrestation, a: Acces = Depends(acces(*CLIENT))):
+    """Le dû et les constats d'une saisie, avant de l'enregistrer."""
+    return prestations.apercu(a.session, corps.saisie())
+
+
+@routeur.post("/organisations/{organisation_id}/prestations/import")
+async def importer_prestations(fichier: UploadFile = File(...), convention_code: str | None = Form(default=None),
+                               enregistrer: bool = Form(default=False), a: Acces = Depends(acces(*CLIENT))):
+    r = prestations.importer(a.session, a.organisation, a.utilisateur.id, contenu=await fichier.read(),
+                             nom_fichier=fichier.filename or "departs", convention_code=convention_code or None,
+                             enregistrer_=enregistrer)
+    return JSONResponse(r, status_code=201 if enregistrer else 200)
+
+
+@routeur.post("/organisations/{organisation_id}/prestations", status_code=201)
+def enregistrer_prestation(corps: NouvellePrestation, a: Acces = Depends(acces(*CLIENT))):
+    p = prestations.enregistrer(a.session, a.organisation, a.utilisateur.id, corps.saisie())
+    return prestations.en_clair(a.session, p)
+
+
+@routeur.post("/organisations/{organisation_id}/prestations/{prestation_id}/correction", status_code=201)
+def corriger_prestation(prestation_id: uuid.UUID, corps: CorrectionPrestation, a: Acces = Depends(acces(*CLIENT))):
+    donnees = corps.model_dump()
+    motif = donnees.pop("motif_correction")
+    p = prestations.corriger(a.session, a.organisation, a.utilisateur.id, prestation_id,
+                             prestations.Saisie(**donnees), motif)
+    return prestations.en_clair(a.session, p)
+
+
+@routeur.post("/organisations/{organisation_id}/prestations/{prestation_id}/annulation", status_code=201)
+def annuler_prestation(prestation_id: uuid.UUID, corps: AnnulationPrestation, a: Acces = Depends(acces(*CLIENT))):
+    p = prestations.annuler(a.session, a.organisation, a.utilisateur.id, prestation_id, corps.motif_correction)
+    return prestations.en_clair(a.session, p)
 
 
 # --- Régimes ------------------------------------------------------------------

@@ -186,3 +186,57 @@ export interface ContratsDossier {
   historique: Contrat[];
   constats: Constat[];
 }
+
+export type MotifDepart = "retraite" | "demission" | "licenciement" | "deces" | "autre";
+
+export interface CalculPrestation {
+  anciennete: number;
+  mois: number;
+  plancher_applique: boolean;
+  source: { type: "regime" | "convention"; libelle: string; convention_code?: string; regime_version_id?: string; categorie?: string } | null;
+  raison?: string;
+}
+
+export interface Prestation {
+  id: string;
+  matricule: string;
+  categorie: string | null;
+  motif: MotifDepart;
+  date_naissance: string | null;
+  date_embauche: string;
+  date_depart: string;
+  salaire_mensuel_reference: number;
+  du: number;
+  calcul: CalculPrestation;
+  verse: number | null;
+  part_fonds_demandee: number | null;
+  part_fonds_payee: number | null;
+  payee_le: string | null;
+  soldee: boolean;
+  origine: "saisie" | "import";
+  import_id: string | null;
+  note: string | null;
+  remplace_id: string | null;
+  motif_correction: string | null;
+  service: "courtage" | "comparaison";
+  constats: Constat[];
+}
+
+export interface Prestations {
+  prestations: Prestation[];
+  totaux: { nombre: number; retraites: number; autres_departs: number; du: number; verse: number; part_fonds_payee: number };
+}
+
+export interface LigneImport {
+  numero: number; matricule: string; motif: MotifDepart; date_embauche: string; date_depart: string;
+  salaire_mensuel_reference: number; du: number; verse: number | null; part_fonds_payee: number | null;
+  calcul: CalculPrestation; constats: Constat[];
+}
+
+export interface ApercuImport {
+  lignes: LigneImport[];
+  anomalies: Anomalie[];
+  colonnes: Record<string, string>;
+  colonnes_ignorees: string[];
+  enregistrees: number;
+}

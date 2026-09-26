@@ -32,6 +32,7 @@ Fondement = ENUM("accord_entreprise", "contrat_travail", "usage", "decision_dire
                  name="fondement_bareme", create_type=False)
 StatutBareme = ENUM("propose", "valide", name="statut_bareme", create_type=False)
 ModeRemuneration = ENUM("honoraires", "commission", "mixte", name="mode_remuneration", create_type=False)
+MotifDepart = ENUM("retraite", "demission", "licenciement", "deces", "autre", name="motif_depart", create_type=False)
 ServiceContrat = ENUM("courtage", "comparaison", name="service_contrat", create_type=False)
 
 
@@ -127,6 +128,35 @@ class Contrat(Base):
     date_effet_police: Mapped[date | None] = mapped_column(Date)
     mandat_reference: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
+    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class Prestation(Base):
+    """Un départ, sans identité. Une écriture : corrigée par une nouvelle ligne (`remplace_id`), jamais modifiée."""
+    __tablename__ = "prestations"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    matricule: Mapped[str] = mapped_column(Text)
+    categorie: Mapped[str | None] = mapped_column(Text)
+    motif: Mapped[str] = mapped_column(MotifDepart)
+    date_naissance: Mapped[date | None] = mapped_column(Date)
+    date_embauche: Mapped[date] = mapped_column(Date)
+    date_depart: Mapped[date] = mapped_column(Date)
+    salaire_mensuel_reference: Mapped[int] = mapped_column(BigInteger)
+    du: Mapped[int] = mapped_column(BigInteger)
+    calcul: Mapped[dict] = mapped_column(JSONB)
+    verse: Mapped[int | None] = mapped_column(BigInteger)
+    part_fonds_demandee: Mapped[int | None] = mapped_column(BigInteger)
+    part_fonds_payee: Mapped[int | None] = mapped_column(BigInteger)
+    payee_le: Mapped[date | None] = mapped_column(Date)
+    soldee: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
+    origine: Mapped[str] = mapped_column(Text)
+    import_id: Mapped[uuid.UUID | None] = mapped_column(UUID)
+    note: Mapped[str | None] = mapped_column(Text)
+    remplace_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("prestations.id"))
+    annulation: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
+    motif_correction: Mapped[str | None] = mapped_column(Text)
     cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 

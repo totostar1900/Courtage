@@ -10,9 +10,10 @@ TDD, une tâche par commit, tests d'abord.
 Commit : `feat(contrats): service de courtage ou de comparaison, daté`
 
 ## P2 — La prestation anonyme
-- [ ] Migration 0010 `prestations` (matricule, départ, motif, ancienneté, salaire, dû recalculé, versé, part fonds demandée/payée, état), écritures seulement, annulation par ligne.
-- [ ] Dû recalculé avec le régime en vigueur au départ ; écart signalé.
-- [ ] Saisie une à une, et import d'un tableur (contrôles bloquants / avertissements).
+- [x] Migration 0010 `prestations` (matricule, motif, dates, salaire mensuel de référence, dû recalculé et son calcul, versé, part du fonds demandée / payée et date, soldée, origine, lot d'import), RLS, SELECT/INSERT seulement ; correction = nouvelle ligne `remplace_id` (une seule fois, motivée), annulation idem.
+- [x] Dû recalculé avec la règle en vigueur au départ : version adoptée du régime (catégorie, sinon « * »), sinon la convention nommée ou celle de la dernière étude ; hors retraite, 0 et la raison. Constats : versé sous / au-delà du dû, fonds au-delà du demandé ou du versé, matricule encore présent dans un fichier postérieur.
+- [x] `POST /prestations` (+ `/apercu`, `/{id}/correction`, `/{id}/annulation`), `GET /prestations` (actives, totaux, service au jour du départ) ; `POST /prestations/import` : aperçu, puis tout ou rien.
+- [x] Écran « Départs » (déclarer avec calcul du dû, reprendre l'historique, corriger, annuler) ; chapitre du guide ; la démonstration porte cinq départs.
 Commit : `feat(prestations): enregistrer un départ, reprendre l'historique`
 
 ## P3 — Courtage : le dossier de prise en charge

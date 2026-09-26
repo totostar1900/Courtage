@@ -134,6 +134,21 @@ const MOTIFS: Record<string, string> = {
   champ_manquant: "champ manquant",
   date_illisible: "date illisible",
   dates_estimees: "dates probablement estimées",
+  commission_sans_mandat: "commission sans mandat de courtage",
+  verse_sous_le_du: "versé sous le dû",
+  verse_au_dela_du_du: "versé au-delà du dû",
+  fonds_demande_au_dela_du_verse: "demande au fonds supérieure au versé",
+  fonds_paye_au_dela_demande: "fonds payé au-delà de la demande",
+  encore_present: "encore présent dans le personnel",
+  motif_inconnu: "motif inconnu",
+  depart_en_double: "départ en double",
+  depart_avant_embauche: "départ avant l'embauche",
+  deja_enregistree: "départ déjà enregistré",
+  date_paiement_requise: "paiement sans date",
+  montant_illisible: "montant illisible",
+  colonnes_introuvables: "colonnes introuvables",
+  categorie_inconnue: "catégorie sans règle",
+  convention_requise: "convention à préciser",
 };
 
 export function libelleMotif(code: string): string {

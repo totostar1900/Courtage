@@ -141,6 +141,23 @@ export const CHAPITRES: Chapitre[] = [
     termes: ["courtage", "comparaison", "mandat"],
   },
   {
+    id: "departs", groupe: "Le parcours", titre: "Les départs et l'historique", ecran: "departs",
+    resume: "Enregistrer chaque départ par matricule ; la plateforme recalcule ce qui était dû.",
+    sections: [
+      { titre: "Déclarer un départ", texte: [
+        "Matricule, motif, dates d'embauche et de départ, salaire mensuel de référence : « Calculer le dû » montre ce que la règle en vigueur ce jour-là accordait, et d'où vient le chiffre (votre régime, ou la convention).",
+        "Vous déclarez ce qui a été versé. Moins que le dû est signalé — le salarié y avait droit ; plus est permis — l'entreprise est souveraine.",
+        "Un départ hors retraite (démission, licenciement, décès) ne coûte pas d'IFC, mais il mesure la rotation réelle de votre personnel." ] },
+      { titre: "Reprendre l'historique", texte: [
+        "Un tableur des départs des cinq dernières années, avec ce qui a été versé et ce que le fonds a payé. La plateforme lit le fichier, calcule chaque dû et montre tout avant d'enregistrer.",
+        "Un seul point bloquant (une date illisible, un motif inconnu, un départ déjà enregistré) et rien n'est enregistré : on corrige le fichier et on recommence.",
+        "Une colonne de noms est ignorée, comme dans le fichier du personnel." ] },
+      { titre: "Corriger sans effacer", texte: [
+        "Une ligne ne se modifie pas : « Corriger » ajoute une ligne qui remplace la précédente et dit pourquoi ; « Annuler » aussi. L'historique reste lisible." ] },
+    ],
+    termes: ["turnover", "fonds"],
+  },
+  {
     id: "comprendre", groupe: "Comprendre", titre: "Comment se calcule l'engagement",
     resume: "La méthode prospective, pas à pas, sur un salarié.",
     sections: [

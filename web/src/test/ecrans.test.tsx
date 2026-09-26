@@ -205,3 +205,71 @@ describe("le contrat : courtage ou comparaison", () => {
     expect(screen.getByText("Assureur A")).toBeInTheDocument();
   });
 });
+
+describe("les départs", () => {
+  const calcul = { anciennete: 20, mois: 7.25, plancher_applique: false,
+                   source: { type: "convention" as const, convention_code: "CI_CCI", libelle: "la CCI de Côte d'Ivoire" } };
+  const depart = { id: "p1", matricule: "A-017", categorie: null, motif: "retraite", date_naissance: null,
+    date_embauche: "2000-01-01", date_depart: "2020-01-01", salaire_mensuel_reference: 500000, du: 3625000, calcul,
+    verse: 3000000, part_fonds_demandee: null, part_fonds_payee: null, payee_le: null, soldee: false, origine: "saisie",
+    import_id: null, note: null, remplace_id: null, motif_correction: null, service: "comparaison",
+    constats: [{ niveau: "avertit", code: "verse_sous_le_du", message: "Versé 3 000 000 F, dû 3 625 000 F." }] };
+  const liste = { prestations: [depart], totaux: { nombre: 1, retraites: 1, autres_departs: 0, du: 3625000, verse: 3000000, part_fonds_payee: 0 } };
+  const contrat = { service: "comparaison", en_vigueur: null, historique: [], constats: [] };
+
+  it("la liste dit le dû recalculé, et le détail l'explique", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/prestations`]: liste, [`/organisations/${ORG}/contrats`]: contrat });
+    ouvrir(`/dossier/${ORG}/departs`);
+    const ligne = await screen.findByText("A-017");
+    expect(screen.getAllByText("3 625 000 F").length).toBeGreaterThan(0);
+    expect(screen.getByText(/directement à votre assureur/)).toBeInTheDocument();
+    await userEvent.click(ligne);
+    expect(screen.getByText(/ans d'ancienneté ouvrent droit à/)).toHaveTextContent("7,25 × 500 000 F = 3 625 000 F");
+    expect(screen.getByText("Versé 3 000 000 F, dû 3 625 000 F.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    expect(screen.queryByText(/ans d'ancienneté ouvrent droit à/)).not.toBeInTheDocument();
+  });
+
+  it("déclarer : le dû se calcule avant d'enregistrer, et rien ne nomme le salarié", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/prestations`]: { prestations: [], totaux: liste.totaux },
+      [`/organisations/${ORG}/contrats`]: contrat,
+      [`POST /organisations/${ORG}/prestations/apercu`]: { du: 3625000, calcul, constats: [], service: "comparaison" },
+      [`POST /organisations/${ORG}/prestations`]: depart });
+    ouvrir(`/dossier/${ORG}/departs`);
+    await userEvent.click(await screen.findByRole("button", { name: "Déclarer un départ" }));
+    await userEvent.type(screen.getByLabelText("Matricule"), "A-017");
+    await userEvent.type(screen.getByLabelText("Date d'embauche"), "2000-01-01");
+    await userEvent.type(screen.getByLabelText("Date de départ"), "2020-01-01");
+    await userEvent.type(screen.getByLabelText("Salaire mensuel de référence (F)"), "500000");
+    await userEvent.click(screen.getByRole("button", { name: "Calculer le dû" }));
+    await waitFor(() => expect(document.querySelector("[data-apercu]")).toHaveTextContent("7,25 × 500 000 F = 3 625 000 F"));
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer le départ" }));
+    await waitFor(() => expect(appels.filter((a) => a.init?.method === "POST")).toHaveLength(2));
+    const corps = JSON.parse(appels.filter((a) => a.init?.method === "POST")[1].init!.body as string);
+    expect(corps).toMatchObject({ matricule: "A-017", motif: "retraite", salaire_mensuel_reference: 500000, verse: null });
+    expect(Object.keys(corps).some((k) => /nom|prenom|telephone/.test(k))).toBe(false);
+  });
+
+  it("l'historique : un aperçu, et rien ne s'enregistre tant qu'il reste un point bloquant", async () => {
+    simulerApi({ ...dossier("conseiller"), [`/organisations/${ORG}/prestations`]: { prestations: [], totaux: liste.totaux },
+      [`/organisations/${ORG}/contrats`]: contrat,
+      [`POST /organisations/${ORG}/prestations/import`]: { lignes: [{ numero: 3, matricule: "B-001", motif: "retraite",
+        date_embauche: "2000-01-01", date_depart: "2020-01-01", salaire_mensuel_reference: 500000, du: 3625000, verse: null,
+        part_fonds_payee: null, calcul, constats: [] }], colonnes: {}, colonnes_ignorees: ["Nom"], enregistrees: 0,
+        anomalies: [{ niveau: "bloquant", code: "motif_inconnu", message: "Motif inconnu : « Mutation ».", ligne: 5 }] } });
+    ouvrir(`/dossier/${ORG}/departs`);
+    await userEvent.click(await screen.findByRole("button", { name: "Reprendre l'historique (tableur)" }));
+    await userEvent.upload(screen.getByLabelText("Fichier (xlsx ou csv)"), new File(["x"], "departs.xlsx"));
+    await userEvent.click(screen.getByRole("button", { name: "Lire le fichier" }));
+    expect(await screen.findByText("B-001")).toBeInTheDocument();
+    expect(screen.getByText("Colonnes ignorées : Nom.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enregistrer les 1 départs" })).toBeDisabled();
+  });
+
+  it("en lecture, on consulte sans déclarer", async () => {
+    simulerApi({ ...dossier("lecteur_client"), [`/organisations/${ORG}/prestations`]: liste, [`/organisations/${ORG}/contrats`]: contrat });
+    ouvrir(`/dossier/${ORG}/departs`);
+    expect(await screen.findByText("A-017")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Déclarer un départ" })).not.toBeInTheDocument();
+  });
+});

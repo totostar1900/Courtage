@@ -179,3 +179,15 @@ identité (spec `2026-09-26-prestations-ifc-design.md`). Le service se lit sur l
 contrat, **jamais sur la rémunération** : une commission hors courtage est un constat
 (`commission_sans_mandat`), pas une correction.
 
+## Prestations
+
+`services/prestations.py`, table `prestations` (migration 0010), lecture des tableurs
+dans `fichier/departs.py`. Une prestation est un départ **sans identité**, un
+matricule ; aucun champ de l'API ne nomme une personne (`extra="forbid"`). Le
+**dû** est recalculé avec la règle en vigueur le jour du départ
+(`regle_au_depart` : version adoptée du régime, sinon convention nommée, sinon celle
+de la dernière étude). Le **versé** est déclaré, et l'écart entre les deux est un
+constat, jamais un refus. Une ligne ne se modifie pas : une correction ou une
+annulation ajoute une ligne (`remplace_id`, unique). Les lignes « actives » sont celles
+qu'aucune autre ne remplace. L'import s'enregistre tout ou rien.
+

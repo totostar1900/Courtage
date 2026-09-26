@@ -14,7 +14,10 @@ import base64
 import json
 import sys
 from datetime import date, timedelta
+from io import BytesIO
 from pathlib import Path
+
+import openpyxl
 
 import pymupdf
 from fastapi.testclient import TestClient
@@ -96,6 +99,22 @@ def main(url: str, sortie: Path) -> None:
             {"categorie": "*", "convention_code": "CM_COMMERCE", "bareme": {"forme": "tranches_cumulatives", "tranches": [
                 {"jusqu_a": None, "mois_par_annee": 0.40}]}}]}))
 
+    # Des départs passés, repris par tableur (inventés, comme le personnel).
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Matricule", "Date d'embauche", "Date de départ", "Motif", "Salaire mensuel de référence",
+               "Montant versé", "Payé par le fonds", "Date de paiement"])
+    for ligne in (("X101", date(1990, 3, 1), date(2021, 6, 30), "Retraite", 410_000, 7_700_000, 7_500_000, date(2021, 8, 20)),
+                  ("X102", date(2012, 1, 1), date(2022, 2, 28), "Démission", 280_000, None, None, None),
+                  ("X103", date(1994, 9, 1), date(2023, 12, 31), "Retraite", 520_000, 9_000_000, 8_970_000, date(2024, 2, 10)),
+                  ("X104", date(2016, 4, 1), date(2024, 5, 31), "Licenciement", 350_000, None, None, None),
+                  ("X105", date(1992, 1, 1), date(2025, 3, 31), "Retraite", 780_000, 10_500_000, None, None)):
+        ws.append(list(ligne))
+    tampon = BytesIO()
+    wb.save(tampon)
+    ok(client.post(f"{V1}/organisations/{org}/prestations/import", headers=h("conseiller"),
+                   files={"fichier": ("departs-2021-2025.xlsx", tampon.getvalue())},
+                   data={"convention_code": "CM_COMMERCE", "enregistrer": "true"}))
     etude = ok(client.post(f"{V1}/organisations/{org}/etudes", headers=h("drh"), json={
         "fichier_id": fichier["id"], "date_evaluation": "2025-12-31", "regime_version_id": version["id"],
         "fonds_disponible": 45_000_000}))
@@ -123,7 +142,7 @@ def main(url: str, sortie: Path) -> None:
     for qui in ("drh", "conseiller"):
         capter("/moi", qui=qui, cle=f"GET /moi@{ids[qui]}")
     base = f"/organisations/{org}"
-    for chemin in ("/fichiers", "/regimes", "/etudes", "/fiches", "/equipe", "/remuneration", "/contrats",
+    for chemin in ("/fichiers", "/regimes", "/etudes", "/fiches", "/equipe", "/remuneration", "/contrats", "/prestations",
                    f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}"):
         capter(base + chemin)
     for v in (version["id"], projet["id"]):
