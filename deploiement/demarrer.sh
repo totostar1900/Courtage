@@ -4,6 +4,7 @@
 set -e
 python -m courtage.deploiement
 python -m courtage.amorcer --depuis-env   # COURTAGE_ADMIN_TELEPHONE, si déclaré
+python -m courtage.demo --depuis-env      # COURTAGE_DEMO=1 : la Société Démo SA, fictive (jamais en production)
 python -m courtage.purge      # et chaque jour : voir DEPLOY.md
 exec uvicorn courtage.principal:app --host 0.0.0.0 --port "${PORT:-8000}" \
      --proxy-headers --forwarded-allow-ips="${COURTAGE_PROXYS:-*}"
