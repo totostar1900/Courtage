@@ -54,7 +54,21 @@ api/src/courtage/
   referentiel/   barèmes datés et sourcés, tables ; règle d'émission (motifs_de_refus)
     donnees/     un fichier JSON par version de barème ; jamais modifié, une nouvelle version s'ajoute
   fichier/       lecture du fichier du personnel et contrôles (bloquant | avertissement)
+  db/            modèles, contexte RLS, migrations écrites à la main
+  services/      logique métier ; reçoit une Session déjà dans le contexte de l'organisation
+  api/           FastAPI : droits (acces(...)), transaction par requête, erreurs métier
+  principal.py   point d'entrée uvicorn
 ```
+
+## API
+
+- Les droits se lisent sur la route : `acces("conseiller")` admet ce rôle,
+  `acces()` tout membre. L'administrateur de plateforme n'est membre de rien
+  par défaut : il ouvre les dossiers, il ne lit pas les données des clients.
+- Erreurs : `ErreurMetier(code, message, statut, details)` → JSON
+  `{code, message, details}`. Codes en snake_case, messages en français.
+- Toute écriture appelle `journaliser(...)`.
+- Les services ne vérifient pas les droits, l'API ne calcule rien.
 
 Un barème nouveau ou révisé : un nouveau fichier `convention_<pays>_<nom>_<année>.json`
 avec `en_vigueur_du`, et `en_vigueur_au` posé sur la version précédente. Le

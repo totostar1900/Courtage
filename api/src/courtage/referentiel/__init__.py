@@ -187,3 +187,16 @@ def charger_convention(code: str, a_la_date: date | None = None) -> Convention:
 
 def charger_table(code: str) -> TableMortalite:
     return referentiel_courant().table(code)
+
+
+# Hypothèses par défaut d'une étude IFC (reprises d'Ariane IFC). Une étude qui
+# s'en écarte enregistre l'écart et sa justification.
+HYPOTHESES_PAR_DEFAUT: dict[str, float | int | str] = {
+    "taux_actualisation": 0.035,
+    "croissance_salaires": 0.02,
+    "inflation": 0.0,
+    "age_retraite": 60,
+    "taux_turnover": 0.02,
+    "frais_sur_cotisation": 0.04,
+    "table": "TV_CIMA_F",
+}
