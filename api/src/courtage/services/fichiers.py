@@ -57,7 +57,7 @@ def relire(fichier: FichierPersonnel) -> Lecture:
             numero=l["numero"], matricule=l["matricule"], sexe=l["sexe"],
             naissance=date.fromisoformat(l["naissance"]) if l["naissance"] else None,
             embauche=date.fromisoformat(l["embauche"]) if l["embauche"] else None,
-            salaire_annuel=l["salaire_annuel"],
+            salaire_annuel=l["salaire_annuel"], categorie=l.get("categorie"),
         ) for l in fichier.lignes],
         anomalies=[Anomalie(**a) for a in fichier.anomalies],
         periodicite=fichier.periodicite,
@@ -77,5 +77,5 @@ def _ligne_en_json(l: LigneLue) -> dict:
         "numero": l.numero, "matricule": l.matricule, "sexe": l.sexe,
         "naissance": l.naissance.isoformat() if l.naissance else None,
         "embauche": l.embauche.isoformat() if l.embauche else None,
-        "salaire_annuel": l.salaire_annuel,
+        "salaire_annuel": l.salaire_annuel, "categorie": l.categorie,
     }

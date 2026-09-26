@@ -7,13 +7,13 @@ Les calculs sont en flottant ; les totaux sont arrondis au franc à la sortie.
 from dataclasses import dataclass
 from datetime import date
 from math import floor
-from typing import Mapping, Sequence
+from typing import Literal, Mapping, Sequence
 
 from dateutil.relativedelta import relativedelta
 
 from courtage.referentiel import Bareme, BaremePaliers, BaremeTranches, Convention, TableMortalite
 
-VERSION_MOTEUR = "ifc-1.0.0"
+VERSION_MOTEUR = "ifc-1.1.0"
 
 
 @dataclass(frozen=True)
@@ -22,6 +22,28 @@ class Salarie:
     naissance: date
     embauche: date
     salaire_annuel: int
+    categorie: str | None = None
+
+
+@dataclass(frozen=True)
+class Regles:
+    """Ce qu'un régime verse à une catégorie de personnel.
+
+    `plancher` est la règle de la convention collective : le salarié y a
+    toujours droit, et le moteur retient le plus favorable des deux, ancienneté
+    par ancienneté. Le plancher a ses propres conditions.
+    """
+    bareme: Bareme
+    plancher: "Regles | None" = None
+    anciennete_minimale: int = 0          # années révolues ouvrant droit
+    plafond_mois: float | None = None     # nombre de mois de salaire au plus
+    arrondi: Literal["annees", "mois"] = "annees"
+
+
+class CategorieInconnue(ValueError):
+    def __init__(self, categorie):
+        super().__init__(f"aucune règle pour la catégorie « {categorie} »")
+        self.categorie = categorie
 
 
 @dataclass(frozen=True)
@@ -54,6 +76,9 @@ class Ligne:
     charge: float
     date_retraite: date
     au_dela_de_la_retraite: bool
+    categorie: str | None = None
+    mois: float = 0.0                 # mois de salaire retenus
+    plancher_applique: bool = False   # la convention a donné plus que le régime
 
 
 @dataclass(frozen=True)
@@ -74,6 +99,7 @@ class Resultat:
     convention: str
     lignes: list[Ligne]
     totaux: Totaux
+    par_categorie: dict[str, dict] | None = None
 
 
 def annees_entre(debut: date, fin: date) -> float:
@@ -102,6 +128,26 @@ def mois_d_ifc(bareme: Bareme, anciennete: int) -> float:
     raise TypeError(f"barème inconnu : {type(bareme).__name__}")
 
 
+def mois_dus(regles: Regles, anciennete_totale: float) -> tuple[float, bool]:
+    """Mois de salaire dus à une ancienneté : (mois retenus, le plancher a-t-il joué ?)."""
+    propres = _mois_selon(regles, anciennete_totale)
+    if regles.plancher is None:
+        return propres, False
+    plancher = _mois_selon(regles.plancher, anciennete_totale)
+    return (plancher, True) if plancher > propres + 1e-12 else (propres, False)
+
+
+def _mois_selon(regles: Regles, anciennete_totale: float) -> float:
+    if regles.arrondi == "mois":
+        anciennete = floor(anciennete_totale * 12 + 1e-9) / 12
+    else:
+        anciennete = floor(anciennete_totale + 1e-9)
+    if anciennete < regles.anciennete_minimale:
+        return 0.0
+    mois = mois_d_ifc(regles.bareme, anciennete)
+    return min(mois, regles.plafond_mois) if regles.plafond_mois is not None else mois
+
+
 def comparer_baremes(bareme: Bareme, minimum: Bareme, jusqu_a: int = 50) -> list[int]:
     """Les anciennetés (0 à `jusqu_a` ans) où `bareme` donne moins que `minimum`."""
     return [n for n in range(jusqu_a + 1) if mois_d_ifc(bareme, n) < mois_d_ifc(minimum, n) - 1e-9]
@@ -121,6 +167,7 @@ def evaluer(
     convention: Convention,
     presences: Mapping[str, float] | None = None,
     bareme: Bareme | None = None,
+    regles: Mapping[str, Regles] | None = None,
 ) -> Resultat:
     """Évalue l'engagement IFC.
 
@@ -128,9 +175,11 @@ def evaluer(
     existante (rapprochement avec un classeur) au lieu de les calculer.
     `bareme` remplace celui de la convention : le barème de l'entreprise quand
     elle verse plus que sa convention.
+    `regles` donne les règles de chaque catégorie de personnel (`"*"` pour les
+    autres) ; une catégorie sans règle est refusée (`CategorieInconnue`).
     """
-    bareme = bareme if bareme is not None else convention.bareme
-    lignes = [_evaluer_un(s, h, bareme, presences) for s in salaries]
+    unique = Regles(bareme=bareme if bareme is not None else convention.bareme)
+    lignes = [_evaluer_un(s, h, _regles_de(s, regles, unique), presences) for s in salaries]
     dette = sum(l.dette for l in lignes)
     charge = sum(l.charge for l in lignes)
     nette = max(dette + charge - h.fonds_disponible, 0.0)
@@ -144,10 +193,29 @@ def evaluer(
         dette_brute=dette,
         charge_brute=charge,
     )
-    return Resultat(VERSION_MOTEUR, convention.code, lignes, totaux)
+    par_categorie: dict[str, dict] = {}
+    for l in lignes:
+        c = par_categorie.setdefault(l.categorie or "*", {"effectif": 0, "vapf": 0.0, "dette": 0.0, "charge": 0.0})
+        c["effectif"] += 1
+        c["vapf"] += l.vapf
+        c["dette"] += l.dette
+        c["charge"] += l.charge
+    for c in par_categorie.values():
+        c.update(vapf=round(c["vapf"]), dette=round(c["dette"]), charge=round(c["charge"]))
+    return Resultat(VERSION_MOTEUR, convention.code, lignes, totaux, par_categorie)
 
 
-def _evaluer_un(s: Salarie, h: Hypotheses, bareme: Bareme, presences) -> Ligne:
+def _regles_de(s: Salarie, regles: Mapping[str, Regles] | None, unique: Regles) -> Regles:
+    if regles is None:
+        return unique
+    if s.categorie in regles:
+        return regles[s.categorie]
+    if "*" in regles:
+        return regles["*"]
+    raise CategorieInconnue(s.categorie)
+
+
+def _evaluer_un(s: Salarie, h: Hypotheses, regles: Regles, presences) -> Ligne:
     age = annees_entre(s.naissance, h.date_evaluation)
     anciennete = 0.0 if s.embauche > h.date_evaluation else annees_entre(s.embauche, h.date_evaluation)
     date_retraite = s.naissance + relativedelta(years=h.age_retraite)
@@ -157,7 +225,8 @@ def _evaluer_un(s: Salarie, h: Hypotheses, bareme: Bareme, presences) -> Ligne:
 
     croissance = ((1 + h.inflation) * (1 + h.croissance_salaires)) ** restantes
     salaire_final = s.salaire_annuel / 12 * croissance
-    ifc = salaire_final * mois_d_ifc(bareme, floor(anciennete_totale))
+    mois, plancher_applique = mois_dus(regles, anciennete_totale)
+    ifc = salaire_final * mois
 
     survie = h.table.survie(floor(age), h.age_retraite) if not au_dela else 1.0
     if presences is not None and s.matricule in presences:
@@ -186,4 +255,7 @@ def _evaluer_un(s: Salarie, h: Hypotheses, bareme: Bareme, presences) -> Ligne:
         charge=charge,
         date_retraite=date_retraite,
         au_dela_de_la_retraite=au_dela,
+        categorie=s.categorie,
+        mois=mois,
+        plancher_applique=plancher_applique,
     )

@@ -22,6 +22,7 @@ LIBELLES = {
     "embauche": "date d'embauche",
     "salaire": "salaire",
     "sexe": "sexe",
+    "categorie": "catégorie",
 }
 
 # Intitulés normalisés (minuscules, sans accents ni ponctuation) → champ.
@@ -33,6 +34,7 @@ _SYNONYMES = {
                  "hire date", "date of hire", "start date"],
     "salaire": ["salaire", "salaire brut", "remuneration", "salary", "gross salary", "base salary"],
     "sexe": ["sexe", "genre", "sex", "gender"],
+    "categorie": ["categorie", "categorie professionnelle", "category", "college", "csp", "classification"],
 }
 # Colonnes identifiantes : repérées pour être écartées sans lecture.
 _NOMS = ["nom", "prenom", "prenoms", "nom et prenom", "nom et prenoms", "nom prenom", "noms",
@@ -58,6 +60,7 @@ class LigneLue:
     naissance: date | None
     embauche: date | None
     salaire_annuel: int | None
+    categorie: str | None = None
 
 
 @dataclass
@@ -86,7 +89,8 @@ def lire_fichier(contenu: bytes, nom_fichier: str, periodicite: Periodicite | No
 def salaries(lecture: Lecture) -> list[Salarie]:
     """Les lignes complètes, pour le moteur. Les contrôles disent si l'étude peut sortir."""
     return [
-        Salarie(matricule=l.matricule, naissance=l.naissance, embauche=l.embauche, salaire_annuel=l.salaire_annuel)
+        Salarie(matricule=l.matricule, naissance=l.naissance, embauche=l.embauche, salaire_annuel=l.salaire_annuel,
+                categorie=l.categorie)
         for l in lecture.lignes
         if l.matricule and l.naissance and l.embauche and l.salaire_annuel is not None
     ]
@@ -242,6 +246,7 @@ def _lire_ligne(numero: int, v: dict, lecture: Lecture) -> LigneLue:
         naissance=date_de("naissance"),
         embauche=date_de("embauche"),
         salaire_annuel=salaire,
+        categorie=None if _vide(v.get("categorie")) else str(v["categorie"]).strip(),
     )
 
 

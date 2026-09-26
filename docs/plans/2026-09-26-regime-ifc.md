@@ -7,15 +7,20 @@ authentification, déploiement) : l'interface couvrira le parcours complet.
 
 ## R1 — Catégories et moteur par catégorie
 
-- [ ] Fichier du personnel : colonne catégorie reconnue (FR/EN), gardée.
-- [ ] Moteur : des règles par catégorie — barème, plancher (convention),
+- [x] Fichier du personnel : colonne catégorie reconnue (FR/EN), gardée.
+- [x] Moteur : des règles par catégorie — barème, plancher (convention),
       ancienneté minimale, plafond en mois, arrondi de l'ancienneté (années
       entières | mois).
-- [ ] Au plus favorable du barème et du plancher, ancienneté par ancienneté ;
+- [x] Au plus favorable du barème et du plancher, ancienneté par ancienneté ;
       chaque ligne dit si le plancher a joué.
-- [ ] Totaux par catégorie ; une catégorie sans règle est refusée.
-- [ ] Sans règles, le moteur se comporte exactement comme avant (les
+- [x] Totaux par catégorie ; une catégorie sans règle est refusée.
+- [x] Sans règles, le moteur se comporte exactement comme avant (les
       références AZITO ne bougent pas).
+
+Moteur `ifc-1.1.0` : `Regles` (barème, plancher, ancienneté minimale,
+plafond, arrondi), `mois_dus`, `evaluer(..., regles=)` avec `"*"` pour les
+autres catégories, `Resultat.par_categorie`, `Ligne.mois` et
+`Ligne.plancher_applique`.
 
 Commit : `feat(actuariat): règles par catégorie, conditions et plancher`
 
