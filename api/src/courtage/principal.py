@@ -1,6 +1,7 @@
 """Point d'entrée du serveur : `uvicorn courtage.principal:app`.
 
-DATABASE_URL            connexion avec le rôle APPLICATIF (courtage_app), jamais le propriétaire
+DATABASE_URL            connexion avec le rôle APPLICATIF (courtage_app), jamais le propriétaire ; à défaut,
+                        dérivée de COURTAGE_URL_PROPRIETAIRE et COURTAGE_MOT_DE_PASSE_APP
 COURTAGE_AUTH           `session` (défaut : connexion par code reçu au téléphone) ;
                         `entete_dev` en développement seulement (refusé si COURTAGE_ENV=production)
 COURTAGE_CLE_AUTH       clé des codes de connexion ; obligatoire en production
@@ -17,7 +18,7 @@ import os
 from sqlalchemy import create_engine
 
 from courtage.api import creer_app
-from courtage.deploiement import _psycopg
+from courtage.deploiement import url_applicative
 from courtage.messagerie import expediteur_depuis_environnement
 
 
@@ -33,7 +34,7 @@ def _extracteur():
     return None
 
 
-app = creer_app(create_engine(_psycopg(os.environ["DATABASE_URL"]), pool_pre_ping=True),
+app = creer_app(create_engine(url_applicative(os.environ), pool_pre_ping=True),
                 authentification=os.environ.get("COURTAGE_AUTH", "session"),
                 cle_sceau=_octets("COURTAGE_CLE_SCEAU"),
                 url_publique=os.environ.get("COURTAGE_URL_PUBLIQUE"),

@@ -139,3 +139,28 @@ def test_les_demandes_de_code_sont_limitees_par_adresse(bases):
     web = TestClient(creer_app(moteur=bases[1]))
     codes = [web.post(f"{V1}/auth/code", json={"telephone": f"+2376900{i:05d}"}).status_code for i in range(11)]
     assert codes[:10] == [200] * 10 and codes[10] == 429
+
+
+# --- Sur un hébergeur : l'URL applicative dérivée, le premier administrateur ----------------------
+
+def test_l_url_applicative_se_derive_de_celle_du_proprietaire():
+    from courtage.deploiement import url_applicative
+    assert url_applicative({"DATABASE_URL": "postgres://courtage_app:x@h/b"}) == "postgresql+psycopg://courtage_app:x@h/b"
+    derivee = url_applicative({"COURTAGE_URL_PROPRIETAIRE": "postgresql://courtage_owner:secret@dpg-abc.frankfurt-postgres.render.com/courtage",
+                               "COURTAGE_MOT_DE_PASSE_APP": "p@ss"})
+    assert derivee == "postgresql+psycopg://courtage_app:p%40ss@dpg-abc.frankfurt-postgres.render.com/courtage"
+    with pytest.raises(RuntimeError):
+        url_applicative({})
+
+
+def test_le_premier_administrateur(bases):
+    import uuid as _uuid
+    from courtage.amorcer import amorcer
+    url = bases[0].url.render_as_string(hide_password=False)
+    tel = f"+2376{_uuid.uuid4().int % 10**8:08d}"
+    identifiant, cree = amorcer(url, tel, "Première admin")
+    assert cree
+    assert amorcer(url, tel, "Autre nom") == (identifiant, False)          # une seconde fois : promue, pas dupliquée
+    with bases[0].connect() as c:
+        admin, nom = c.execute(text("SELECT admin_plateforme, nom_affiche FROM utilisateurs WHERE id = :i"), {"i": identifiant}).one()
+    assert admin and nom == "Première admin"

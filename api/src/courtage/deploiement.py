@@ -95,6 +95,17 @@ def preparer(url_proprio: str, url_app: str) -> list[Controle]:
         proprio.dispose()
 
 
+def url_applicative(env) -> str:
+    """L'URL du rôle applicatif : `DATABASE_URL` si elle est donnée ; sinon celle du propriétaire, avec
+    `courtage_app` et `COURTAGE_MOT_DE_PASSE_APP` — un hébergeur (Render) ne fournit que la première."""
+    if env.get("DATABASE_URL"):
+        return _psycopg(env["DATABASE_URL"])
+    proprio, mot_de_passe = env.get("COURTAGE_URL_PROPRIETAIRE"), env.get("COURTAGE_MOT_DE_PASSE_APP")
+    if not (proprio and mot_de_passe):
+        raise RuntimeError("Donner DATABASE_URL, ou COURTAGE_URL_PROPRIETAIRE et COURTAGE_MOT_DE_PASSE_APP.")
+    return make_url(_psycopg(proprio)).set(username=ROLE_APP, password=mot_de_passe).render_as_string(hide_password=False)
+
+
 def _psycopg(url: str) -> str:
     """Les hébergeurs donnent `postgres://…` ou `postgresql://…` ; SQLAlchemy veut le pilote nommé."""
     for prefixe in ("postgres://", "postgresql://"):
@@ -104,7 +115,7 @@ def _psycopg(url: str) -> str:
 
 
 if __name__ == "__main__":
-    controles = preparer(_psycopg(os.environ["COURTAGE_URL_PROPRIETAIRE"]), _psycopg(os.environ["DATABASE_URL"]))
+    controles = preparer(_psycopg(os.environ["COURTAGE_URL_PROPRIETAIRE"]), url_applicative(os.environ))
     for c in controles:
         print(f"[base] {c}", flush=True)
     sys.exit(0 if all(c.ok for c in controles) else 1)

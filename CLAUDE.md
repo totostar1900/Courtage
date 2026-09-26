@@ -142,7 +142,8 @@ pour faire passer un test.
 
 ## Déploiement
 
-`Dockerfile` (une image : l'API sert `web/dist`), `deploiement/demarrer.sh`,
+`render.yaml` (plan Render : base, site, tâche d'effacement ; domaine `courtage.purposecapital.africa`),
+`python -m courtage.amorcer` (le premier administrateur), `Dockerfile` (une image : l'API sert `web/dist`), `deploiement/demarrer.sh`,
 `deploiement/recette.yml`, `DEPLOY.md`. Au démarrage, `python -m courtage.deploiement`
 migre avec le PROPRIÉTAIRE, ouvre `courtage_app`, puis lit sept contrôles dans la base.
 Un FAIL arrête le démarrage. `GET /api/v1/sante` compare la révision en base à celle

@@ -37,6 +37,7 @@ répond 503 dès que la base ne porte pas la révision attendue par le code.
 |---|---|
 | `COURTAGE_URL_PROPRIETAIRE` | rôle propriétaire : migrations, contrôles (jamais utilisé pour servir) |
 | `DATABASE_URL` | rôle `courtage_app`, obligatoirement ; `postgres://` accepté |
+| `COURTAGE_MOT_DE_PASSE_APP` | à la place de `DATABASE_URL` : l'URL applicative est celle du propriétaire, avec `courtage_app` et ce mot de passe (le plan Render) |
 | `COURTAGE_ENV` | `production` \| `recette` |
 | `COURTAGE_CLE_SCEAU` | clé des sceaux ; **ne jamais la changer** : les rapports déjà émis ne se vérifieraient plus |
 | `COURTAGE_CLE_AUTH` | clé des codes de connexion (la changer invalide seulement les codes en cours) |
@@ -50,20 +51,76 @@ En production, l'application **refuse de démarrer** dans trois cas : pas de cl�
 sceau, pas de clé d'authentification, pas de vrai fournisseur d'envoi. Elle refuse
 aussi le mode `entete_dev`.
 
-## 4. Un hébergeur (Render, Railway, un VPS…)
+## 4. En ligne : Render et courtage.purposecapital.africa
 
-- Un service Docker construit depuis `Dockerfile` ; contrôle de santé sur `/api/v1/sante`.
-- PostgreSQL 16. Le propriétaire est l'utilisateur fourni par l'hébergeur. Il doit
-  pouvoir `ALTER ROLE` : la migration 0001 crée `courtage_app`, qu'il possède donc.
-- Choisir un mot de passe pour `courtage_app` et l'écrire dans `DATABASE_URL`.
-  Le démarrage l'applique.
-- Une seule instance tant que les limites de fréquence vivent en mémoire. Avec deux
-  instances, elles doublent, mais restent des limites.
+### 4a. Créer le tout (une fois)
 
-Après chaque déploiement : lire les sept `[base] PASS` dans les logs, puis
-`curl https://…/api/v1/sante`.
+1. Render, puis **New**, puis **Blueprint**. Choisir le dépôt GitHub `courtage` et la branche à déployer. Render lit
+   `render.yaml` et propose trois ressources :
+   - `courtage-db` : PostgreSQL 16, à Francfort, sans accès depuis Internet ;
+   - `courtage` : le site, une image Docker ;
+   - `courtage-purge` : la tâche quotidienne d'effacement.
+2. Renseigner ce que le plan ne peut pas inventer, marqué `sync: false`. On peut le laisser vide pour commencer :
+   - `TWILIO_COMPTE`, `TWILIO_JETON`, `TWILIO_EMETTEUR` : l'envoi des codes par WhatsApp ou SMS ;
+   - `ANTHROPIC_API_KEY` : seulement si `COURTAGE_EXTRACTION=claude`.
+3. **Apply**. Render génère une fois pour toutes, sans que personne ne les voie :
+   - `COURTAGE_CLE_SCEAU`, `COURTAGE_CLE_AUTH` ;
+   - `COURTAGE_MOT_DE_PASSE_APP`, le mot de passe du rôle `courtage_app`, dont l'URL est dérivée de celle du
+     propriétaire.
+4. Lire le journal du premier démarrage. Les sept lignes `[base] PASS …` doivent apparaître, puis
+   `Uvicorn running`. Un seul FAIL arrête le démarrage, et le journal dit lequel.
+
+**À surveiller au premier démarrage.** La migration 0001 crée le rôle `courtage_app`, et le démarrage lui donne
+son mot de passe. L'utilisateur que Render fournit doit en avoir le droit (`CREATEROLE`). S'il ne l'a pas, le
+journal dit `permission denied to create role`. Dans ce cas, créer le rôle depuis l'onglet **Shell** de la base
+avec un utilisateur qui en a le droit, ou demander au support de Render, puis redéployer.
+
+### 4b. Le domaine
+
+1. Render, puis le service `courtage`, puis **Settings**, puis **Custom Domains**. Le domaine
+   `courtage.purposecapital.africa` y est déjà, déclaré par le plan. Render indique la cible,
+   `courtage.onrender.com` (ou le nom exact affiché).
+2. Chez le gestionnaire DNS de `purposecapital.africa`, ajouter l'enregistrement suivant :
+
+   | Type | Nom | Valeur |
+   |---|---|---|
+   | CNAME | `courtage` | la cible indiquée par Render |
+
+3. Render vérifie l'enregistrement et émet le certificat HTTPS, en quelques minutes à quelques heures selon le DNS.
+   `COURTAGE_URL_PUBLIQUE` vaut déjà `https://courtage.purposecapital.africa`. Les rapports y renvoient pour la
+   vérification.
+
+### 4c. Le premier administrateur
+
+Depuis l'onglet **Shell** du service `courtage` :
+
+```bash
+python -m courtage.amorcer +237690000000 "Prénom Nom"
+```
+
+La personne se connecte ensuite avec ce numéro, par code. Elle ouvre les dossiers clients, inscrit conseillers et
+DRH par leur numéro, et fixe les contrats. La commande peut être relancée sans risque : elle promeut, elle ne duplique
+pas.
+
+### 4d. De la recette à la production
+
+Le plan démarre en `COURTAGE_ENV=recette`. Les codes de connexion s'écrivent alors dans le journal de Render, que
+seul l'exploitant lit : c'est ainsi qu'on se connecte avant que Twilio soit branché. Pour ouvrir aux clients :
+
+1. Renseigner les quatre `TWILIO_*` : le numéro émetteur WhatsApp ou SMS, avec son canal.
+2. Passer `COURTAGE_ENV` à `production` et redéployer. L'application **refuse de démarrer** s'il manque la clé de
+   sceau, la clé d'authentification ou un vrai fournisseur d'envoi. C'est voulu.
+
+### 4e. Après chaque déploiement
+
+- `curl https://courtage.purposecapital.africa/api/v1/sante` doit répondre `"statut":"ok"`, avec la migration du code.
+- Le journal doit montrer les sept `[base] PASS`.
+- Au premier déploiement seulement : émettre une étude et ouvrir son rapport PDF (les bibliothèques PDF de l'image,
+  §6).
 
 ## 5. La tâche quotidienne : effacer les identités échues
+
+Sur Render, c'est le service `courtage-purge` du plan : rien à faire.
 
 En courtage, l'identité d'un bénéficiaire et les pièces de son dossier sont effacées
 douze mois après le paiement. C'est fait à chaque lecture d'un dossier et à chaque

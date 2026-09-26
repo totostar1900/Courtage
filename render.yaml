@@ -1,0 +1,65 @@
+# Plan Render (« Blueprint ») : Render → New → Blueprint → ce dépôt. Tout se crée d'un coup.
+# Région : Francfort, la plus proche de l'Afrique centrale chez Render.
+# Détails, domaine et premier administrateur : DEPLOY.md §4.
+
+databases:
+  - name: courtage-db
+    databaseName: courtage
+    user: courtage_proprietaire          # le PROPRIÉTAIRE : migrations et contrôles, jamais le service
+    region: frankfurt
+    plan: basic-256mb
+    postgresMajorVersion: "16"
+    ipAllowList: []                      # aucun accès depuis Internet : seulement les services Render
+
+services:
+  - type: web
+    name: courtage
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/sante       # 503 tant que le schéma n'est pas celui du code
+    domains:
+      - courtage.purposecapital.africa
+    envVars:
+      # recette : les codes de connexion vont au journal de Render (lisible par l'exploitant seul).
+      # Passer à « production » une fois Twilio renseigné : l'application refuse alors de démarrer sans lui.
+      - key: COURTAGE_ENV
+        value: recette
+      - key: COURTAGE_URL_PROPRIETAIRE
+        fromDatabase: { name: courtage-db, property: connectionString }
+      - key: COURTAGE_MOT_DE_PASSE_APP     # le rôle applicatif courtage_app, dérivé de l'URL du propriétaire
+        generateValue: true
+      - key: COURTAGE_CLE_SCEAU            # NE JAMAIS LA CHANGER : les rapports émis ne se vérifieraient plus
+        generateValue: true
+      - key: COURTAGE_CLE_AUTH
+        generateValue: true
+      - key: COURTAGE_URL_PUBLIQUE
+        value: https://courtage.purposecapital.africa
+      - key: COURTAGE_EXTRACTION           # « claude » pour la lecture par Claude (et ANTHROPIC_API_KEY)
+        value: regles
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TWILIO_COMPTE
+        sync: false
+      - key: TWILIO_JETON
+        sync: false
+      - key: TWILIO_EMETTEUR
+        sync: false
+      - key: TWILIO_CANAL                  # whatsapp | sms
+        value: whatsapp
+
+  # L'effacement quotidien des identités échues (douze mois après un paiement), avec le rôle applicatif.
+  - type: cron
+    name: courtage-purge
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerCommand: python -m courtage.purge
+    schedule: "15 2 * * *"                 # 02 h 15 UTC, 03 h 15 à Douala
+    envVars:
+      - key: COURTAGE_URL_PROPRIETAIRE
+        fromDatabase: { name: courtage-db, property: connectionString }
+      - key: COURTAGE_MOT_DE_PASSE_APP
+        fromService: { type: web, name: courtage, envVarKey: COURTAGE_MOT_DE_PASSE_APP }
