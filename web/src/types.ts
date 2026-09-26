@@ -1,0 +1,170 @@
+// Les formes renvoyées par l'API (courtage/api/routes.py). Seul ce que l'interface lit est typé.
+
+export type Role = "admin_client" | "lecteur_client" | "conseiller";
+
+export interface Moi {
+  id: string;
+  email: string | null;
+  admin_plateforme: boolean;
+  organisations: { id: string; nom: string; pays: string; role: Role }[];
+}
+
+export interface Anomalie {
+  niveau: "bloquant" | "avertissement";
+  code: string;
+  message: string;
+  ligne?: number | null;
+  colonne?: string | null;
+}
+
+export interface Fichier {
+  id: string;
+  nom_fichier: string;
+  depose_le: string;
+  date_donnees: string;
+  periodicite: string;
+  effectif: number;
+  anomalies: Anomalie[];
+}
+
+export interface Totaux {
+  effectif: number;
+  vapf: number;
+  dette: number;
+  charge: number;
+  cotisation_nette?: number;
+  cotisation_totale?: number;
+}
+
+export interface Annee {
+  annee: number;
+  effectif: number;
+  ifc: number;
+  prestations_probables?: number;
+  vapf: number;
+}
+
+export interface Constat {
+  niveau: "bloque" | "avertit" | "informe";
+  code: string;
+  titre?: string;
+  message: string;
+  categorie?: string | null;
+  chiffres?: Record<string, unknown>;
+  details?: Record<string, unknown>;
+  sources?: { titre: string; url?: string | null }[];
+  statut_contenu?: "calcul" | "valide" | "a_valider";
+}
+
+export interface Categorie {
+  categorie: string;
+  convention_code: string;
+  bareme: Bareme;
+  anciennete_minimale?: number;
+  plafond_mois?: number | null;
+  arrondi?: "annees" | "mois";
+  base_salaire?: "dernier" | "moyenne_12_mois";
+  avec_primes?: boolean;
+  evenements?: string[];
+}
+
+export interface Bareme {
+  forme: "tranches_cumulatives" | "paliers";
+  tranches?: { jusqu_a: number | null; mois_par_annee: number }[];
+}
+
+export interface Version {
+  id: string;
+  regime_id: string;
+  nom: string;
+  numero: number;
+  en_vigueur_du: string;
+  fondement: string;
+  document_reference: string;
+  statut: "analyse" | "adoptee";
+  non_conformite_acceptee: boolean;
+  categories: Categorie[];
+  constats: Constat[];
+}
+
+export interface Regime {
+  id: string;
+  nom: string;
+  versions: Version[];
+}
+
+export interface EtudeResume {
+  id: string;
+  statut: "brouillon" | "emise";
+  date_evaluation: string;
+  convention_code: string;
+  dette: number;
+  emise_le: string | null;
+}
+
+export interface Etude {
+  id: string;
+  statut: "brouillon" | "emise";
+  fichier_id: string;
+  date_evaluation: string;
+  convention: { code: string; libelle: string; en_vigueur_du: string; statut: string; verification: string };
+  regime: Version | null;
+  hypotheses: { valeurs: Record<string, number | string>; ecarts: unknown[]; justification: string | null };
+  fonds_disponible: number;
+  totaux: Totaux;
+  totaux_convention: Totaux | null;
+  par_categorie: Record<string, { effectif: number; dette: number; charge: number }> | null;
+  echeancier: Annee[];
+  sensibilites: Record<string, { dette: number; charge: number }>;
+  anomalies: Anomalie[];
+  emission: { possible: boolean; motifs: string[] };
+  empreinte: string | null;
+  honoraires_ht: number | null;
+  emise_le: string | null;
+  rapport: { numero: string } | null;
+}
+
+export interface Conditions {
+  en_vigueur_du: string;
+  mode: "honoraires" | "commission" | "mixte";
+  honoraires_etude_ifc: number;
+  honoraires_par_salarie: number;
+  commission_bps: number;
+  note: string | null;
+}
+
+export interface Offre {
+  nom: string;
+  taux_garanti: number;
+  participation_benefices: number;
+  frais_sur_cotisations: number;
+  frais_sur_encours: number;
+  interne?: boolean;
+}
+
+export interface ProjectionScenario {
+  scenario: string;
+  rendement: number;
+  cout_total: number;
+  cout_net_actualise: number;
+  frais_totaux: number;
+  fonds_final: number;
+  annees_decouvert: number[];
+  couverture_des_departs_restants: number | null;
+  annees: { annee: number; cotisation: number; prestations: number; decouvert: number; fonds_fin: number }[];
+}
+
+export interface Financement {
+  plan_amortissement: { deficit_initial: number; annees: number; annuite: number };
+  scenario_de_reference: string;
+  classement: string[];
+  offres: { nom: string; interne: boolean; conditions: Offre; scenarios: ProjectionScenario[] }[];
+}
+
+export interface Fiche {
+  id: string;
+  numero: string;
+  etude_id: string;
+  date_limite_reponse: string;
+  emise_le: string;
+}

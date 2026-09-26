@@ -24,6 +24,8 @@ from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.services.rapport import ConfigSceau
 
+__all__ = ["creer_app"]
+
 ModeAuthentification = Literal["entete_dev", "aucune"]
 
 
@@ -45,6 +47,9 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "aucune",
 
     from .routes import routeur
     app.include_router(routeur, prefix="/api/v1")
+    if authentification == "entete_dev":
+        from .dev import routeur_dev
+        app.include_router(routeur_dev, prefix="/api/v1/dev")
     return app
 
 

@@ -185,3 +185,9 @@ def test_une_etude_d_une_autre_organisation_est_introuvable(client, azito, perso
 def test_moi_liste_mes_organisations(client, azito):
     r = client.get(f"{V1}/moi", headers=en_tant_que(azito["drh"])).json()
     assert [(o["nom"], o["role"]) for o in r["organisations"]] == [("AZITO", "admin_client")]
+
+
+def test_l_equipe_du_dossier(client, azito):
+    r = client.get(f"{V1}/organisations/{azito['org']}/equipe", headers=en_tant_que(azito["drh"])).json()
+    assert {(m["nom"], m["role"]) for m in r} == {("Conseiller", "conseiller"), ("Drh", "admin_client")}
+    assert client.get(f"{V1}/organisations/{azito['org']}/equipe", headers=en_tant_que(azito["etranger"])).status_code == 403

@@ -92,6 +92,17 @@ api/src/courtage/
 - Une note ne passe `valide` que relue par un juriste ; aucune ne l'est
   aujourd'hui (décision du 2026-09-26).
 
+## Interface (`web/`)
+
+- React + TypeScript + Vite ; `npm test` (Vitest, jsdom) et `npm run build`
+  (`tsc` puis Vite) doivent passer avant un commit.
+- Inspirée des courtiers en ligne (plan, tâche 7) : un parcours en étapes, le
+  conseiller visible, les offres en cartes, la rémunération en clair.
+- Les droits se DISENT à l'écran (« votre conseiller émet », « l'adoption
+  appartient à l'entreprise ») mais se DÉCIDENT dans l'API : l'interface ne
+  cache un bouton que pour la clarté.
+- Tous les textes en français ; montants par `format.ts`.
+
 ## Rapport et sceau
 
 - Le rapport est rendu UNE fois, à l'émission, dans la même transaction

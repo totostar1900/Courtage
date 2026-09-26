@@ -83,6 +83,15 @@ def ajouter_adhesion(organisation_id: uuid.UUID, corps: NouvelleAdhesion, sessio
     return adhesion
 
 
+@routeur.get("/organisations/{organisation_id}/equipe")
+def equipe(a: Acces = Depends(acces(*TOUS))):
+    """Qui suit le dossier : le client voit son conseiller, et le conseiller ses interlocuteurs."""
+    rangs = a.session.execute(select(Utilisateur, Adhesion.role).join(Adhesion, Adhesion.utilisateur_id == Utilisateur.id)
+                              .where(Adhesion.organisation_id == a.organisation.id)).all()
+    return [{"id": str(u.id), "nom": u.nom_affiche or u.email or u.telephone, "email": u.email,
+             "telephone": u.telephone, "role": r} for u, r in rangs]
+
+
 # --- Rémunération -------------------------------------------------------------
 
 class NouvellesConditions(_Corps):
