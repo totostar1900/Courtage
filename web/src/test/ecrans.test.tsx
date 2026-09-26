@@ -123,6 +123,24 @@ describe("la comparaison des offres", () => {
     const cartes = [...document.querySelectorAll("[data-offre]")].map((c) => c.getAttribute("data-offre"));
     expect(cartes).toEqual(["Sobre", "Chère", "Provision interne"]);
     expect(within(document.querySelector('[data-offre="Sobre"]') as HTMLElement).getByText("Le moins cher")).toBeInTheDocument();
+
+    // Le volet des résultats se referme ; le formulaire reste.
+    await userEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    expect(document.querySelectorAll("[data-offre]")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Comparer" })).toBeInTheDocument();
+  });
+});
+
+describe("les chiffres clés se réconcilient", () => {
+  it("dette + charge − fonds = cotisation nette ; + frais = cotisation à verser", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: etude({ possible: true, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    const tableau = within((await screen.findByText("Du passif à la cotisation")).closest(".rapprochement") as HTMLElement);
+    expect(tableau.getByText("2 991 437 F")).toBeInTheDocument();            // la nette
+    expect(tableau.getByText(/Frais de gestion sur cotisation \(4 %\)/)).toBeInTheDocument();
+    expect(tableau.getByText("119 658 F")).toBeInTheDocument();              // les frais
+    expect(tableau.getAllByText("3 111 095 F")).toHaveLength(1);            // le total
+    expect(screen.getByText("dont 119 658 F de frais (4 %)")).toBeInTheDocument();
   });
 });
 

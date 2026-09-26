@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { api } from "../api";
-import { Erreur } from "../composants/communs";
+import { Erreur, Volet } from "../composants/communs";
 import { millions, montant, pct } from "../format";
 import type { Financement as Resultat, Offre } from "../types";
 import { useDossier } from "./Dossier";
@@ -62,7 +62,11 @@ export default function Financement() {
         </div>
         <Erreur erreur={erreur} />
       </div>
-      {resultat && <Comparaison r={resultat} />}
+      {resultat && (
+        <Volet titre="Comparaison des offres" onFermer={() => setResultat(null)} className="section">
+          <Comparaison r={resultat} />
+        </Volet>
+      )}
     </>
   );
 }

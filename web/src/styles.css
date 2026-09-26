@@ -133,3 +133,11 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .rapprochement td .discret { font-weight: 400; }
 details.repli > summary { cursor: pointer; font-weight: 600; color: var(--indigo); }
 details.repli[open] > summary { margin-bottom: 8px; }
+
+/* Volet : un panneau ouvert sur la page, qui se referme */
+.volet { position: relative; }
+.volet-tete { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.volet-tete h2 { margin-bottom: 12px; }
+.fermer-volet { border: 1px solid var(--trait); background: var(--surface); border-radius: 50%; width: 32px; height: 32px;
+  padding: 0; font-size: 20px; line-height: 1; color: var(--encre-2); cursor: pointer; flex: none; }
+.fermer-volet:hover { border-color: var(--encre); color: var(--encre); }

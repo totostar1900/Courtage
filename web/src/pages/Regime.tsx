@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import { api } from "../api";
-import { Constats, Erreur } from "../composants/communs";
+import { Constats, Erreur, Volet } from "../composants/communs";
 import { EditeurCategories, categorieVide, resumeBareme } from "../composants/EditeurCategories";
 import { dateFr } from "../format";
 import type { Categorie, Constat, Version } from "../types";
@@ -30,7 +30,7 @@ export default function Regime() {
       ))}
       {d.role !== "lecteur_client" && (
         <div className="section">
-          {nouveau ? <NouveauRegime onFini={() => setNouveau(false)} />
+          {nouveau ? <NouveauRegime onFini={() => setNouveau(false)} onFermer={() => setNouveau(false)} />
             : <button className="principal" onClick={() => setNouveau(true)}>Décrire un régime</button>}
         </div>
       )}
@@ -102,7 +102,11 @@ function CarteVersion({ version: v }: { version: Version }) {
         </select>
         <button onClick={analyser}>Analyser : légalité, pièges, coûts</button>
       </div>
-      {analyse && <div className="section"><Constats constats={analyse} /></div>}
+      {analyse && (
+        <Volet titre="Analyse" onFermer={() => setAnalyse(null)} className="section">
+          <Constats constats={analyse} />
+        </Volet>
+      )}
 
       {v.statut === "analyse" && d.role === "admin_client" && (
         <div className="actions">
@@ -153,19 +157,18 @@ function FormulaireVersion({ onValider, bouton }: { onValider: (v: object) => Pr
   );
 }
 
-function NouveauRegime({ onFini }: { onFini: () => void }) {
+function NouveauRegime({ onFini, onFermer }: { onFini: () => void; onFermer: () => void }) {
   const d = useDossier();
   const [nom, setNom] = useState("");
   return (
-    <div className="carte">
-      <h2>Décrire un régime</h2>
+    <Volet titre="Décrire un régime" onFermer={onFermer}>
       <label style={{ marginBottom: 12 }}>Nom<input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Accord IFC 2015" /></label>
       <FormulaireVersion bouton="Enregistrer pour analyse" onValider={async (v) => {
         const r = await api.post<{ id: string }>(`/organisations/${d.org.id}/regimes`, { nom: nom || "Régime IFC" });
         await api.post(`/organisations/${d.org.id}/regimes/${r.id}/versions`, v);
         onFini();
       }} />
-    </div>
+    </Volet>
   );
 }
 
@@ -174,12 +177,11 @@ function NouvelleVersion({ regimeId }: { regimeId: string }) {
   const [ouvert, setOuvert] = useState(false);
   if (!ouvert) return <button onClick={() => setOuvert(true)}>Nouvelle version</button>;
   return (
-    <div className="carte">
-      <h2>Nouvelle version</h2>
+    <Volet titre="Nouvelle version" onFermer={() => setOuvert(false)}>
       <FormulaireVersion bouton="Enregistrer pour analyse" onValider={async (v) => {
         await api.post(`/organisations/${d.org.id}/regimes/${regimeId}/versions`, v);
         setOuvert(false);
       }} />
-    </div>
+    </Volet>
   );
 }

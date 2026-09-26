@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ErreurApi } from "../api";
 import type { Anomalie, Annee, Constat } from "../types";
@@ -135,4 +135,21 @@ const MOTIFS: Record<string, string> = {
 
 export function libelleMotif(code: string): string {
   return MOTIFS[code] ?? code.replace(/_/g, " ");
+}
+
+/** Un panneau qui s'ouvre sur la page (résultats, formulaire, détail) et se referme : une croix en haut,
+ *  toujours au même endroit. À l'ouverture, la page vient à lui. */
+export function Volet({ titre, onFermer, children, className = "" }:
+  { titre: ReactNode; onFermer: () => void; children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => { ref.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }, []);
+  return (
+    <section ref={ref} className={`carte volet ${className}`}>
+      <div className="volet-tete">
+        <h2>{titre}</h2>
+        <button type="button" className="fermer-volet" onClick={onFermer} aria-label="Fermer" title="Fermer">×</button>
+      </div>
+      {children}
+    </section>
+  );
 }

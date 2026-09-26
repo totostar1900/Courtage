@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { api } from "../api";
-import { Constats, Erreur } from "../composants/communs";
+import { Constats, Erreur, Volet } from "../composants/communs";
 import { EditeurCategories, CONVENTION_PAR_PAYS, categorieVide } from "../composants/EditeurCategories";
 import { millions, montant, pct } from "../format";
 import type { Categorie, Constat, Totaux } from "../types";
@@ -86,9 +86,11 @@ export default function Simulation() {
       </div>
 
       {resultats && (
-        <div className="section grille g3">
-          {resultats.map((r) => <CarteVariante key={r.nom} r={r} />)}
-        </div>
+        <Volet titre="Résultats de la simulation" onFermer={() => setResultats(null)} className="section">
+          <div className="grille g3">
+            {resultats.map((r) => <CarteVariante key={r.nom} r={r} />)}
+          </div>
+        </Volet>
       )}
     </>
   );

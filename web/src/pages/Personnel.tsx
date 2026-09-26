@@ -73,7 +73,10 @@ export default function Personnel() {
                       : <span className="etat bien">Complet</span>}</td>
                   </tr>,
                   ouvert === f.id && (
-                    <tr key={`${f.id}-a`}><td colSpan={4}><Anomalies anomalies={f.anomalies} /></td></tr>
+                    <tr key={`${f.id}-a`}><td colSpan={4}>
+                      <div className="volet-tete"><strong>Contrôles du fichier</strong>
+                        <button type="button" className="fermer-volet" onClick={() => setOuvert(null)} aria-label="Fermer" title="Fermer">×</button></div>
+                      <Anomalies anomalies={f.anomalies} /></td></tr>
                   ),
                 ];
               })}
