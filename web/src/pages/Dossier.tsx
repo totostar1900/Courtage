@@ -84,6 +84,8 @@ export default function Dossier() {
               <span className="pastille">C</span>Contrat</NavLink></li>
             <li><NavLink to="departs" className={({ isActive }) => (isActive ? "actif" : "")}>
               <span className="pastille">D</span>Départs</NavLink></li>
+            <li><NavLink to="equipe" className={({ isActive }) => (isActive ? "actif" : "")}>
+              <span className="pastille">É</span>Équipe</NavLink></li>
           </ol>
           {conseiller && (
             <div className="carte" style={{ marginTop: 20 }} data-visite="conseiller">

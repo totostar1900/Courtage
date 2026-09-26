@@ -191,3 +191,20 @@ def test_l_equipe_du_dossier(client, azito):
     r = client.get(f"{V1}/organisations/{azito['org']}/equipe", headers=en_tant_que(azito["drh"])).json()
     assert {(m["nom"], m["role"]) for m in r} == {("Conseiller", "conseiller"), ("Drh", "admin_client")}
     assert client.get(f"{V1}/organisations/{azito['org']}/equipe", headers=en_tant_que(azito["etranger"])).status_code == 403
+
+
+def test_la_plateforme_ouvre_un_dossier_et_le_suit(client, personnes):
+    """Une plateforme neuve : l'administrateur ouvre un dossier, le suit, y inscrit la DRH par son numéro."""
+    admin = en_tant_que(personnes["admin"])
+    org = client.post(f"{V1}/organisations", json={"nom": "Brasseries Démo", "pays": "CM", "suivre": True},
+                      headers=admin).json()["id"]
+    dossiers = client.get(f"{V1}/moi", headers=admin).json()["organisations"]
+    assert {"id": org, "nom": "Brasseries Démo", "pays": "CM", "role": "conseiller"} in dossiers
+    r = client.post(f"{V1}/organisations/{org}/membres", headers=admin,
+                    json={"telephone": "+237 6 99 00 11 22", "nom_affiche": "Mme DRH", "role": "admin_client"})
+    assert r.status_code == 201, r.text
+    equipe = client.get(f"{V1}/organisations/{org}/equipe", headers=admin).json()
+    assert sorted(m["role"] for m in equipe) == ["admin_client", "conseiller"]
+    # Sans « suivre », rien ne change : le dossier n'a pas de conseiller d'office.
+    autre = client.post(f"{V1}/organisations", json={"nom": "Autre", "pays": "GA"}, headers=admin).json()["id"]
+    assert autre not in {o["id"] for o in client.get(f"{V1}/moi", headers=admin).json()["organisations"]}

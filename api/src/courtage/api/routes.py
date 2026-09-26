@@ -50,6 +50,7 @@ class NouvelleOrganisation(_Corps):
     nom: str = Field(min_length=1)
     pays: str = Field(pattern=r"^[A-Z]{2}$")
     secteur: str | None = None
+    suivre: bool = False                  # celui qui ouvre le dossier en devient le conseiller
 
 
 @routeur.post("/organisations", status_code=201)
@@ -61,6 +62,11 @@ def creer_organisation(corps: NouvelleOrganisation, session: Session = Depends(s
     session.add(org)
     session.flush()
     journaliser(session, None, utilisateur.id, "organisation.creee", org.id, {"nom": org.nom, "pays": org.pays})
+    if corps.suivre:
+        session.add(Adhesion(utilisateur_id=utilisateur.id, organisation_id=org.id, role="conseiller"))
+        contexte(session.connection(), org.id)
+        journaliser(session, org.id, utilisateur.id, "adhesion.ajoutee", utilisateur.id,
+                    {"utilisateur_id": str(utilisateur.id), "role": "conseiller"})
     return {"id": str(org.id), "nom": org.nom, "pays": org.pays, "secteur": org.secteur}
 
 
