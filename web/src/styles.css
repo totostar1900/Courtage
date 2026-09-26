@@ -343,3 +343,31 @@ a.bouton.principal:hover { background: var(--indigo-vif); }
 .alerte strong { margin-left: 8px; }
 .alerte p { margin: 6px 0 4px; color: var(--encre-2); }
 .decompte { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+
+/* Téléphone : le menu du dossier se replie, les chiffres clés passent en 2 × 2, une barre d'accès au pouce. */
+.bouton-menu, .barre-mobile { display: none; }
+@media (max-width: 900px) {
+  .dossier-tete { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .bouton-menu { display: inline-block; flex: none; padding: 7px 14px; }
+  .dossier-menu:not([data-ouvert="true"]) { display: none; }
+  .dossier-menu[data-ouvert="true"] { border-bottom: 1px solid var(--trait); padding-bottom: 16px; margin-bottom: 8px; }
+  .dossier { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
+  .barre-mobile { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0;
+    z-index: 70; background: var(--surface); border-top: 1px solid var(--trait); box-shadow: 0 -6px 20px #141a3314;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); }
+  .barre-mobile a, .barre-mobile button { display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 6px 4px; border: 0; border-radius: 10px; background: transparent; font: 500 11.5px/1.2 var(--texte);
+    color: var(--discret); text-decoration: none; min-height: 48px; justify-content: center; }
+  .barre-mobile span { font-size: 18px; line-height: 1; }
+  .barre-mobile button span { font-size: 23px; }
+  .barre-mobile a.actif { color: var(--indigo); background: var(--indigo-doux); font-weight: 600; }
+}
+@media (max-width: 600px) {
+  .grille.g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .grille.g4 > .cle { padding: 12px 14px; }
+  .grille.g4 > .cle .etiquette { font-size: 10.5px; }
+  .grille.g4 > .cle .valeur { font-size: 21px; }
+  .grille.g4 > .cle .sous { font-size: 11.5px; overflow-wrap: anywhere; }
+  h1 { font-size: 26px; }
+  .carte h2 { font-size: 19px; }
+}

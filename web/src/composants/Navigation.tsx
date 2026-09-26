@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { api } from "../api";
 import { dateFr } from "../format";
@@ -128,5 +128,22 @@ export function BoutonAller() {
     <button type="button" className="bouton-aller" onClick={() => window.dispatchEvent(new Event("courtage:aller"))}>
       <span>Aller à…</span><kbd>{mac ? "⌘" : "Ctrl"} K</kbd>
     </button>
+  );
+}
+
+/** Sur téléphone : les quatre accès du pouce, en bas de l'écran. Masquée sur ordinateur (le menu est à gauche). */
+export function BarreMobile({ d }: { d: Pick<ContexteDossier, "org" | "etudes"> }) {
+  const base = `/dossier/${d.org.id}`;
+  const etude = d.etudes.find((e) => e.statut === "emise") ?? d.etudes[0];
+  const actif = ({ isActive }: { isActive: boolean }) => (isActive ? "actif" : "");
+  return (
+    <nav className="barre-mobile" aria-label="Accès rapides">
+      <NavLink to={base} end className={actif}><span aria-hidden="true">◧</span>Tableau</NavLink>
+      <NavLink to={etude ? `${base}/etudes/${etude.id}` : `${base}/etudes`} className={actif}>
+        <span aria-hidden="true">∑</span>Étude</NavLink>
+      <NavLink to={`${base}/personnel`} className={actif}><span aria-hidden="true">☰</span>Personnel</NavLink>
+      <button type="button" onClick={() => window.dispatchEvent(new Event("courtage:aller"))}>
+        <span aria-hidden="true">⌕</span>Aller à…</button>
+    </nav>
   );
 }
