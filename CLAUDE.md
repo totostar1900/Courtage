@@ -246,6 +246,13 @@ test le vérifie de 1 à 45 ans. Servis comme une `VersionProposee` : le formula
 enregistré sans relecture. Aucune donnée d'entreprise. Première étape de « consulter des régimes » ; le
 catalogue anonyme et la comparaison chiffrée viendront après (docs/specs/2026-09-26-modeles-types-design.md).
 
+## Méthode actuarielle
+
+`docs/methodologie-actuarielle.md` est la note de méthode de référence (formules, hypothèses par défaut,
+financement, expérience, limites), et le chapitre « La méthode actuarielle en détail » du guide en est la
+version lisible. **Tenir les deux fidèles au code** : un changement du moteur (`actuariat/ifc.py`), des
+hypothèses par défaut ou de la projection se reporte dans les deux, dans le même commit.
+
 ## L'échéancier des départs
 
 `services/etudes.echeancier` rend chaque année ET son découpage `par_categorie` (les études émises avant
