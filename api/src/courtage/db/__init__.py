@@ -276,6 +276,7 @@ class Document(Base):
     organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
     etude_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("etudes.id"))
     fiche_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("fiches_regime.id"))
+    prestation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("prestations.id"))
     numero: Mapped[str] = mapped_column(ForeignKey("sceaux.numero"))
     type_contenu: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
     contenu: Mapped[bytes] = mapped_column(LargeBinary)

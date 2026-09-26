@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import analyse, contrats, dossiers, etudes, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import analyse, contrats, dossiers, etudes, orientation, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -215,6 +215,12 @@ class AnnulationPrestation(_Corps):
     motif_correction: str = Field(max_length=500)
 
 
+class PaiementDeclare(_Corps):
+    part_fonds_demandee: int | None = Field(default=None, ge=0)
+    part_fonds_payee: int = Field(gt=0)
+    payee_le: date
+
+
 @routeur.get("/organisations/{organisation_id}/prestations")
 def lister_prestations(a: Acces = Depends(acces(*TOUS))):
     ps = prestations.actives(a.session)
@@ -254,6 +260,25 @@ def corriger_prestation(prestation_id: uuid.UUID, corps: CorrectionPrestation, a
     motif = donnees.pop("motif_correction")
     p = prestations.corriger(a.session, a.organisation, a.utilisateur.id, prestation_id,
                              prestations.Saisie(**donnees), motif)
+    return prestations.en_clair(a.session, p)
+
+
+@routeur.get("/organisations/{organisation_id}/prestations/{prestation_id}/orientation")
+def orienter_prestation(prestation_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    return orientation.orienter(a.session, prestation_id)
+
+
+@routeur.get("/organisations/{organisation_id}/prestations/{prestation_id}/fiche-de-calcul")
+def fiche_de_calcul(prestation_id: uuid.UUID, request: Request, a: Acces = Depends(acces(*CLIENT))):
+    d = orientation.fiche_de_calcul(a.session, a.organisation, a.utilisateur.id, prestation_id,
+                                    request.app.state.sceau, date.today())
+    return Response(d.contenu, media_type="application/pdf",
+                    headers={**_piece_jointe(f"fiche-de-calcul-{d.numero}.pdf"), "X-Numero-Document": d.numero})
+
+
+@routeur.post("/organisations/{organisation_id}/prestations/{prestation_id}/paiement", status_code=201)
+def declarer_paiement(prestation_id: uuid.UUID, corps: PaiementDeclare, a: Acces = Depends(acces(*CLIENT))):
+    p = prestations.declarer_paiement(a.session, a.organisation, a.utilisateur.id, prestation_id, **corps.model_dump())
     return prestations.en_clair(a.session, p)
 
 

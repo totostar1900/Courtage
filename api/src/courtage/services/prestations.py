@@ -167,6 +167,24 @@ def _vue(s: Saisie, du: int) -> "_Apercu":
     return _Apercu(**{k: getattr(s, k) for k in _Apercu.__dataclass_fields__ if k != "du"}, du=du)
 
 
+def declarer_paiement(session: Session, org: Organisation, auteur: uuid.UUID, prestation_id: uuid.UUID, *,
+                      part_fonds_demandee: int | None, part_fonds_payee: int, payee_le: date) -> Prestation:
+    """Hors dossier de courtage : l'entreprise déclare ce que son assureur a payé. Une ligne qui remplace."""
+    a = _active(session, prestation_id)
+    _sans_dossier(session, a)
+    if payee_le < a.date_depart:
+        raise ErreurMetier("paiement_avant_depart", "Un paiement ne précède pas le départ du salarié.", 422)
+    source = (a.calcul or {}).get("source") or {}
+    s = Saisie(matricule=a.matricule, motif=a.motif, date_embauche=a.date_embauche, date_depart=a.date_depart,
+               salaire_mensuel_reference=a.salaire_mensuel_reference, categorie=a.categorie,
+               date_naissance=a.date_naissance, verse=a.verse,
+               part_fonds_demandee=part_fonds_demandee if part_fonds_demandee is not None else a.part_fonds_demandee,
+               part_fonds_payee=part_fonds_payee, payee_le=payee_le, soldee=True, note=a.note,
+               convention_code=source.get("convention_code"))
+    return enregistrer(session, org, auteur, s, origine=a.origine, import_id=a.import_id, remplace=a,
+                       motif_correction="Paiement de l'assureur déclaré par l'entreprise")
+
+
 def _sans_dossier(session: Session, p: Prestation) -> None:
     """Un départ porté par un dossier de prise en charge garde son matricule et sa date : c'est sa clé."""
     if session.scalar(select(DossierPriseEnCharge.id).where(DossierPriseEnCharge.matricule == p.matricule,

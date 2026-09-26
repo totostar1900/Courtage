@@ -5,9 +5,11 @@ import { api } from "../api";
 import { Anomalies, Cle, Constats, Erreur, useCharge, Volet } from "../composants/communs";
 import { Terme } from "../composants/Terme";
 import { dateFr, millions, montant } from "../format";
+import { ExpliquerCalcul } from "../composants/Calcul";
 import type { ApercuImport, CalculPrestation, Constat, ContratsDossier, MotifDepart, Prestation, Prestations } from "../types";
 import { useDossier } from "./Dossier";
 import { DemandePriseEnCharge, EtatDossier } from "./DossierPEC";
+import { OrientationAssureur } from "./Orientation";
 
 export const MOTIFS: Record<MotifDepart, string> = {
   retraite: "Retraite", demission: "Démission", licenciement: "Licenciement", deces: "Décès", autre: "Autre",
@@ -18,7 +20,7 @@ export default function Departs() {
   const d = useDossier();
   const { donnee, erreur, recharger } = useCharge(() => api.get<Prestations>(`/organisations/${d.org.id}/prestations`), []);
   const { donnee: contrat } = useCharge(() => api.get<ContratsDossier>(`/organisations/${d.org.id}/contrats`), []);
-  const [volet, setVolet] = useState<null | "declarer" | "importer" | { corriger: Prestation } | { demander: Prestation }>(null);
+  const [volet, setVolet] = useState<null | "declarer" | "importer" | { corriger: Prestation } | { demander: Prestation } | { orienter: Prestation }>(null);
   const [ouverte, setOuverte] = useState<string | null>(null);
   const peutEcrire = d.role !== "lecteur_client";
   const fait = () => { setVolet(null); recharger(); };
@@ -63,6 +65,9 @@ export default function Departs() {
       {volet && typeof volet === "object" && "demander" in volet && (
         <DemandePriseEnCharge p={volet.demander} onFermer={() => setVolet(null)} />
       )}
+      {volet && typeof volet === "object" && "orienter" in volet && (
+        <OrientationAssureur p={volet.orienter} onFermer={() => setVolet(null)} onFait={fait} />
+      )}
 
       <div className="section">
         <h2>Départs</h2>
@@ -89,7 +94,8 @@ export default function Departs() {
                         <div className="volet-tete"><strong>Départ du matricule {p.matricule}</strong>
                           <button type="button" className="fermer-volet" onClick={() => setOuverte(null)} aria-label="Fermer" title="Fermer">×</button></div>
                         <Detail p={p} />
-                        <PriseEnCharge p={p} role={d.role} onDemander={() => { setOuverte(null); setVolet({ demander: p }); }} />
+                        <PriseEnCharge p={p} role={d.role} onDemander={() => { setOuverte(null); setVolet({ demander: p }); }}
+                          onOrienter={() => { setOuverte(null); setVolet({ orienter: p }); }} />
                         {peutEcrire && <Actions p={p} onCorriger={() => { setOuverte(null); setVolet({ corriger: p }); }} onFait={recharger} />}
                       </td></tr>
                     )}
@@ -105,7 +111,8 @@ export default function Departs() {
 }
 
 /** Qui s'occupe de la prestation : nous (courtage, un dossier), ou l'assureur directement (comparaison). */
-function PriseEnCharge({ p, role, onDemander }: { p: Prestation; role: string; onDemander: () => void }) {
+function PriseEnCharge({ p, role, onDemander, onOrienter }:
+  { p: Prestation; role: string; onDemander: () => void; onOrienter: () => void }) {
   if (p.motif !== "retraite") return null;
   if (p.dossier) {
     return <p>Prise en charge : <EtatDossier statut={p.dossier.statut} />{p.dossier.numero && <> · {p.dossier.numero}</>}{" "}
@@ -116,27 +123,20 @@ function PriseEnCharge({ p, role, onDemander }: { p: Prestation; role: string; o
       ? <div className="actions"><button className="principal" onClick={onDemander}>Demander la prise en charge</button></div>
       : <p className="discret">En courtage : l'entreprise ouvre le dossier de prise en charge, le conseiller le vérifie et le transmet.</p>;
   }
-  return <p className="discret">Au jour de ce départ, le service était la comparaison : la prise en charge se demande
-    directement à votre assureur. Aucune identité n'est recueillie ici.</p>;
+  return (
+    <div>
+      <p className="discret">Au jour de ce départ, le service était la comparaison : la prise en charge se demande
+        directement à votre assureur. Aucune identité n'est recueillie ici.</p>
+      <div className="actions"><button className="principal" onClick={onOrienter}>
+        {p.part_fonds_payee !== null ? "Revoir la demande à l'assureur" : "Préparer la demande à l'assureur"}</button></div>
+    </div>
+  );
 }
 
 function Pastilles({ constats }: { constats: Constat[] }) {
   if (!constats.length) return <span className="etat bien">RAS</span>;
   const graves = constats.filter((c) => c.niveau !== "informe").length;
   return <span className={`etat ${graves ? "attention" : "neutre"}`}>{constats.length} point{constats.length > 1 ? "s" : ""}</span>;
-}
-
-export function ExpliquerCalcul({ calcul, du, salaire }: { calcul: CalculPrestation; du: number; salaire: number }) {
-  if (!calcul.source) return <p>{calcul.raison}</p>;
-  return (
-    <p>
-      {String(calcul.anciennete).replace(".", ",")} ans d'ancienneté ouvrent droit à{" "}
-      <strong>{String(calcul.mois).replace(".", ",")} mois</strong> selon {calcul.source.libelle}
-      {calcul.source.categorie && calcul.source.categorie !== "*" ? ` (catégorie ${calcul.source.categorie})` : ""}
-      {calcul.plancher_applique ? ", au plancher de la convention" : ""} : {String(calcul.mois).replace(".", ",")} ×{" "}
-      {montant(salaire)} = <strong>{montant(du)}</strong>.
-    </p>
-  );
 }
 
 function Detail({ p }: { p: Prestation }) {

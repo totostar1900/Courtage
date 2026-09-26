@@ -48,7 +48,7 @@ l'indemnité de fin de carrière du salarié désigné ci-dessous.</p>
   <tr><td>Date d'embauche · date de départ</td><td class="n">{{ p.date_embauche | date_fr }} · {{ p.date_depart | date_fr }}</td></tr>
   <tr><td>Ancienneté</td><td class="n">{{ ("%.2f" % p.calcul.anciennete) | replace(".", ",") }} ans</td></tr>
   <tr><td>Salaire mensuel de référence</td><td class="n">{{ p.salaire_mensuel_reference | montant }}</td></tr>
-  <tr><td>Règle appliquée</td><td class="n">{{ p.calcul.source.libelle }}{% if p.calcul.plancher_applique %} (plancher de la convention){% endif %}</td></tr>
+  <tr><td>Règle appliquée</td><td style="text-align: right">{{ p.calcul.source.libelle }}{% if p.calcul.plancher_applique %} (plancher de la convention){% endif %}</td></tr>
   <tr><td>Indemnité due : {{ ("%g" % p.calcul.mois) | replace(".", ",") }} mois × {{ p.salaire_mensuel_reference | montant }}</td><td class="n">{{ p.du | montant }}</td></tr>
   {% if p.verse is not none %}<tr><td>Indemnité versée par l'entreprise</td><td class="n">{{ p.verse | montant }}</td></tr>{% endif %}
   <tr class="total"><td><strong>Montant demandé au fonds</strong></td><td class="n"><strong>{{ d.montant_demande | montant }}</strong></td></tr>

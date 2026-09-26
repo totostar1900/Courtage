@@ -346,3 +346,50 @@ describe("la prise en charge", () => {
     expect(screen.getByText(/seront effacées le 10\/03\/2027/)).toBeInTheDocument();
   });
 });
+
+describe("en comparaison, l'orientation vers l'assureur", () => {
+  const calcul = { anciennete: 20, mois: 7.25, plancher_applique: false,
+                   source: { type: "convention" as const, convention_code: "CI_CCI", libelle: "la CCI" } };
+  const p = { id: "p1", matricule: "A-017", categorie: null, motif: "retraite", date_naissance: null, date_embauche: "2000-01-01",
+    date_depart: "2020-01-01", salaire_mensuel_reference: 500000, du: 3625000, calcul, verse: 3625000, part_fonds_demandee: null,
+    part_fonds_payee: null, payee_le: null, soldee: false, origine: "saisie", import_id: null, note: null, remplace_id: null,
+    motif_correction: null, service: "comparaison", constats: [], dossier: null };
+  const orientationB = { prestation_id: "p1", service: "comparaison", qui_s_en_occupe: "entreprise", assureur: "Assureur B",
+    numero_police: "IFC-B-12", date_effet_police: null, du: 3625000, verse: 3625000, montant_a_demander: 3625000, calcul,
+    delai_jours: 30, delai_exige: false, message: "Adressez la demande à Assureur B.",
+    pieces: [{ nature: "courrier_demande", libelle: "La demande de l'entreprise", detail: "Un courrier signé." },
+             { nature: "fiche_de_calcul", libelle: "La fiche de calcul de la plateforme", detail: "Scellée." }] };
+  const base = () => ({ ...dossier("admin_client"),
+    [`/organisations/${ORG}/prestations`]: { prestations: [p], totaux: { nombre: 1, retraites: 1, autres_departs: 0, du: 3625000, verse: 3625000, part_fonds_payee: 0 } },
+    [`/organisations/${ORG}/contrats`]: { service: "comparaison", en_vigueur: null, historique: [], constats: [] },
+    [`/organisations/${ORG}/prestations/p1/orientation`]: orientationB });
+
+  it("dit à qui, combien, avec quelles pièces, puis reçoit le paiement déclaré", async () => {
+    const appels = simulerApi({ ...base(), [`POST /organisations/${ORG}/prestations/p1/paiement`]: { ...p, part_fonds_payee: 3500000 } });
+    ouvrir(`/dossier/${ORG}/departs`);
+    await userEvent.click(await screen.findByText("A-017"));
+    await userEvent.click(screen.getByRole("button", { name: "Préparer la demande à l'assureur" }));
+    expect(await screen.findByText("Adressez la demande à Assureur B.")).toBeInTheDocument();
+    expect(screen.getByText("Assureur B")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Télécharger la fiche scellée" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: /La demande de l'entreprise/ }));
+    expect(screen.getByText(/1\/2 prêtes/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Payé par l'assureur (F)"), "3500000");
+    await userEvent.type(screen.getByLabelText("Payé le"), "2020-03-01");
+    await userEvent.click(screen.getByRole("button", { name: "Déclarer le paiement" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/paiement"))).toBe(true));
+    const corps = JSON.parse(appels.find((a) => a.chemin.endsWith("/paiement"))!.init!.body as string);
+    expect(corps).toEqual({ part_fonds_demandee: 3625000, part_fonds_payee: 3500000, payee_le: "2020-03-01" });
+  });
+
+  it("en lecture, l'orientation se lit sans déclarer ni télécharger", async () => {
+    simulerApi({ ...base(), ...dossier("lecteur_client") , [`/organisations/${ORG}/prestations`]: base()[`/organisations/${ORG}/prestations`],
+      [`/organisations/${ORG}/contrats`]: base()[`/organisations/${ORG}/contrats`], [`/organisations/${ORG}/prestations/p1/orientation`]: orientationB });
+    ouvrir(`/dossier/${ORG}/departs`);
+    await userEvent.click(await screen.findByText("A-017"));
+    await userEvent.click(screen.getByRole("button", { name: "Préparer la demande à l'assureur" }));
+    expect(await screen.findByText("Adressez la demande à Assureur B.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Déclarer le paiement" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Télécharger la fiche scellée" })).not.toBeInTheDocument();
+  });
+});

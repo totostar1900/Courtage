@@ -204,3 +204,13 @@ jamais d'identité dedans, pas même le matricule. Les étapes sont des lignes
 constaté s'inscrit sur la prestation par une ligne de correction. Aucune liste ne
 porte l'identité, et un `lecteur_client` ne la lit jamais.
 
+## Orientation (comparaison)
+
+`services/orientation.py`. Hors courtage, la plateforme **oriente et ne recueille
+rien** : l'assureur et la police du contrat au jour du départ, le montant à demander,
+le délai attendu, les pièces d'usage (une aide, pas une liste officielle), et une
+**fiche de calcul scellée** `FC-…`, sans identité, rangée dans `documents`
+(`prestation_id`, migration 0012). Ce que l'assureur a payé se déclare ensuite
+(`prestations.declarer_paiement`, une ligne de correction). Si un dossier de
+courtage porte le départ, c'est ce dossier qui écrit son paiement.
+

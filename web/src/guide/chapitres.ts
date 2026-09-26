@@ -160,8 +160,13 @@ export const CHAPITRES: Chapitre[] = [
         "Passé le délai de paiement exigé au cahier des charges (30 jours sinon), le retard de l'assureur est signalé.",
         "L'identité et les pièces sont effacées douze mois après le paiement. Le numéro du dossier se vérifie toujours : son sceau public ne porte aucune donnée personnelle.",
         "En comparaison, il n'y a pas de dossier ici : la prise en charge se demande directement à votre assureur." ] },
+      { titre: "La demande à l'assureur, en comparaison", texte: [
+        "Sur un départ en retraite, « Préparer la demande à l'assureur » dit à qui s'adresser (l'assureur et la police de votre contrat), le montant à demander — le versé, s'il est sous le dû — et le délai de paiement à attendre.",
+        "La liste des pièces que les assureurs demandent d'ordinaire se coche au fil de la préparation ; elle vous aide et ne s'enregistre pas.",
+        "La fiche de calcul de la plateforme est un PDF scellé (numéro FC-…), sans aucune donnée personnelle : joignez-la, l'assureur vérifie en ligne qu'elle n'a pas été retouchée.",
+        "Une fois payé, déclarez le montant et la date : sans nom, cela suffit pour que vos rapports tiennent compte du départ." ] },
     ],
-    termes: ["turnover", "fonds", "prise_en_charge", "courtage"],
+    termes: ["turnover", "fonds", "prise_en_charge", "courtage", "comparaison"],
   },
   {
     id: "comprendre", groupe: "Comprendre", titre: "Comment se calcule l'engagement",

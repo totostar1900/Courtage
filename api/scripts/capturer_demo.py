@@ -32,6 +32,12 @@ V1 = "/api/v1"
 MOT_DE_PASSE = "demo-statique"
 
 
+def _pages(pdf: bytes) -> list[str]:
+    with pymupdf.open(stream=pdf, filetype="pdf") as doc:
+        return ["data:image/jpeg;base64," + base64.b64encode(p.get_pixmap(dpi=90).tobytes("jpeg", 80)).decode()
+                for p in doc]
+
+
 def main(url: str, sortie: Path) -> None:
     proprio = create_engine(url)
     with proprio.begin() as c:
@@ -66,6 +72,10 @@ def main(url: str, sortie: Path) -> None:
     ok(client.post(f"{V1}/organisations/{org}/remuneration", headers=h("conseiller"), json={
         "en_vigueur_du": "2025-01-01", "mode": "mixte", "honoraires_etude_ifc": 900_000,
         "honoraires_par_salarie": 2_500, "commission_bps": 800}))
+    # Avant le mandat, l'entreprise traitait seule avec son assureur : les départs d'avant 2025 relèvent de la comparaison.
+    ok(client.post(f"{V1}/organisations/{org}/contrats", headers=h("conseiller"), json={
+        "en_vigueur_du": "2020-01-01", "service": "comparaison", "assureur": "Assureur B (fictif)",
+        "numero_police": "IFC-B-2020-17", "date_effet_police": "2020-01-01"}))
     ok(client.post(f"{V1}/organisations/{org}/contrats", headers=h("conseiller"), json={
         "en_vigueur_du": "2025-01-01", "service": "courtage", "assureur": "Assureur A (fictif)",
         "numero_police": "IFC-2025-0042", "date_effet_police": "2025-01-01",
@@ -171,6 +181,12 @@ def main(url: str, sortie: Path) -> None:
             {"nom": "Assureur B", "taux_garanti": 0.02, "participation_benefices": 0.9, "frais_sur_cotisations": 0.02,
              "frais_sur_encours": 0.005}]})
 
+    # L'orientation (comparaison) et la fiche de calcul scellée de chaque départ en retraite d'avant le mandat.
+    fiches_de_calcul = []
+    for p in reponses[f"GET {base}/prestations"]["prestations"]:
+        if p["motif"] == "retraite" and p["service"] == "comparaison":
+            capter(f"{base}/prestations/{p['id']}/orientation")
+            fiches_de_calcul.append(f"{base}/prestations/{p['id']}/fiche-de-calcul")
     documents = {}
     rapport = reponses[f"GET {base}/etudes/{etude['id']}"]["rapport"]["numero"]
     for numero, chemin in ((rapport, f"{base}/etudes/{etude['id']}/rapport"),
@@ -179,9 +195,11 @@ def main(url: str, sortie: Path) -> None:
                             f"{base}/dossiers/{dossier['id']}/document")):
         capter(f"/verifier/{numero}")
         pdf = client.get(f"{V1}{chemin}", headers=h("drh")).content
-        with pymupdf.open(stream=pdf, filetype="pdf") as doc:
-            documents[chemin] = ["data:image/jpeg;base64," + base64.b64encode(p.get_pixmap(dpi=90).tobytes("jpeg", 80)).decode()
-                                 for p in doc]
+        documents[chemin] = _pages(pdf)
+    for chemin in fiches_de_calcul:
+        r = client.get(f"{V1}{chemin}", headers=h("drh"))
+        documents[chemin] = _pages(r.content)
+        capter(f"/verifier/{r.headers['x-numero-document']}")
 
     sortie.mkdir(parents=True, exist_ok=True)
     (sortie / "donnees.json").write_text(json.dumps({"organisation": org, "reponses": reponses}, ensure_ascii=False), "utf-8")

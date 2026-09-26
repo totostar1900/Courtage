@@ -198,3 +198,6 @@ button.lien { background: none; border: none; padding: 0; color: var(--indigo-vi
 .visite-bulle .actions button { padding: 8px 12px; white-space: nowrap; }
 .etapes-dossier { margin: 0; padding-left: 20px; }
 .etapes-dossier li { margin-bottom: 6px; }
+.liste-pieces { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.liste-pieces li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.liste-pieces label { display: flex; gap: 10px; font-weight: 400; color: var(--encre); }

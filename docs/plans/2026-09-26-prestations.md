@@ -25,7 +25,10 @@ Commit : `feat(prestations): enregistrer un départ, reprendre l'historique`
 Commit : `feat(prestations): dossier de prise en charge en courtage`
 
 ## P4 — Comparaison : l'orientation
-- [ ] Écran « Un salarié part » : assureur, police, pièces habituelles, montant dû calculé ; déclaration anonyme facultative de ce que l'assureur a payé.
+- [x] `GET /prestations/{id}/orientation` : à qui (assureur et police du contrat en vigueur au départ, ou « non enregistré »), combien (le plus petit du dû et du versé), sous quel délai (cahier des charges, 30 jours sinon), avec quelles pièces (liste d'usage, qui ne s'enregistre pas) ; en courtage, renvoie au dossier.
+- [x] Fiche de calcul scellée `FC-…` (migration 0012 : `documents.prestation_id`, préfixe admis par `sceaux`), sans identité, une par ligne ; numéro dans l'en-tête `X-Numero-Document`.
+- [x] `POST /prestations/{id}/paiement` : l'entreprise déclare ce que l'assureur a payé (ligne de correction ; refusé si un dossier de courtage porte le départ, ou avant le départ).
+- [x] Écran « Préparer la demande à l'assureur » sur un départ en comparaison ; guide ; démonstration (comparaison chez un assureur B fictif avant le mandat de 2025).
 Commit : `feat(prestations): orientation vers l'assureur en comparaison`
 
 ## P5 — Les rapports lisent l'expérience
