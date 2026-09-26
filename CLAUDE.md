@@ -24,6 +24,23 @@ commit par tâche avec le message du plan.
 - Le moteur (`courtage.actuariat`) est pur : pas de base, pas de date du jour.
 - Aucun nom de salarié n'est lu ni stocké.
 
+## Modules
+
+```
+api/src/courtage/
+  actuariat/     moteur IFC, pur
+  referentiel/   barèmes datés et sourcés, tables ; règle d'émission (motifs_de_refus)
+    donnees/     un fichier JSON par version de barème ; jamais modifié, une nouvelle version s'ajoute
+  fichier/       lecture du fichier du personnel et contrôles (bloquant | avertissement)
+```
+
+Un barème nouveau ou révisé : un nouveau fichier `convention_<pays>_<nom>_<année>.json`
+avec `en_vigueur_du`, et `en_vigueur_au` posé sur la version précédente. Le
+chargement refuse deux versions qui se chevauchent. Un barème dont le texte
+n'a pas été relu reste `a_valider` : il calcule, il ne sort pas.
+
+Décisions de produit : `docs/decisions.md`.
+
 ## Références de test
 
 Le cas AZITO au 31/12/2019 (`api/tests/fixtures/azito_2019.json`) doit
