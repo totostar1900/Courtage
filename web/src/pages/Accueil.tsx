@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge, Volet } from "../composants/communs";
+import { ilYa, lireReprise } from "../reprise";
 import type { Moi } from "../types";
 
 const ROLES = { admin_client: "Votre entreprise", lecteur_client: "En lecture", conseiller: "Vous conseillez" };
@@ -23,6 +24,7 @@ export default function Accueil() {
         )}
       </div>
       <Erreur erreur={erreur} />
+      {moi && <Reprendre moi={moi} />}
       {ouvrir && <NouveauDossier onFermer={() => setOuvrir(false)} />}
       {moi && moi.organisations.length === 0 && (
         <p>Aucun dossier pour l'instant.{moi.admin_plateforme
@@ -37,6 +39,22 @@ export default function Accueil() {
         ))}
       </div>
     </>
+  );
+}
+
+/** La dernière page ouverte, si son dossier est toujours le vôtre : un clic pour y revenir. */
+function Reprendre({ moi }: { moi: Moi }) {
+  const reprise = lireReprise(moi.id);
+  const org = reprise && moi.organisations.find((o) => o.id === reprise.org);
+  if (!reprise || !org) return null;
+  return (
+    <section className="carte reprendre section" aria-label="Reprendre où vous en étiez">
+      <div>
+        <div className="discret">Reprendre où vous en étiez · {ilYa(reprise.quand)}</div>
+        <strong>{[org.nom, ...reprise.pages].join(" › ")}</strong>
+      </div>
+      <Link to={reprise.chemin} className="bouton principal">Reprendre</Link>
+    </section>
   );
 }
 

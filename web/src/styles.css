@@ -294,3 +294,12 @@ kbd { font: 600 11px/1 var(--texte); border: 1px solid var(--trait); border-bott
 .palette li.vide { color: var(--discret); cursor: default; }
 .palette-pied { border-top: 1px solid var(--trait); padding: 8px 14px; font-size: 12px; color: var(--discret);
   display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* Reprendre où l'on s'était arrêté : la première chose de « Vos dossiers ». */
+.reprendre { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px;
+  border-left: 3px solid var(--indigo-vif); margin-bottom: 20px; }
+.reprendre strong { display: block; margin-top: 2px; }
+a.bouton { display: inline-block; text-decoration: none; font-weight: 600; padding: 9px 16px; border-radius: 10px;
+  border: 1px solid var(--trait); background: var(--surface); color: var(--encre); }
+a.bouton.principal { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+a.bouton.principal:hover { background: var(--indigo-vif); }

@@ -43,6 +43,10 @@ export const CHAPITRES: Chapitre[] = [
       { titre: "Je ne reçois rien", texte: [
         "Votre numéro doit avoir été inscrit par votre conseiller. Pour des raisons de confidentialité, la plateforme répond de la même façon qu'il soit inscrit ou non.",
         "Vérifiez l'indicatif : un numéro camerounais peut se saisir sans +237." ] },
+      { titre: "Reprendre où vous en étiez", texte: [
+        "« Vos dossiers » propose de reprendre la dernière page que vous avez ouverte dans un dossier (une étude, votre régime…), avec le temps écoulé : un clic, et vous y êtes.",
+        "Ce souvenir reste dans ce navigateur, pour vous seul ; un dossier que vous ne suivez plus n'est pas proposé.",
+        "Pour aller ailleurs sans chercher dans les menus : Ctrl+K (⌘K sur Mac), ou « Aller à… » sous le nom du dossier." ] },
     ],
   },
   {

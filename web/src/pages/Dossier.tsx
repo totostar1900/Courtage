@@ -1,12 +1,13 @@
-import { createContext, useContext } from "react";
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { createContext, useContext, useEffect } from "react";
+import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
-import { BoutonAller, FilAriane, PaletteAller } from "../composants/Navigation";
+import { BoutonAller, FilAriane, niveauxDe, PaletteAller } from "../composants/Navigation";
 import Visite, { lancerVisite } from "../composants/Visite";
 import { VISITE_DOSSIER } from "../guide/visite";
 import { etapes, type EtatDossier } from "../parcours";
+import { noterReprise } from "../reprise";
 import type { EtudeResume, Fiche, Fichier, Moi, Regime, Role } from "../types";
 
 interface Membre { id: string; nom: string; email: string | null; telephone: string | null; role: Role }
@@ -51,8 +52,16 @@ export default function Dossier() {
       etudesBrouillon: etudes.filter((e) => e.statut === "brouillon").length,
       fiches: fiches.length,
     };
-    return { org: o, role: o.role, fichiers, regimes, etudes, fiches, equipe, etat };
+    return { org: o, role: o.role, fichiers, regimes, etudes, fiches, equipe, etat, moiId: moi.id };
   }, [org]);
+
+  const { pathname } = useLocation();
+  // Chaque page ouverte devient l'endroit où reprendre (« Vos dossiers » le proposera à la prochaine visite).
+  useEffect(() => {
+    if (!donnee) return;
+    noterReprise(donnee.moiId, { org: donnee.org.id, chemin: pathname, quand: Date.now(),
+                                 pages: niveauxDe(pathname, donnee).slice(2).map((n) => n.libelle) });
+  }, [donnee, pathname]);
 
   if (erreur) return <Erreur erreur={erreur} />;
   if (!donnee) return <p className="discret">Chargement du dossier…</p>;
