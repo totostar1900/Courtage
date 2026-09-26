@@ -3,9 +3,10 @@
 TDD, une tâche par commit, tests d'abord.
 
 ## P1 — Contrats suivis et service
-- [ ] Migration 0009 `contrats` (assureur, police, date d'effet, service `courtage|comparaison`, référence du mandat), RLS, versions datées.
-- [ ] `service_a_la_date(organisation, jour)` : comparaison par défaut sans contrat.
-- [ ] Routes `GET/POST /organisations/{id}/contrats` (conseiller) ; écran « Contrat » ; signal commission sans courtage.
+- [x] Migration 0009 `contrats` (assureur, police, date d'effet, service `courtage|comparaison`, référence du mandat), RLS, SELECT/INSERT seulement pour le rôle applicatif ; un courtage sans assureur ni mandat est refusé (service `mandat_requis`, et contrainte en base).
+- [x] `contrats.service_a_la_date(session, jour)` : comparaison par défaut sans contrat.
+- [x] `GET /organisations/{id}/contrats` (tous) et `POST` (conseiller) ; écran « Contrat » ; constat `commission_sans_mandat` quand la rémunération prévoit une commission hors courtage.
+- [x] Guide : chapitre « Courtage ou comparaison », trois mots au glossaire, une astuce ; la démonstration porte un courtage.
 Commit : `feat(contrats): service de courtage ou de comparaison, daté`
 
 ## P2 — La prestation anonyme

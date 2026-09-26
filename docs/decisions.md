@@ -23,3 +23,4 @@ jamais en réécrivant l'ancienne.
 | 2026-09-26 | Valeur propre de l'assureur : rendement, sinistres (et, aujourd'hui, actuariat et reporting) ; la plateforme accompagne tout le processus IFC et prend les régimes existants tels quels | spec régime IFC §2 |
 | 2026-09-26 | Connexion par code reçu au téléphone, intégrée (pas de service géré) ; fournisseur d'envoi interchangeable | WhatsApp/SMS au Cameroun ; identité dans notre base |
 | 2026-09-26 | Une image, une origine : l'API sert l'interface ; la base est PROUVÉE au démarrage (sept contrôles), pas supposée | un « migrations appliquées » ne dit rien de l'état réel ; un cookie sur un seul domaine |
+| 2026-09-26 | Deux services : courtage (la plateforme porte les prestations) et comparaison (le client traite avec son assureur) ; le service est daté, sur un contrat suivi | qui collecte une identité dépend du mandat, pas de la rémunération |

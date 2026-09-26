@@ -168,3 +168,14 @@ n'y figure. `/guide/conventions-preremplies` lit `GET /api/v1/referentiel/conven
 pas, et une étape de visite dont le code ne pose pas la cible. Un panneau qui s'ouvre
 sur une page est un `Volet` (croix en haut, voir `communs.tsx`).
 
+## Contrats : courtage ou comparaison
+
+`services/contrats.py`, table `contrats` (migration 0009). Le service rendu est un fait
+daté, jamais modifié. Un nouveau contrat prend effet à sa date. **Sans contrat, le
+client est en comparaison** : la plateforme ne suppose jamais un mandat. Une
+prestation relève du service en vigueur à la date du départ
+(`service_a_la_date`), et seule une prestation en courtage pourra collecter une
+identité (spec `2026-09-26-prestations-ifc-design.md`). Le service se lit sur le
+contrat, **jamais sur la rémunération** : une commission hors courtage est un constat
+(`commission_sans_mandat`), pas une correction.
+

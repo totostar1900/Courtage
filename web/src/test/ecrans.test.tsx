@@ -161,3 +161,47 @@ describe("la vérification publique", () => {
     expect(await screen.findByText(/Non authentique/)).toBeInTheDocument();
   });
 });
+
+describe("le contrat : courtage ou comparaison", () => {
+  const vide = { service: "comparaison", en_vigueur: null, historique: [], constats: [] };
+
+  it("sans contrat, l'entreprise lit qu'elle est en comparaison et traite avec son assureur", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/contrats`]: vide });
+    ouvrir(`/dossier/${ORG}/contrat`);
+    expect(await screen.findByRole("heading", { name: "Comparaison" })).toBeInTheDocument();
+    expect(screen.getByText("par défaut : aucun contrat enregistré")).toBeInTheDocument();
+    expect(screen.getByText(/Vous vous adressez directement à votre assureur/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Enregistrer un contrat" })).not.toBeInTheDocument();
+  });
+
+  it("le conseiller enregistre un courtage : le mandat est exigé, et seulement là", async () => {
+    const appels = simulerApi({ ...dossier("conseiller"), [`/organisations/${ORG}/contrats`]: {
+      ...vide, constats: [{ niveau: "avertit", code: "commission_sans_mandat", message: "Commission sans mandat." }] } });
+    ouvrir(`/dossier/${ORG}/contrat`);
+    expect(await screen.findByText("Commission sans mandat.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer un contrat" }));
+    expect(screen.getByLabelText("Référence du mandat")).toBeRequired();
+    await userEvent.selectOptions(screen.getByLabelText("Service"), "comparaison");
+    expect(screen.queryByLabelText("Référence du mandat")).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Service"), "courtage");
+    await userEvent.type(screen.getByLabelText("À partir du"), "2026-01-01");
+    await userEvent.type(screen.getByLabelText("Assureur"), "Assureur A");
+    await userEvent.type(screen.getByLabelText("Référence du mandat"), "Mandat du 15/12/2025");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    const corps = JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string);
+    expect(corps).toMatchObject({ service: "courtage", assureur: "Assureur A", mandat_reference: "Mandat du 15/12/2025",
+                                  en_vigueur_du: "2026-01-01", numero_police: null });
+  });
+
+  it("en courtage, l'entreprise lit que nous portons ses prestations", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/contrats`]: { ...vide, service: "courtage",
+      en_vigueur: { id: "c1", en_vigueur_du: "2026-01-01", service: "courtage", assureur: "Assureur A", numero_police: "IFC-42",
+                    date_effet_police: null, mandat_reference: "Mandat du 15/12/2025", note: null } } });
+    ouvrir(`/dossier/${ORG}/contrat`);
+    expect(await screen.findByRole("heading", { name: "Courtage" })).toBeInTheDocument();
+    expect(screen.getByText("depuis le 01/01/2026")).toBeInTheDocument();
+    expect(screen.getByText(/nous montons le dossier de prise en charge/)).toBeInTheDocument();
+    expect(screen.getByText("Assureur A")).toBeInTheDocument();
+  });
+});

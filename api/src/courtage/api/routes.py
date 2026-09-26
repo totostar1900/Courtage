@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import analyse, etudes, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import analyse, contrats, etudes, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -152,6 +152,35 @@ def lire_remuneration(a: Acces = Depends(acces(*TOUS))):
     return {
         "en_vigueur": remuneration.en_clair(courantes) if courantes else None,
         "historique": [remuneration.en_clair(c) for c in remuneration.historique(a.session)],
+    }
+
+
+# --- Contrats : courtage ou comparaison --------------------------------------------
+
+class NouveauContrat(_Corps):
+    en_vigueur_du: date
+    service: Literal["courtage", "comparaison"]
+    assureur: str | None = Field(default=None, max_length=200)
+    numero_police: str | None = Field(default=None, max_length=100)
+    date_effet_police: date | None = None
+    mandat_reference: str | None = Field(default=None, max_length=300)
+    note: str | None = Field(default=None, max_length=2000)
+
+
+@routeur.post("/organisations/{organisation_id}/contrats", status_code=201)
+def enregistrer_contrat(corps: NouveauContrat, a: Acces = Depends(acces(*CONSEIL))):
+    return contrats.en_clair(contrats.enregistrer(a.session, a.organisation.id, a.utilisateur.id, **corps.model_dump()))
+
+
+@routeur.get("/organisations/{organisation_id}/contrats")
+def lire_contrats(a: Acces = Depends(acces(*TOUS))):
+    aujourd_hui = date.today()
+    courant = contrats.service_a_la_date(a.session, aujourd_hui)
+    return {
+        "service": courant.service,
+        "en_vigueur": contrats.en_clair(courant.contrat) if courant.contrat else None,
+        "historique": [contrats.en_clair(c) for c in contrats.historique(a.session)],
+        "constats": contrats.constats(a.session, aujourd_hui),
     }
 
 

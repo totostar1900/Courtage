@@ -6,6 +6,7 @@ import Visionneuse from "./composants/Visionneuse";
 import Accueil from "./pages/Accueil";
 import Cahier from "./pages/Cahier";
 import Connexion from "./pages/Connexion";
+import Contrat from "./pages/Contrat";
 import Dossier from "./pages/Dossier";
 import EtudeDetail from "./pages/EtudeDetail";
 import Etudes from "./pages/Etudes";
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="financement" element={<Financement />} />
             <Route path="cahier" element={<Cahier />} />
             <Route path="remuneration" element={<Remuneration />} />
+            <Route path="contrat" element={<Contrat />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

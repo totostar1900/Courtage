@@ -168,3 +168,21 @@ export interface Fiche {
   date_limite_reponse: string;
   emise_le: string;
 }
+
+export interface Contrat {
+  id: string;
+  en_vigueur_du: string;
+  service: "courtage" | "comparaison";
+  assureur: string | null;
+  numero_police: string | null;
+  date_effet_police: string | null;
+  mandat_reference: string | null;
+  note: string | null;
+}
+
+export interface ContratsDossier {
+  service: "courtage" | "comparaison";
+  en_vigueur: Contrat | null;
+  historique: Contrat[];
+  constats: Constat[];
+}

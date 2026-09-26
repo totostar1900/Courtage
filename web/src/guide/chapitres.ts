@@ -124,6 +124,23 @@ export const CHAPITRES: Chapitre[] = [
     termes: ["cahier", "anonymat"],
   },
   {
+    id: "contrat", groupe: "Le parcours", titre: "Courtage ou comparaison", ecran: "contrat",
+    resume: "Deux services ; le vôtre décide qui s'occupe d'une prestation quand un salarié part.",
+    sections: [
+      { titre: "Deux services", texte: [
+        "En courtage, la plateforme est votre courtier : vous l'avez mandatée, elle place le contrat, puis porte vos prestations auprès de l'assureur.",
+        "En comparaison, elle a éclairé votre choix ; vous avez signé directement avec l'assureur et vous traitez avec lui.",
+        "Le service se lit sur l'écran « Contrat » : il est daté, et un changement de service prend effet à sa date sans effacer l'ancien." ] },
+      { titre: "Quand un salarié part", texte: [
+        "En courtage : vous déclarez le départ, nous montons le dossier, le transmettons et suivons le paiement. Pour ce dossier seulement, nous recueillons l'identité du bénéficiaire.",
+        "En comparaison : vous vous adressez à votre assureur ; nous vous disons à qui, avec quelles pièces, et le montant dû. Nous ne demandons jamais d'identité.",
+        "Dans les deux cas, vous pouvez enregistrer le départ sans nom, pour que vos rapports tiennent compte de l'expérience réelle." ] },
+      { titre: "Sans contrat enregistré", texte: [
+        "Vous êtes en comparaison : la plateforme ne suppose jamais un mandat qu'elle n'a pas. Une commission prévue sans mandat est signalée à votre conseiller." ] },
+    ],
+    termes: ["courtage", "comparaison", "mandat"],
+  },
+  {
     id: "comprendre", groupe: "Comprendre", titre: "Comment se calcule l'engagement",
     resume: "La méthode prospective, pas à pas, sur un salarié.",
     sections: [

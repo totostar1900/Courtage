@@ -68,7 +68,7 @@ def test_l_adresse_de_l_hebergeur(donnee, attendue):
 def test_la_sonde_lit_la_revision_dans_la_base(bases):
     r = TestClient(creer_app(moteur=bases[1])).get(f"{V1}/sante")
     assert r.status_code == 200
-    assert r.json()["statut"] == "ok" and r.json()["migration"] == revision_attendue() == "0008_sante"
+    assert r.json()["statut"] == "ok" and r.json()["migration"] == revision_attendue()
 
 
 def test_une_base_injoignable_repond_503():

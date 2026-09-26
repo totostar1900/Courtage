@@ -63,6 +63,10 @@ def main(url: str, sortie: Path) -> None:
     ok(client.post(f"{V1}/organisations/{org}/remuneration", headers=h("conseiller"), json={
         "en_vigueur_du": "2025-01-01", "mode": "mixte", "honoraires_etude_ifc": 900_000,
         "honoraires_par_salarie": 2_500, "commission_bps": 800}))
+    ok(client.post(f"{V1}/organisations/{org}/contrats", headers=h("conseiller"), json={
+        "en_vigueur_du": "2025-01-01", "service": "courtage", "assureur": "Assureur A (fictif)",
+        "numero_police": "IFC-2025-0042", "date_effet_police": "2025-01-01",
+        "mandat_reference": "Mandat de courtage du 12/12/2024"}))
     fichier = ok(client.post(f"{V1}/organisations/{org}/fichiers", headers=h("drh"),
                              files={"fichier": ("personnel-2025.xlsx", personnel())},
                              data={"date_donnees": "2025-12-31"}))
@@ -119,7 +123,7 @@ def main(url: str, sortie: Path) -> None:
     for qui in ("drh", "conseiller"):
         capter("/moi", qui=qui, cle=f"GET /moi@{ids[qui]}")
     base = f"/organisations/{org}"
-    for chemin in ("/fichiers", "/regimes", "/etudes", "/fiches", "/equipe", "/remuneration",
+    for chemin in ("/fichiers", "/regimes", "/etudes", "/fiches", "/equipe", "/remuneration", "/contrats",
                    f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}"):
         capter(base + chemin)
     for v in (version["id"], projet["id"]):

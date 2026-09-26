@@ -32,6 +32,7 @@ Fondement = ENUM("accord_entreprise", "contrat_travail", "usage", "decision_dire
                  name="fondement_bareme", create_type=False)
 StatutBareme = ENUM("propose", "valide", name="statut_bareme", create_type=False)
 ModeRemuneration = ENUM("honoraires", "commission", "mixte", name="mode_remuneration", create_type=False)
+ServiceContrat = ENUM("courtage", "comparaison", name="service_contrat", create_type=False)
 
 
 class Organisation(Base):
@@ -109,6 +110,22 @@ class ConditionsRemuneration(Base):
     honoraires_etude_ifc: Mapped[int] = mapped_column(BigInteger)
     honoraires_par_salarie: Mapped[int] = mapped_column(BigInteger)
     commission_bps: Mapped[int] = mapped_column(Integer)
+    note: Mapped[str | None] = mapped_column(Text)
+    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class Contrat(Base):
+    """Le service rendu au client à partir d'une date : courtage (mandat) ou comparaison."""
+    __tablename__ = "contrats"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    en_vigueur_du: Mapped[date] = mapped_column(Date)
+    service: Mapped[str] = mapped_column(ServiceContrat)
+    assureur: Mapped[str | None] = mapped_column(Text)
+    numero_police: Mapped[str | None] = mapped_column(Text)
+    date_effet_police: Mapped[date | None] = mapped_column(Date)
+    mandat_reference: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
     cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())

@@ -13,6 +13,7 @@ export const ASTUCES: Astuce[] = [
   { texte: "Un régime peut différer par catégorie : les cadres peuvent avoir un barème plus généreux que le reste du personnel.", chapitre: "regime" },
   { texte: "La provision interne n'a aucun frais, mais aucun rendement : trois départs la même année se paient sur la trésorerie du moment.", chapitre: "financer" },
   { texte: "Dans le cahier des charges, aucune ligne ne décrit moins de trois salariés : un assureur ne peut reconnaître personne.", chapitre: "cahier" },
+  { texte: "En courtage, nous portons vos prestations auprès de l'assureur ; en comparaison, vous traitez directement avec lui. L'écran « Contrat » dit lequel s'applique.", chapitre: "contrat" },
   { texte: "La date d'évaluation est toujours une fin de mois : c'est votre date de clôture, celle du bilan.", chapitre: "etude" },
   { texte: "Une convention révisée ne remplace pas l'ancienne : une étude de 2023 garde le barème de 2023.", chapitre: "conventions" },
 ];
