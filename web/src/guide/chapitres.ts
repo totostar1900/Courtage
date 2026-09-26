@@ -67,6 +67,10 @@ export const CHAPITRES: Chapitre[] = [
       { titre: "Faut-il un régime ?", texte: [
         "Non : sans régime, l'étude s'appuie sur la convention collective de votre branche. Décrivez un régime si vous versez plus (accord d'entreprise, usage, contrats).",
         "Un régime a des versions : une nouvelle version s'ajoute, l'ancienne reste, et une étude dit toujours sur quelle version elle repose." ] },
+      { titre: "Partir d'un modèle type", texte: [
+        "Pas encore de régime écrit ? « Partir d'un modèle type » propose quatre barèmes calculés depuis votre convention : le minimum conventionnel, la convention majorée de 25 %, les cadres favorisés (une fois et demie la convention), et un barème unique, un seul taux par année.",
+        "Chaque modèle est construit pour ne jamais passer sous la convention, à aucune ancienneté, et il ne vient d'aucune entreprise : c'est un point de départ, pas le régime d'un autre.",
+        "Vous le reprenez dans le formulaire, l'ajustez et l'enregistrez ; l'analyse habituelle suit, et c'est vous qui adoptez." ] },
       { titre: "Partir d'un texte existant", texte: [
         "Votre accord d'entreprise existe déjà ? « Partir d'un texte existant » lit le PDF et propose le barème de départ à la retraite, catégorie par catégorie, avec la date d'effet et la base de salaire.",
         "Chaque valeur proposée cite le passage d'où elle vient, et la plateforme vérifie que ce passage est bien dans le texte : « introuvable » veut dire qu'il faut relire cette valeur avant tout.",
