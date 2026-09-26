@@ -632,3 +632,38 @@ describe("les modèles types", () => {
     expect(await screen.findByText(/Pas encore de convention préremplie pour Gabon/)).toBeInTheDocument();
   });
 });
+
+describe("l'échéancier des départs", () => {
+  const avec = () => ({ ...etude({ possible: false, motifs: [] }), echeancier: [
+    { annee: 2021, effectif: 1, ifc: 3_000_000, prestations_probables: 2_900_000, vapf: 2_800_000 },
+    { annee: 2023, effectif: 2, ifc: 8_000_000, prestations_probables: 7_100_000, vapf: 6_000_000 }] });
+
+  it("chaque barre dit son année dans une bulle : départs, montants, part et cumul", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: avec() });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    const barre = await screen.findByRole("button", { name: /^2023 : 2 départs/ });
+    await userEvent.hover(barre);
+    const bulle = screen.getByRole("tooltip");
+    expect(within(bulle).getByText("2023")).toBeInTheDocument();
+    expect(within(bulle).getByText("2 départs à la retraite")).toBeInTheDocument();
+    expect(bulle).toHaveTextContent(/Prestations probables\s*7\s100\s000/);
+    expect(bulle).toHaveTextContent(/Si tous partent\s*8\s000\s000/);
+    expect(bulle).toHaveTextContent(/Valeur actuelle\s*6\s000\s000/);
+    expect(bulle).toHaveTextContent(/Part du total\s*71/);          // 7,1 sur 10 M
+    expect(bulle).toHaveTextContent(/Cumul depuis 2021\s*10\s000\s000/);
+    await userEvent.unhover(barre);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("une année sans départ le dit, et la bulle s'ouvre aussi d'un toucher ou au clavier", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: avec() });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    await userEvent.click(await screen.findByRole("button", { name: /^2022/ }));
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Aucun départ à la retraite prévu");
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    await userEvent.tab({ shift: true });                              // de 2022 à 2021, au clavier
+    expect(screen.getByRole("button", { name: /^2021/ })).toHaveFocus();
+    expect(screen.getByRole("tooltip")).toHaveTextContent("1 départ à la retraite");
+  });
+});

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 
 import { ErreurApi } from "../api";
 import type { Anomalie, Annee, Constat } from "../types";
-import { montant } from "../format";
+import { montant, pct } from "../format";
 import type { CleTerme } from "../guide/glossaire";
 import { Terme } from "./Terme";
 
@@ -89,8 +89,13 @@ export function Anomalies({ anomalies }: { anomalies: Anomalie[] }) {
   );
 }
 
-/** L'échéancier des départs : une barre par année, le montant au survol. */
+/** L'échéancier des départs : une barre par année ; au survol, au clavier ou d'un toucher, une bulle dit
+ *  l'année — départs, prestations probables, indemnité si tous partent, valeur actuelle, part et cumul. */
 export function Echeancier({ annees }: { annees: Annee[] }) {
+  const [actif, setActif] = useState<number | null>(null);
+  const graphique = useRef<HTMLDivElement>(null);
+  const [largeur, setLargeur] = useState(0);
+  useEffect(() => { if (actif !== null && graphique.current) setLargeur(graphique.current.clientWidth); }, [actif]);
   if (!annees.length) return null;
   // Une barre par année, départs ou non : l'axe du temps ne se comprime pas.
   const premiere = annees[0].annee;
@@ -98,18 +103,50 @@ export function Echeancier({ annees }: { annees: Annee[] }) {
   const par = new Map(annees.map((a) => [a.annee, a]));
   const toutes = Array.from({ length: derniere - premiere + 1 }, (_, i) =>
     par.get(premiere + i) ?? { annee: premiere + i, effectif: 0, ifc: 0, prestations_probables: 0, vapf: 0 });
-  const max = Math.max(...toutes.map((a) => a.prestations_probables ?? a.ifc), 1);
+  const probable = (a: Annee) => a.prestations_probables ?? a.ifc;
+  const max = Math.max(...toutes.map(probable), 1);
+  const total = toutes.reduce((t, a) => t + probable(a), 0) || 1;
+  const cumuls = toutes.reduce<number[]>((c, a) => [...c, (c.at(-1) ?? 0) + probable(a)], []);
+  const departs = (n: number) => `${n} départ${n > 1 ? "s" : ""} à la retraite`;
+  const a = actif === null ? null : toutes[actif];
+  // La bulle se pose au-dessus de sa barre, centrée sur elle sauf près d'un bord ; la flèche vise la barre.
+  const LARGEUR_BULLE = 270;
+  const centre = actif === null ? 0 : ((actif + 0.5) / toutes.length) * largeur;
+  const gauche = Math.min(Math.max(centre - LARGEUR_BULLE / 2, 0), Math.max(largeur - LARGEUR_BULLE, 0));
+  const hauteur = a ? (probable(a) / max) * 100 : 0;
   return (
-    <div>
-      <div className="barres" aria-label="Prestations probables par année">
-        {toutes.map((a) => {
-          const v = a.prestations_probables ?? a.ifc;
-          return (
-            <div key={a.annee} className="barre" style={{ height: `${(v / max) * 100}%` }}
-                 title={`${a.annee} : ${a.effectif} départ(s), ${montant(v)}`} />
-          );
-        })}
+    <div className="echeancier" onMouseLeave={() => setActif(null)}>
+      <div className="barres" ref={graphique} aria-label="Prestations probables par année">
+        {toutes.map((x, i) => (
+          <button key={x.annee} type="button" className={`barre${i === actif ? " active" : ""}`}
+                  style={{ height: `${(probable(x) / max) * 100}%` }}
+                  aria-label={`${x.annee} : ${x.effectif ? departs(x.effectif).replace(" à la retraite", "") : "aucun départ"}, ${montant(probable(x))}`}
+                  aria-describedby={i === actif ? "echeancier-bulle" : undefined}
+                  onMouseEnter={() => setActif(i)} onFocus={() => setActif(i)} onBlur={() => setActif(null)}
+                  onClick={() => setActif(i)} onKeyDown={(e) => e.key === "Escape" && setActif(null)} />
+        ))}
       </div>
+      {a && actif !== null && (
+        <div role="tooltip" id="echeancier-bulle" className="bulle-barre"
+             style={{ left: gauche, bottom: `${hauteur * 1.32 + 32}px`,
+                      ["--fleche" as string]: `${Math.min(Math.max(centre - gauche, 14), LARGEUR_BULLE - 14)}px` }}>
+          <strong>{a.annee}</strong>
+          {a.effectif === 0 ? <div>Aucun départ à la retraite prévu</div> : (
+            <>
+              <div>{departs(a.effectif)}</div>
+              <dl>
+                <dt>Prestations probables</dt><dd>{montant(probable(a))}</dd>
+                <dt>Si tous partent</dt><dd>{montant(a.ifc)}</dd>
+                <dt>Valeur actuelle</dt><dd>{montant(a.vapf)}</dd>
+                <dt>Part du total</dt><dd>{pct(probable(a) / total)}</dd>
+                <dt>Cumul depuis {premiere}</dt><dd>{montant(cumuls[actif])}</dd>
+              </dl>
+              <p className="discret">Probables : l'indemnité pondérée par la chance d'être en vie et encore dans
+                l'entreprise ce jour-là. Valeur actuelle : ce que ce versement futur vaut aujourd'hui.</p>
+            </>
+          )}
+        </div>
+      )}
       <div className="axe"><span>{premiere}</span><span>{derniere}</span></div>
     </div>
   );
