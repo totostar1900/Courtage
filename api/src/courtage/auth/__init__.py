@@ -7,9 +7,13 @@
   mêmes, et l'on ne peut pas deviner qui est client.
 - Une session : un jeton aléatoire, dont seule l'empreinte est gardée ; 30
   jours ; révocable. Le navigateur le reçoit dans un cookie HttpOnly.
+- Chaque demande et chaque essai laissent une ligne dans le journal
+  (`courtage.connexion`), le numéro masqué : l'exploitant, qui ne voit pas
+  l'écran, y lit pourquoi un code n'est pas venu ou n'a pas été accepté.
 """
 import hashlib
 import hmac
+import logging
 import secrets
 from datetime import timedelta
 
@@ -18,6 +22,8 @@ from sqlalchemy.orm import Session
 
 from courtage.db import CodeConnexion, SessionUtilisateur, Utilisateur
 from courtage.erreurs import ErreurMetier
+
+journal = logging.getLogger("courtage.connexion")
 
 DUREE_CODE = timedelta(minutes=10)
 ESSAIS = 5
@@ -30,17 +36,29 @@ MESSAGE = ("Courtage : votre code de connexion est {code}. Il expire dans 10 min
            "Ne le communiquez à personne, pas même à votre conseiller.")
 
 
+def masquer(telephone: str) -> str:
+    """Les trois derniers chiffres : assez pour reconnaître son numéro, pas pour le lire."""
+    return "•" * max(len(telephone) - 3, 0) + telephone[-3:]
+
+
 def demander_code(session: Session, telephone: str, expediteur, cle: bytes) -> None:
     recentes = session.scalar(select(func.count()).select_from(CodeConnexion).where(
         CodeConnexion.telephone == telephone, CodeConnexion.cree_le > func.now() - FENETRE_DEMANDES))
     if recentes >= LIMITE_DEMANDES:
+        journal.warning("[connexion] %s : limite atteinte (%d demandes en 15 min), aucun code — attendre un quart "
+                        "d'heure", masquer(telephone), LIMITE_DEMANDES)
         raise ErreurMetier("trop_de_demandes", "Trop de demandes pour ce numéro : réessayez dans un quart d'heure.", 429)
     code = f"{secrets.randbelow(10**6):06d}"
     session.add(CodeConnexion(telephone=telephone, code_hash=_hmac(cle, telephone, code), canal=expediteur.canal,
                               expire_le=func.now() + DUREE_CODE))
     session.flush()
-    if session.scalar(select(Utilisateur.id).where(Utilisateur.telephone == telephone)) is not None:
-        expediteur.envoyer(telephone, MESSAGE.format(code=code))
+    if session.scalar(select(Utilisateur.id).where(Utilisateur.telephone == telephone)) is None:
+        journal.warning("[connexion] %s : numéro inconnu, rien envoyé (aucune personne inscrite à ce numéro)",
+                        masquer(telephone))
+        return
+    expediteur.envoyer(telephone, MESSAGE.format(code=code))
+    journal.warning("[connexion] %s : code envoyé par %s (seul le dernier code demandé est valable, 10 min)",
+                    masquer(telephone), expediteur.canal)
 
 
 def verifier_code(session: Session, telephone: str, code: str, cle: bytes) -> Utilisateur | None:
@@ -52,14 +70,19 @@ def verifier_code(session: Session, telephone: str, code: str, cle: bytes) -> Ut
             CodeConnexion.expire_le > func.now(), CodeConnexion.tentatives < ESSAIS)
         .order_by(CodeConnexion.cree_le.desc()).limit(1).with_for_update()).first()
     if ligne is None:
+        journal.warning("[connexion] %s : code refusé — aucun code en cours (expiré, déjà utilisé ou 5 essais "
+                        "manqués) : en demander un nouveau", masquer(telephone))
         return None
     utilisateur = session.scalars(select(Utilisateur).where(Utilisateur.telephone == telephone)).first()
     if utilisateur is None or not hmac.compare_digest(ligne.code_hash.strip(), _hmac(cle, telephone, code.strip())):
         ligne.tentatives += 1
         session.flush()
+        journal.warning("[connexion] %s : code refusé — ce n'est pas le dernier code demandé (essai %d sur %d)",
+                        masquer(telephone), ligne.tentatives, ESSAIS)
         return None
     ligne.utilise_le = func.now()
     session.flush()
+    journal.warning("[connexion] %s : connecté", masquer(telephone))
     return utilisateur
 
 

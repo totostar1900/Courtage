@@ -227,3 +227,22 @@ def test_en_production_il_faut_une_cle_et_un_expediteur(bases, monkeypatch):
     monkeypatch.setenv("COURTAGE_ENV", "production")
     with pytest.raises(RuntimeError, match="authentification"):
         creer_app(moteur=bases[1], authentification="session", cle_sceau=b"x" * 32)
+
+
+# --- Le journal de l'exploitant ----------------------------------------------------
+
+def test_chaque_demande_dit_dans_le_journal_ce_qu_il_en_est(web, abonne, caplog):
+    """L'exploitant, qui ne voit pas l'écran, lit dans le journal pourquoi un code n'est pas venu."""
+    import logging
+    caplog.set_level(logging.INFO, logger="courtage.connexion")
+    tel = abonne["telephone"]
+    web.post(f"{V1}/auth/code", json={"telephone": "+237 6 00 00 00 01"})
+    for _ in range(4):
+        web.post(f"{V1}/auth/code", json={"telephone": tel})
+    web.post(f"{V1}/auth/verification", json={"telephone": tel, "code": "000000"})
+    lignes = [r.getMessage() for r in caplog.records if r.name == "courtage.connexion"]
+    assert any("numéro inconnu" in l and "001" in l for l in lignes)
+    assert sum("code envoyé" in l for l in lignes) == 3
+    assert any("limite" in l for l in lignes)
+    assert any("code refusé" in l for l in lignes)
+    assert all(tel not in l for l in lignes)                      # le numéro est masqué : des chiffres de fin
