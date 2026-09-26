@@ -18,6 +18,9 @@ from typing import Annotated, Literal, Union
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 VERSION_COURANTE = "2026-09-26"
+# Le périmètre servi aujourd'hui (décision du 26/09) : consultation et extraction assistée. Les conventions
+# d'autres pays restent au référentiel, parce que des études s'y réfèrent, mais ne sont pas proposées.
+CEMAC = {"CM": "Cameroun", "GA": "Gabon", "CG": "Congo", "TD": "Tchad", "CF": "Centrafrique", "GQ": "Guinée équatoriale"}
 _DONNEES = files(__package__) / "donnees"
 
 

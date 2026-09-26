@@ -71,7 +71,7 @@ describe("l'écran du guide", () => {
   });
 
   it("les conventions préremplies se consultent, barème et sources", async () => {
-    simulerApi({ "/referentiel/conventions": { version: "2026-09-26", conventions: [{
+    simulerApi({ "/referentiel/conventions": { version: "2026-09-26", pays_couverts: { CM: "Cameroun", GA: "Gabon" }, conventions: [{
       pays: "CM", pays_libelle: "Cameroun", code: "CM_COMMERCE", libelle: "Convention du commerce (révisée)", statut: "valide",
       en_vigueur_du: "2024-01-16", en_vigueur_au: null, en_vigueur_aujourd_hui: true,
       sources: [{ titre: "Droit social en pratique", url: "https://exemple.cm", consulte_le: "2026-09-26" }],
@@ -84,6 +84,7 @@ describe("l'écran du guide", () => {
     expect(carte.getByText("45 % d'un mois par année")).toBeInTheDocument();
     expect(carte.getByText("4,75")).toBeInTheDocument();
     expect(carte.getByRole("link", { name: "Droit social en pratique" })).toHaveAttribute("href", "https://exemple.cm");
+    expect(document.querySelector("[data-a-venir]")).toHaveTextContent("Pas encore de convention préremplie pour : Gabon");
   });
 });
 

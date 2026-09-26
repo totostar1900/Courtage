@@ -200,9 +200,10 @@ export const CHAPITRES: Chapitre[] = [
   },
   {
     id: "conventions", groupe: "Référence", titre: "Les conventions préremplies",
-    resume: "Les barèmes intégrés, leurs sources et leur degré de vérification.",
+    resume: "Les barèmes intégrés pour les pays de la CEMAC, leurs sources et leur degré de vérification.",
     sections: [
       { titre: "Comment les lire", texte: [
+        "La plateforme couvre pour l'instant les six pays de la CEMAC : Cameroun, Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale. Un pays sans convention préremplie est dit comme tel.",
         "Chaque convention est datée : une version révisée ne remplace pas l'ancienne, qui reste la référence d'une étude antérieure.",
         "« Valide » : taux concordants entre plusieurs sources. « À valider » : la plateforme n'a pas pu confirmer le barème ; une étude ne sort pas sur une convention à valider.",
         "La vérification dit honnêtement ce qui a été lu : plusieurs barèmes viennent de sources secondaires concordantes, le texte officiel n'ayant pas pu être consulté." ] },

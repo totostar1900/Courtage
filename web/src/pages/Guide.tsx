@@ -253,15 +253,19 @@ interface ConventionPubliee {
 const virgule = (x: number) => x.toLocaleString("fr-FR", { maximumFractionDigits: 2 });
 
 function Conventions() {
-  const { donnee, erreur } = useCharge(() => api.get<{ version: string; conventions: ConventionPubliee[] }>("/referentiel/conventions"), []);
+  const { donnee, erreur } = useCharge(() => api.get<{ version: string; pays_couverts?: Record<string, string>;
+    conventions: ConventionPubliee[] }>("/referentiel/conventions"), []);
   const [pays, setPays] = useState("");
   const liste = useMemo(() => (donnee?.conventions ?? []).filter((c) => !pays || c.pays === pays), [donnee, pays]);
   const tousPays = [...new Map((donnee?.conventions ?? []).map((c) => [c.pays, c.pays_libelle])).entries()];
+  // Les pays de la CEMAC sans convention préremplie : dits, pas tus.
+  const aVenir = Object.entries(donnee?.pays_couverts ?? {}).filter(([code]) => !tousPays.some(([p]) => p === code))
+    .map(([, nom]) => nom);
   return (
     <>
       <h1>Les conventions préremplies</h1>
-      <p className="guide-resume">Les barèmes d'IFC intégrés à la plateforme, avec leurs dates, leurs sources et ce qui a
-        été vérifié. Consultables sans compte.</p>
+      <p className="guide-resume">Les barèmes d'IFC intégrés à la plateforme pour les pays de la CEMAC, avec leurs dates,
+        leurs sources et ce qui a été vérifié. Consultables sans compte.</p>
       <Erreur erreur={erreur} />
       {donnee && (
         <>
@@ -272,6 +276,10 @@ function Conventions() {
             </select>
           </label>
           <p className="discret">Référentiel du {dateFr(donnee.version)}.</p>
+          {aVenir.length > 0 && (
+            <p className="discret" data-a-venir>Pas encore de convention préremplie pour : {aVenir.join(", ")}. Une entreprise
+              de ces pays peut décrire son régime à partir de son propre texte.</p>
+          )}
           {liste.map((c) => <CarteConvention key={`${c.code}-${c.en_vigueur_du}`} c={c} />)}
         </>
       )}

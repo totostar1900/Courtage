@@ -23,7 +23,7 @@ from typing import Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 BASES = {"dernier": "dernier salaire", "moyenne_12_mois": "moyenne des 12 derniers mois"}
-CEMAC = {"CM": "Cameroun", "GA": "Gabon", "CG": "Congo", "TD": "Tchad", "CF": "Centrafrique", "GQ": "Guinée équatoriale"}
+from courtage.referentiel import CEMAC
 TypeDocument = Literal["accord_entreprise", "convention_collective", "contrat_travail", "usage", "decision_direction",
                        "autre"]
 

@@ -1,4 +1,4 @@
-"""`GET /api/v1/referentiel/conventions` : les conventions préremplies, publiques.
+"""`GET /api/v1/referentiel/conventions` : les conventions préremplies des pays de la CEMAC, publiques.
 
 Un barème de convention collective est un texte public ; le montrer à qui veut
 le lire, sources et degré de vérification compris, est la moitié du conseil.
@@ -10,12 +10,10 @@ from datetime import date
 from fastapi import APIRouter
 
 from courtage.actuariat.ifc import mois_d_ifc
-from courtage.referentiel import referentiel_courant
+from courtage.referentiel import CEMAC, referentiel_courant
 
 routeur_referentiel = APIRouter()
 
-PAYS = {"CM": "Cameroun", "CI": "Côte d'Ivoire", "MG": "Madagascar", "GA": "Gabon", "CG": "Congo",
-        "TD": "Tchad", "CF": "Centrafrique", "GQ": "Guinée équatoriale", "SN": "Sénégal"}
 ANCIENNETES = (5, 10, 15, 20, 25, 30, 35)
 
 
@@ -25,11 +23,12 @@ def conventions():
     aujourd_hui = date.today()
     return {
         "version": ref.version,
+        "pays_couverts": CEMAC,
         "conventions": [{
             **c.model_dump(mode="json"),
-            "pays_libelle": PAYS.get(c.pays, c.pays),
+            "pays_libelle": CEMAC[c.pays],
             "en_vigueur_aujourd_hui": c.en_vigueur(aujourd_hui),
             # Ce que le barème donne, en mois de salaire, à quelques anciennetés : pour lire sans calculer.
             "illustration": [{"anciennete": n, "mois": round(mois_d_ifc(c.bareme, n), 2)} for n in ANCIENNETES],
-        } for c in sorted(ref.conventions, key=lambda c: (c.pays, c.code, c.en_vigueur_du))],
+        } for c in sorted(ref.conventions, key=lambda c: (c.pays, c.code, c.en_vigueur_du)) if c.pays in CEMAC],
     }

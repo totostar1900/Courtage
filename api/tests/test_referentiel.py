@@ -173,7 +173,11 @@ def test_les_conventions_se_consultent_sans_compte():
     assert r.status_code == 200
     cs = r.json()["conventions"]
     assert {(c["code"], c["en_vigueur_du"]) for c in cs} >= {("CM_COMMERCE", "2012-01-01"), ("CM_COMMERCE", "2024-01-16"),
-                                                             ("CM_BANQUES", "2021-06-09"), ("CI_CCI", "1977-07-20")}
+                                                             ("CM_BANQUES", "2021-06-09")}
+    # CEMAC seulement : la Côte d'Ivoire et Madagascar restent au référentiel (des études s'y réfèrent), non proposées.
+    assert {c["pays"] for c in cs} <= {"CM", "GA", "CG", "TD", "CF", "GQ"}
+    assert not {"CI_CCI", "MG_APB"} & {c["code"] for c in cs}
+    assert set(r.json()["pays_couverts"]) == {"CM", "GA", "CG", "TD", "CF", "GQ"}
     commerce = next(c for c in cs if c["code"] == "CM_COMMERCE" and c["en_vigueur_du"] == "2024-01-16")
     assert commerce["pays_libelle"] == "Cameroun" and commerce["en_vigueur_aujourd_hui"]
     assert commerce["sources"] and commerce["verification"]
