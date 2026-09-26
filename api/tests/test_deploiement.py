@@ -164,3 +164,17 @@ def test_le_premier_administrateur(bases):
     with bases[0].connect() as c:
         admin, nom = c.execute(text("SELECT admin_plateforme, nom_affiche FROM utilisateurs WHERE id = :i"), {"i": identifiant}).one()
     assert admin and nom == "Première admin"
+
+
+def test_le_plan_d_essai_est_gratuit_et_n_a_pas_de_domaine():
+    import yaml
+    from pathlib import Path
+    racine = Path(__file__).resolve().parents[2]
+    essai = yaml.safe_load((racine / "render.essai.yaml").read_text())
+    production = yaml.safe_load((racine / "render.yaml").read_text())
+    assert {s["plan"] for s in essai["services"]} == {"free"} and essai["databases"][0]["plan"] == "free"
+    assert all("domains" not in s for s in essai["services"])                  # le domaine est à la production
+    assert {s["type"] for s in essai["services"]} == {"web"}                     # pas de tâche programmée gratuite
+    # Les mêmes secrets, générés, dans les deux plans.
+    cles = lambda plan: {v["key"] for v in plan["services"][0]["envVars"] if v.get("generateValue")}  # noqa: E731
+    assert cles(essai) == cles(production) == {"COURTAGE_MOT_DE_PASSE_APP", "COURTAGE_CLE_SCEAU", "COURTAGE_CLE_AUTH"}

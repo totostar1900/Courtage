@@ -118,6 +118,30 @@ seul l'exploitant lit : c'est ainsi qu'on se connecte avant que Twilio soit bran
 - Au premier déploiement seulement : émettre une étude et ouvrir son rapport PDF (les bibliothèques PDF de l'image,
   §6).
 
+### 4f. Essayer gratuitement : `render.essai.yaml`
+
+La même plateforme sur les offres gratuites de Render, pour un essai en ligne sans rien payer.
+
+1. Render, puis **New**, puis **Blueprint**, puis ce dépôt, branche `main`. Dans **Blueprint Path**, saisir
+   `render.essai.yaml`. Si le champ n'est pas proposé, copier ce fichier sur `render.yaml` dans une branche d'essai.
+2. **Apply**. Le site répond à l'adresse `https://courtage-essai….onrender.com` affichée par Render. Les rapports
+   l'impriment d'eux-mêmes, par `RENDER_EXTERNAL_URL`.
+3. Premier administrateur : onglet **Shell** du service, `python -m courtage.amorcer +237… "Prénom Nom"`. Si le
+   Shell n'est pas offert sur l'offre gratuite, le lancer en **one-off job**, ou depuis un poste avec
+   `COURTAGE_URL_PROPRIETAIRE` (l'URL externe de la base, onglet **Connect**).
+4. Connexion : les codes s'écrivent dans l'onglet **Logs** du service. L'essai tourne en recette, sans Twilio.
+
+Ce que l'offre gratuite ne fait pas :
+
+| | Offre gratuite | Conséquence pour l'essai |
+|---|---|---|
+| Veille | Le site s'endort après 15 min sans visite | La première visite prend environ une minute |
+| Base | Expire au bout de 30 jours | Refaire l'essai, ou passer en production avant |
+| Tâche programmée | Aucune | L'effacement des identités se fait au démarrage et à chaque lecture d'un dossier |
+| Domaine | Adresse `onrender.com` | `courtage.purposecapital.africa` reste pour la production |
+
+Rien de ce qui est saisi pendant l'essai ne passe en production : la production a sa propre base.
+
 ## 5. La tâche quotidienne : effacer les identités échues
 
 Sur Render, c'est le service `courtage-purge` du plan : rien à faire.

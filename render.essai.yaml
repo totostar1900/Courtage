@@ -1,0 +1,51 @@
+# ESSAI GRATUIT — la même plateforme sur les offres gratuites de Render, pour l'essayer en ligne.
+# Render → New → Blueprint → ce dépôt → « Blueprint Path » : render.essai.yaml.
+# Limites de l'offre gratuite (DEPLOY.md §4f) : le site s'endort après 15 min sans visite (réveil ≈ 1 min) ;
+# la base gratuite expire au bout de 30 jours ; pas de tâche programmée (l'effacement des identités échues
+# se fait au démarrage et à chaque lecture d'un dossier). Pour la production : render.yaml.
+# Région : Francfort, la plus proche de l'Afrique centrale chez Render.
+# Détails, domaine et premier administrateur : DEPLOY.md §4.
+
+databases:
+  - name: courtage-essai-db
+    databaseName: courtage
+    user: courtage_proprietaire          # le PROPRIÉTAIRE : migrations et contrôles, jamais le service
+    region: frankfurt
+    plan: free
+    postgresMajorVersion: "16"
+    ipAllowList: []                      # aucun accès depuis Internet : seulement les services Render
+
+services:
+  - type: web
+    name: courtage-essai
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/sante       # 503 tant que le schéma n'est pas celui du code
+    envVars:
+      # recette : les codes de connexion vont au journal de Render (lisible par l'exploitant seul).
+      # Passer à « production » une fois Twilio renseigné : l'application refuse alors de démarrer sans lui.
+      - key: COURTAGE_ENV
+        value: recette
+      - key: COURTAGE_URL_PROPRIETAIRE
+        fromDatabase: { name: courtage-essai-db, property: connectionString }
+      - key: COURTAGE_MOT_DE_PASSE_APP     # le rôle applicatif courtage_app, dérivé de l'URL du propriétaire
+        generateValue: true
+      - key: COURTAGE_CLE_SCEAU            # NE JAMAIS LA CHANGER : les rapports émis ne se vérifieraient plus
+        generateValue: true
+      - key: COURTAGE_CLE_AUTH
+        generateValue: true
+      # COURTAGE_URL_PUBLIQUE : inutile ici, l'application prend l'adresse que Render fournit (RENDER_EXTERNAL_URL).
+      - key: COURTAGE_EXTRACTION           # « claude » pour la lecture par Claude (et ANTHROPIC_API_KEY)
+        value: regles
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TWILIO_COMPTE
+        sync: false
+      - key: TWILIO_JETON
+        sync: false
+      - key: TWILIO_EMETTEUR
+        sync: false
+      - key: TWILIO_CANAL                  # whatsapp | sms
+        value: whatsapp
