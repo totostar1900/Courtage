@@ -69,9 +69,20 @@ Commit : `feat(analyse): constats sourcés sur un régime IFC`
 
 ## R4 — La simulation
 
-- [ ] Plancher seul, régime en vigueur, variantes : dette, charge,
-      cotisation initiale, échéancier, répartition par catégorie, part des
-      cinq premiers bénéficiaires.
+- [x] `POST /organisations/{id}/simulations` : un calcul, rien d'enregistré
+      (ni étude, ni version, ni journal) ; ouvert à tout membre, expert-comptable
+      compris.
+- [x] Toujours « Convention seule » en premier, puis jusqu'à 6 variantes :
+      une version de régime (adoptée ou non) OU des catégories saisies.
+- [x] Pour chacune : dette, charge annuelle, cotisation initiale (dette moins
+      fonds), écart à la convention, échéancier, totaux par catégorie, part
+      des cinq premiers bénéficiaires, concentration sur les mieux payés,
+      constats de légalité.
+- [x] Une variante qui ne couvre pas le personnel rend son erreur ; les autres
+      sont calculées. Hypothèses modifiables sans justification : une
+      simulation n'engage personne.
+
+Commit : `feat(simulation): convention, régime et variantes côte à côte`
 
 ## R5 — Le financement
 

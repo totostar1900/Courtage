@@ -58,7 +58,7 @@ def nouvelle_version(session: Session, org: Organisation, regime: Regime, auteur
     if len(set(noms)) != len(noms):
         raise ErreurMetier("categorie_en_double", "Chaque catégorie n'apparaît qu'une fois.", 422)
     for c in categories:
-        _valider_categorie(org, c, en_vigueur_du)
+        valider_categorie(org, c, en_vigueur_du)
 
     numero = (session.scalar(select(func.max(VersionRegime.numero)).where(VersionRegime.regime_id == regime.id)) or 0) + 1
     version = VersionRegime(organisation_id=org.id, regime_id=regime.id, numero=numero, en_vigueur_du=en_vigueur_du,
@@ -147,7 +147,7 @@ def regles(session: Session, version: VersionRegime, date_evaluation: date) -> d
             convention = ref.convention(c.convention_code, date_evaluation)
         except LookupError as e:
             raise ErreurMetier("convention_introuvable", str(e), 422) from None
-        resultat[c.categorie] = _regles(c, convention)
+        resultat[c.categorie] = regles_de(c, convention)
     return resultat
 
 
@@ -165,16 +165,21 @@ def conventions_de(session: Session, version: VersionRegime, jour: date) -> list
 
 def constats(session: Session, version: VersionRegime, jour: date) -> list[dict]:
     """Ce que la plateforme relève sur une version, face aux conventions en vigueur au jour dit."""
+    return constats_categories(categories_de(session, version), jour)
+
+
+def constats_categories(categories, jour: date) -> list[dict]:
+    """Les constats de légalité de catégories — enregistrées ou simplement saisies (simulation)."""
     ref = referentiel_courant()
     releves = []
-    for c in categories_de(session, version):
+    for c in categories:
         try:
             convention = ref.convention(c.convention_code, jour)
         except LookupError:
             releves.append(_constat("bloque", "convention_introuvable", c.categorie,
                                     f"Aucune version de {c.convention_code} en vigueur le {jour:%d/%m/%Y}."))
             continue
-        regles_c = _regles(c, convention)
+        regles_c = regles_de(c, convention)
         sous = [n for n in range(ANCIENNETE_MAX_CONTROLEE + 1) if mois_dus(regles_c, n)[1]]
         if sous:
             releves.append(_constat(
@@ -213,7 +218,7 @@ def en_clair(session: Session, version: VersionRegime, jour: date | None = None)
 
 # --- Interne ------------------------------------------------------------------
 
-def _valider_categorie(org: Organisation, c: SaisieCategorie, jour: date) -> None:
+def valider_categorie(org: Organisation, c: SaisieCategorie, jour: date) -> None:
     try:
         _BAREME.validate_python(c.bareme)
     except ValidationError as e:
@@ -230,7 +235,8 @@ def _valider_categorie(org: Organisation, c: SaisieCategorie, jour: date) -> Non
                            f"Événements admis : {', '.join(sorted(EVENEMENTS))} ; la retraite est toujours couverte.", 422)
 
 
-def _regles(c: CategorieRegime, convention: Convention) -> Regles:
+def regles_de(c, convention: Convention) -> Regles:
+    """Les règles du moteur pour une catégorie (enregistrée ou saisie), la convention pour plancher."""
     return Regles(bareme=_BAREME.validate_python(c.bareme), plancher=Regles(bareme=convention.bareme),
                   anciennete_minimale=c.anciennete_minimale, plafond_mois=c.plafond_mois, arrondi=c.arrondi)
 

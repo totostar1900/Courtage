@@ -26,7 +26,7 @@ from . import baremes, fichiers, journaliser, regimes, remuneration
 
 ECART_MAX_ETUDE_PRECEDENTE = 0.25
 AGE_PREMIER_EMPLOI = 18
-_SAISISSABLES = {"taux_actualisation": float, "croissance_salaires": float, "inflation": float,
+SAISISSABLES = {"taux_actualisation": float, "croissance_salaires": float, "inflation": float,
                  "age_retraite": int, "taux_turnover": float}
 
 
@@ -227,7 +227,7 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
     resultats = {
         "totaux": _totaux(resultat),
         "lignes": _lignes(resultat),
-        "echeancier": _echeancier(resultat, saisie.date_evaluation),
+        "echeancier": echeancier(resultat, saisie.date_evaluation),
         "sensibilites": _sensibilites(sal, h, convention, regles),
         "anomalies": [asdict(a) for a in anomalies],
         "constats_regime": constats_regime,
@@ -283,9 +283,9 @@ def _hypotheses(saisie: Saisie) -> tuple[dict, list[dict]]:
     valeurs = dict(HYPOTHESES_PAR_DEFAUT)
     ecarts = []
     for champ, valeur in saisie.hypotheses.items():
-        if champ not in _SAISISSABLES:
+        if champ not in SAISISSABLES:
             raise ErreurMetier("hypothese_inconnue", f"Hypothèse inconnue : {champ}.", 422)
-        valeur = _SAISISSABLES[champ](valeur)
+        valeur = SAISISSABLES[champ](valeur)
         if valeur != HYPOTHESES_PAR_DEFAUT[champ]:
             ecarts.append({"champ": champ, "referentiel": HYPOTHESES_PAR_DEFAUT[champ], "retenu": valeur,
                            "justification": saisie.justification})
@@ -332,7 +332,7 @@ def _lignes(r: Resultat) -> list[dict]:
     } for l in r.lignes]
 
 
-def _echeancier(r: Resultat, date_evaluation: date) -> list[dict]:
+def echeancier(r: Resultat, date_evaluation: date) -> list[dict]:
     """Les départs par année : ce que l'entreprise devra payer, et quand."""
     par_annee: dict[int, dict] = defaultdict(lambda: {"effectif": 0, "ifc": 0.0, "vapf": 0.0})
     for l in r.lignes:

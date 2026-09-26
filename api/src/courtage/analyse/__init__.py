@@ -119,13 +119,13 @@ def _couts(ctx: Contexte) -> list[Constat]:
         chiffres={"reference": libelle, "dette_reference": reference.totaux.dette,
                   "dette_regime": retenue.totaux.dette, "supplement": supplement}))
 
-    concentration = _concentration(retenue, plancher, ctx.salaries)
-    if concentration is not None:
-        constats.append(concentration)
+    c = concentration(retenue, plancher, ctx.salaries)
+    if c is not None:
+        constats.append(c)
     return constats
 
 
-def _concentration(retenue, plancher, salaries: Sequence[Salarie]) -> Constat | None:
+def concentration(retenue, plancher, salaries: Sequence[Salarie]) -> Constat | None:
     """À qui profite ce que le régime ajoute à la convention ?"""
     au_plancher = {l.matricule: l.dette for l in plancher.lignes}
     surplus = {l.matricule: max(l.dette - au_plancher[l.matricule], 0.0) for l in retenue.lignes}

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
-from courtage.services import analyse, etudes, fichiers, journaliser, rapport, regimes, remuneration
+from courtage.services import analyse, etudes, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 
@@ -179,6 +179,37 @@ def creer_version(regime_id: uuid.UUID, corps: NouvelleVersion, a: Acces = Depen
         note=corps.note, categories=[regimes.SaisieCategorie(**{**c.model_dump(), "evenements": tuple(c.evenements)})
                                      for c in corps.categories])
     return regimes.en_clair(a.session, v)
+
+
+# --- Simulations ---------------------------------------------------------------
+
+class VarianteSaisie(_Corps):
+    nom: str = Field(min_length=1)
+    regime_version_id: uuid.UUID | None = None
+    categories: list[CategorieSaisie] | None = None
+
+
+class ParametresSimulation(_Corps):
+    fichier_id: uuid.UUID
+    date_evaluation: date
+    convention_code: str
+    fonds_disponible: int = Field(default=0, ge=0)
+    hypotheses: dict[str, float] = {}
+    variantes: list[VarianteSaisie] = []
+
+
+@routeur.post("/organisations/{organisation_id}/simulations")
+def simuler(corps: ParametresSimulation, a: Acces = Depends(acces(*TOUS))):
+    """Un calcul, rien d'enregistré : la convention seule, puis chaque variante."""
+    variantes = [simulation.Variante(
+        nom=v.nom, regime_version_id=v.regime_version_id,
+        categories=None if v.categories is None else [
+            regimes.SaisieCategorie(**{**c.model_dump(), "evenements": tuple(c.evenements)}) for c in v.categories])
+        for v in corps.variantes]
+    return simulation.simuler(a.session, a.organisation, fichier_id=corps.fichier_id,
+                              date_evaluation=corps.date_evaluation, convention_code=corps.convention_code,
+                              fonds_disponible=corps.fonds_disponible, hypotheses=corps.hypotheses,
+                              variantes=variantes)
 
 
 # --- Fichiers -----------------------------------------------------------------
