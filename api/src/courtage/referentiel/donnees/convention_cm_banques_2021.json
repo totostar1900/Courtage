@@ -1,0 +1,49 @@
+{
+ "pays": "CM",
+ "code": "CM_BANQUES",
+ "libelle": "Convention collective nationale des banques et autres établissements financiers du Cameroun",
+ "statut": "valide",
+ "en_vigueur_du": "2021-06-09",
+ "en_vigueur_au": "2024-11-17",
+ "sources": [
+  {
+   "titre": "Convention collective nationale des banques, art. 46 — juriafrica.com",
+   "url": "https://www.juriafrica.com/lex/art-46-convention-collective-nationale-banques-etablissements-financiers-cameroun-24707.htm",
+   "consulte_le": "2026-09-26"
+  },
+  {
+   "titre": "Convention collective nationale des banques du 09 juin 2021 — Droit social en pratique",
+   "url": "https://www.droitsocialenpratique.com/convention-collective-nationale-des-banques-et-autres-etablissements-financiers-du-cameroun/",
+   "consulte_le": "2026-09-26"
+  }
+ ],
+ "verification": "Rédaction explicite par année (« 25 % pour chacune des 5 premières années… ») ; source secondaire, texte primaire non lu.",
+ "notes": [
+  "Pourcentage du dernier salaire mensuel, pour chaque année de service."
+ ],
+ "bareme": {
+  "forme": "tranches_cumulatives",
+  "tranches": [
+   {
+    "jusqu_a": 5,
+    "mois_par_annee": 0.25
+   },
+   {
+    "jusqu_a": 10,
+    "mois_par_annee": 0.35
+   },
+   {
+    "jusqu_a": 15,
+    "mois_par_annee": 0.45
+   },
+   {
+    "jusqu_a": 20,
+    "mois_par_annee": 0.55
+   },
+   {
+    "jusqu_a": null,
+    "mois_par_annee": 0.65
+   }
+  ]
+ }
+}

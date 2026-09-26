@@ -1,0 +1,86 @@
+{
+ "notes": [
+  {
+   "id": "provisionnement",
+   "titre": "Un régime IFC est un engagement à provisionner",
+   "texte": "Un régime d'indemnités de fin de carrière est un engagement à prestations définies : l'entreprise promet un montant, pas une cotisation. Le SYSCOHADA révisé demande de comptabiliser les engagements de retraite, et IAS 19 s'applique aux entreprises qui publient en IFRS. L'étude actuarielle donne le montant à inscrire ; le financement (provision interne ou contrat d'assurance) est une décision distincte.",
+   "pays": null,
+   "statut": "a_valider",
+   "sources": [
+    {
+     "titre": "Acte uniforme OHADA relatif au droit comptable et à l'information financière (AUDCIF) et SYSCOHADA révisé, 2017 — engagements de retraite",
+     "consulte_le": "2026-09-26"
+    },
+    {
+     "titre": "IAS 19, Avantages du personnel — régimes à prestations définies",
+     "consulte_le": "2026-09-26"
+    }
+   ]
+  },
+  {
+   "id": "usage",
+   "titre": "Une décision appliquée plusieurs fois devient un usage",
+   "texte": "Un avantage accordé par la direction de façon générale, constante et fixe peut devenir un usage d'entreprise : les salariés peuvent alors en exiger le maintien, et le supprimer demande une procédure de dénonciation. Pour l'évaluation, un usage établi est une obligation implicite : il se provisionne comme un accord.",
+   "pays": null,
+   "statut": "a_valider",
+   "sources": [
+    {
+     "titre": "Principe du droit social des usages d'entreprise (généralité, constance, fixité) — texte applicable au Cameroun et en zone OHADA à identifier",
+     "consulte_le": "2026-09-26"
+    }
+   ]
+  },
+  {
+   "id": "deductibilite_CI",
+   "titre": "Déductibilité des cotisations en Côte d'Ivoire",
+   "texte": "Les primes versées à un assureur au titre des indemnités de fin de carrière peuvent être déductibles sous conditions (notamment que les fonds soient versés à une compagnie agréée et affectés au régime). Une provision interne obéit à d'autres règles. Les conditions exactes sont à vérifier avec un fiscaliste avant toute décision.",
+   "pays": "CI",
+   "statut": "a_valider",
+   "sources": [
+    {
+     "titre": "Annexe fiscale 2005, article 8 (cité par le classeur Ariane IFC d'Allianz Côte d'Ivoire)",
+     "consulte_le": "2026-09-26"
+    }
+   ]
+  },
+  {
+   "id": "deductibilite_CM",
+   "titre": "Déductibilité des cotisations au Cameroun",
+   "texte": "Le Code général des impôts fixe les conditions de déduction des charges et des provisions. Le traitement des cotisations versées à un assureur pour les indemnités de fin de carrière, et celui d'une provision interne, sont à confirmer avec un fiscaliste : la plateforme ne tranche pas cette question.",
+   "pays": "CM",
+   "statut": "a_valider",
+   "sources": [
+    {
+     "titre": "Code général des impôts du Cameroun — charges et provisions déductibles (articles à identifier)",
+     "consulte_le": "2026-09-26"
+    }
+   ]
+  },
+  {
+   "id": "egalite_de_traitement",
+   "titre": "Des catégories sur des critères objectifs",
+   "texte": "Traiter différemment des catégories de personnel est possible si les catégories reposent sur des critères objectifs et vérifiables (la classification de la convention collective, par exemple), et non sur des personnes. Des catégories taillées sur mesure exposent l'entreprise à des contestations pour inégalité de traitement.",
+   "pays": null,
+   "statut": "a_valider",
+   "sources": [
+    {
+     "titre": "Code du travail du Cameroun, principe d'égalité de salaire à conditions égales de travail (article à confirmer)",
+     "consulte_le": "2026-09-26"
+    }
+   ]
+  },
+  {
+   "id": "abus_de_biens_sociaux",
+   "titre": "Un régime qui profite surtout aux dirigeants",
+   "texte": "Quand l'essentiel d'un régime profite aux dirigeants qui le décident, l'avantage peut être contesté : par l'administration fiscale (charge non déductible ou requalifiée) et, dans les cas graves, au titre de l'abus de biens sociaux. Une décision des organes sociaux, motivée et proportionnée, limite ce risque.",
+   "pays": null,
+   "statut": "a_valider",
+   "sources": [
+    {
+     "titre": "Acte uniforme OHADA relatif au droit des sociétés commerciales et du GIE — abus de biens sociaux (article 891, à confirmer)",
+     "consulte_le": "2026-09-26"
+    }
+   ]
+  }
+ ]
+}

@@ -3,18 +3,50 @@
  "code": "MG_APB",
  "libelle": "Convention collective de l'APB de Madagascar (banques)",
  "statut": "valide",
- "source": "Ariane IFC, feuille Coefficients (convention 1), tel qu'implémenté : paliers fixes",
+ "en_vigueur_du": "2000-01-01",
+ "en_vigueur_au": null,
+ "sources": [
+  {
+   "titre": "Classeur Ariane IFC, feuille Coefficients, convention 1 ; rapport Ariane IFC AZITO 2023, page 4",
+   "consulte_le": "2026-09-26"
+  }
+ ],
+ "verification": "Barème tel qu'implémenté dans Ariane (paliers fixes). Le texte cité en page 4 du rapport ajoute 1/5 de mois par année au-delà d'un palier, non implémenté. Gardé pour reproduire le rapport AZITO ; date d'effet conventionnelle.",
+ "notes": [
+  "Sert de référence de test : le rapport AZITO 2023 a été calculé avec ce barème."
+ ],
  "bareme": {
   "forme": "paliers",
-  "sous_premier_palier_mois_par_annee": 0.20,
+  "sous_premier_palier_mois_par_annee": 0.2,
   "paliers": [
-   {"a_partir_de": 10, "mois": 3},
-   {"a_partir_de": 15, "mois": 4},
-   {"a_partir_de": 20, "mois": 6},
-   {"a_partir_de": 25, "mois": 7},
-   {"a_partir_de": 30, "mois": 8},
-   {"a_partir_de": 35, "mois": 9},
-   {"a_partir_de": 40, "mois": 10}
+   {
+    "a_partir_de": 10,
+    "mois": 3
+   },
+   {
+    "a_partir_de": 15,
+    "mois": 4
+   },
+   {
+    "a_partir_de": 20,
+    "mois": 6
+   },
+   {
+    "a_partir_de": 25,
+    "mois": 7
+   },
+   {
+    "a_partir_de": 30,
+    "mois": 8
+   },
+   {
+    "a_partir_de": 35,
+    "mois": 9
+   },
+   {
+    "a_partir_de": 40,
+    "mois": 10
+   }
   ]
  }
 }

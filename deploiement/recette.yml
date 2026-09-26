@@ -1,0 +1,28 @@
+# La recette : l'image telle qu'elle partira, sur une base jetable, codes de connexion dans le journal.
+#   docker compose -f deploiement/recette.yml up --build
+#   docker compose -f deploiement/recette.yml logs app | grep "code de connexion"
+# Données de démonstration (AZITO, trois personnes aux numéros +237 690 00 00 01/02/03) :
+#   docker compose -f deploiement/recette.yml exec app python -m courtage.demo \
+#       postgresql+psycopg://postgres:recette@base/courtage postgresql+psycopg://courtage_app:recette-app@base/courtage
+name: courtage-recette
+services:
+  base:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: recette
+      POSTGRES_DB: courtage
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      retries: 30
+  app:
+    build: { context: .., dockerfile: Dockerfile }
+    depends_on: { base: { condition: service_healthy } }
+    ports: ["8000:8000"]
+    environment:
+      COURTAGE_ENV: recette
+      COURTAGE_URL_PROPRIETAIRE: postgresql://postgres:recette@base/courtage
+      DATABASE_URL: postgresql://courtage_app:recette-app@base/courtage
+      COURTAGE_CLE_AUTH: cle-auth-de-recette-seulement
+      COURTAGE_CLE_SCEAU: cle-sceau-de-recette-seulement
+      COURTAGE_URL_PUBLIQUE: http://localhost:8000

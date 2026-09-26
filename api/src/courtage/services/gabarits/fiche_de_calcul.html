@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Fiche de calcul — {{ org.nom }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 26mm 18mm;
+    @bottom-left {
+      content: "N° {{ numero }} · empreinte {{ empreinte[:16] }}… · sceau {{ sceau[:16] }}…{% if not probant %} · NON PROBANT{% endif %}\A Vérifier : {{ url_verification }}";
+      white-space: pre; font: 7pt "DejaVu Sans", sans-serif; color: #55607a;
+    }
+    @bottom-right { content: "Page " counter(page) " / " counter(pages); font: 7pt "DejaVu Sans", sans-serif; color: #55607a; }
+  }
+  body { font: 9.5pt/1.45 "DejaVu Sans", sans-serif; color: #1b2240; }
+  h1 { font-size: 18pt; margin: 0 0 2mm; color: #fff; }
+  h2 { font-size: 12pt; margin: 7mm 0 3mm; color: #1f2d6b; border-bottom: 0.4mm solid #1f2d6b; padding-bottom: 1mm; }
+  .bandeau { background: #1f2d6b; color: #fff; padding: 6mm; margin-bottom: 5mm; }
+  .bandeau .sous { color: #c9cfee; }
+  .non-probant { border: 0.5mm solid #a93a2c; color: #a93a2c; padding: 2mm 3mm; margin-bottom: 4mm; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 8.5pt; }
+  th, td { padding: 1.3mm 2mm; border-bottom: 0.2mm solid #dfe2ee; text-align: left; vertical-align: top; }
+  th { background: #e8ebf8; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.04em; color: #3d4566; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .note { font-size: 8pt; color: #55607a; }
+  .confidentiel { border: 0.4mm solid #b8741a; color: #8f6400; padding: 2mm 3mm; margin: 3mm 0; font-size: 8pt; }
+  table td:first-child { width: 50%; }
+  .numero { white-space: nowrap; }
+  .signature td { height: 18mm; border-bottom: 0.3mm dotted #55607a; }
+</style>
+</head>
+<body>
+
+<div class="bandeau">
+  <div class="sous">Fiche de calcul · Indemnité de fin de carrière</div>
+  <h1>{{ org.nom }}</h1>
+  <div class="sous">{% if c and c.assureur %}À joindre à la demande adressée à {{ c.assureur }}{% if c.numero_police %} · police {{ c.numero_police }}{% endif %} · {% endif %}fiche N° <span class="numero">{{ numero }}</span> · émise le {{ emis_le | date_fr }} par {{ emetteur }}</div>
+</div>
+{% if not probant %}<div class="non-probant">Sceau de développement : ce document n'est pas probant.</div>{% endif %}
+
+<p>Calcul de l'indemnité de fin de carrière due au départ en retraite du salarié désigné par son matricule, selon la
+règle en vigueur à la date du départ.</p>
+
+<h2>Le départ</h2>
+<table>
+  <tr><td>Matricule</td><td class="n">{{ p.matricule }}</td></tr>
+  <tr><td>Date d'embauche · date de départ</td><td class="n">{{ p.date_embauche | date_fr }} · {{ p.date_depart | date_fr }}</td></tr>
+  <tr><td>Ancienneté</td><td class="n">{{ ("%.2f" % p.calcul.anciennete) | replace(".", ",") }} ans</td></tr>
+  <tr><td>Salaire mensuel de référence</td><td class="n">{{ p.salaire_mensuel_reference | montant }}</td></tr>
+</table>
+
+<h2>Le calcul</h2>
+<table>
+  <tr><td>Règle appliquée</td><td style="text-align: right">{{ p.calcul.source.libelle }}{% if p.calcul.plancher_applique %} (plancher de la convention){% endif %}</td></tr>
+  <tr><td>Mois de salaire dus pour cette ancienneté</td><td class="n">{{ ("%g" % p.calcul.mois) | replace(".", ",") }} mois</td></tr>
+  <tr class="total"><td><strong>Indemnité due : {{ ("%g" % p.calcul.mois) | replace(".", ",") }} × {{ p.salaire_mensuel_reference | montant }}</strong></td><td class="n"><strong>{{ p.du | montant }}</strong></td></tr>
+  {% if p.verse is not none %}<tr><td>Indemnité versée par l'entreprise (déclarée)</td><td class="n">{{ p.verse | montant }}</td></tr>{% endif %}
+</table>
+<p class="note">Le calcul retient les années révolues d'ancienneté à la date du départ. Quand l'entreprise a son propre
+régime, chaque ancienneté reçoit le plus favorable du régime et de la convention collective.</p>
+
+<p class="note">Cette fiche ne contient aucune donnée personnelle. Elle est scellée : son numéro et son empreinte se
+vérifient à l'adresse imprimée au pied de chaque page.</p>
+</body>
+</html>

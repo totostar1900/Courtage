@@ -1,0 +1,50 @@
+{
+ "pays": "CM",
+ "code": "CM_COMMERCE",
+ "libelle": "Convention collective nationale du commerce du Cameroun (version antérieure à 2024)",
+ "statut": "valide",
+ "en_vigueur_du": "2012-01-01",
+ "en_vigueur_au": "2024-01-15",
+ "sources": [
+  {
+   "titre": "Convention collective nationale du commerce, art. 46 — juriafrica.com",
+   "url": "https://www.juriafrica.com/lex/art-46-convention-collective-nationale-commerce-25303.htm",
+   "consulte_le": "2026-09-26"
+  },
+  {
+   "titre": "Convention collective du commerce de 2012 au Cameroun — CEARDI-ASILRA (PDF)",
+   "url": "https://ceardi-asilra.org/wp-content/uploads/2025/07/Convention-Collective-du-Commerce-de-2012-au-Cameroun-media.pdf",
+   "consulte_le": "2026-09-26"
+  }
+ ],
+ "verification": "Taux concordants entre plusieurs sources secondaires ; texte primaire non lu (accès bloqué depuis l'environnement de développement). Date d'effet retenue au 1er janvier 2012, à confirmer.",
+ "notes": [
+  "Pour chaque année de présence : pourcentage du salaire moyen mensuel des 12 mois précédant la retraite.",
+  "Lecture retenue : chaque année est payée au taux de sa tranche (1-5, 6-10, 11-15, 16-20, au-delà)."
+ ],
+ "bareme": {
+  "forme": "tranches_cumulatives",
+  "tranches": [
+   {
+    "jusqu_a": 5,
+    "mois_par_annee": 0.4
+   },
+   {
+    "jusqu_a": 10,
+    "mois_par_annee": 0.45
+   },
+   {
+    "jusqu_a": 15,
+    "mois_par_annee": 0.6
+   },
+   {
+    "jusqu_a": 20,
+    "mois_par_annee": 0.65
+   },
+   {
+    "jusqu_a": null,
+    "mois_par_annee": 0.75
+   }
+  ]
+ }
+}

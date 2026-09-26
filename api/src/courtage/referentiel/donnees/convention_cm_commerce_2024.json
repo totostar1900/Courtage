@@ -1,0 +1,61 @@
+{
+ "pays": "CM",
+ "code": "CM_COMMERCE",
+ "libelle": "Convention collective nationale du commerce du Cameroun (révisée)",
+ "statut": "valide",
+ "en_vigueur_du": "2024-01-16",
+ "en_vigueur_au": null,
+ "sources": [
+  {
+   "titre": "Convention collective nationale du commerce du 16 janvier 2024 au Cameroun — Droit social en pratique",
+   "url": "https://www.droitsocialenpratique.com/convention-collective-nationale-au-commerce-au-cameroun/",
+   "consulte_le": "2026-09-26"
+  },
+  {
+   "titre": "Cameroun : la Convention collective nationale du commerce révisée — Afrik Info",
+   "url": "https://afrikinfo.net/cameroun-amelioration-des-conditions-de-vie-des-travailleurs-la-convention-collective-nationale-du-commerce-revisee/",
+   "consulte_le": "2026-09-26"
+  },
+  {
+   "titre": "Cameroun : la convention collective nationale du commerce révisée — Droit Médias Finance",
+   "url": "https://droitmediasfinance.com/index.php/actualites/droit-ohada-affaires/701-cameroun-la-convention-collective-nationale-du-commerce-revisee",
+   "consulte_le": "2026-09-26"
+  },
+  {
+   "titre": "Les innovations de la convention collective nationale du commerce 2024 — The Moka Law Firm",
+   "url": "https://themokalawfirm.com/les-innovations-de-la-convention-collective-nationale-du-commerce-2024/",
+   "consulte_le": "2026-09-26"
+  }
+ ],
+ "verification": "Taux concordants entre quatre sources secondaires (hausse de 5 points par tranche) ; texte primaire (art. 46 B) non lu.",
+ "notes": [
+  "Pour chaque année de présence : pourcentage du salaire moyen mensuel des 12 mois précédant la retraite.",
+  "Lecture retenue : chaque année est payée au taux de sa tranche (1-5, 6-10, 11-15, 16-20, au-delà).",
+  "Deux ans avant la retraite, le salarié passe à la catégorie immédiatement supérieure au même échelon : non modélisé, l'étude le signale."
+ ],
+ "bareme": {
+  "forme": "tranches_cumulatives",
+  "tranches": [
+   {
+    "jusqu_a": 5,
+    "mois_par_annee": 0.45
+   },
+   {
+    "jusqu_a": 10,
+    "mois_par_annee": 0.5
+   },
+   {
+    "jusqu_a": 15,
+    "mois_par_annee": 0.65
+   },
+   {
+    "jusqu_a": 20,
+    "mois_par_annee": 0.75
+   },
+   {
+    "jusqu_a": null,
+    "mois_par_annee": 0.8
+   }
+  ]
+ }
+}
