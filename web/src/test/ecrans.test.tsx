@@ -851,7 +851,7 @@ describe("la navigation dans le dossier", () => {
   it("le bouton « Aller à… » ouvre la même palette, qui trouve aussi le guide", async () => {
     simulerApi(dossier("admin_client"));
     ouvrir(`/dossier/${ORG}`);
-    await userEvent.click(await screen.findByRole("button", { name: /Aller à…/ }));
+    await userEvent.click((await screen.findAllByRole("button", { name: /Aller à…/ }))[0]);
     await userEvent.type(screen.getByRole("textbox", { name: "Rechercher" }), "methode actuarielle");
     expect(screen.getAllByRole("option")[0]).toHaveTextContent("La méthode actuarielle en détail");
     await userEvent.keyboard("{Escape}");
@@ -973,5 +973,25 @@ describe("les points d'attention", () => {
     expect(azito).toHaveTextContent("1 à traiter");
     expect(azito).toHaveTextContent("2 à surveiller");
     expect(screen.getByRole("heading", { name: "Calme SA" }).closest("a")).toHaveTextContent("À jour");
+  });
+});
+
+describe("sur téléphone", () => {
+  it("le menu du dossier se replie et se referme sur la page choisie ; la barre du bas mène à l'étude", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }) });
+    ouvrir(`/dossier/${ORG}`);
+    const menu = await screen.findByRole("button", { name: "Menu" });
+    expect(menu).toHaveAttribute("aria-expanded", "false");
+    expect(document.getElementById("menu-dossier")).toHaveAttribute("data-ouvert", "false");
+    await userEvent.click(menu);
+    expect(document.getElementById("menu-dossier")).toHaveAttribute("data-ouvert", "true");
+    await userEvent.click(within(document.getElementById("menu-dossier")!).getByRole("link", { name: /Personnel/ }));
+    expect(await screen.findByRole("heading", { name: "Votre personnel" })).toBeInTheDocument();
+    expect(document.getElementById("menu-dossier")).toHaveAttribute("data-ouvert", "false");
+    const barre = screen.getByRole("navigation", { name: "Accès rapides" });
+    await userEvent.click(within(barre).getByRole("link", { name: /Étude/ }));
+    expect(await screen.findByRole("button", { name: /^2021/ })).toBeInTheDocument();
+    await userEvent.click(within(barre).getByRole("button", { name: /Aller à…/ }));
+    expect(screen.getByRole("dialog", { name: "Aller à" })).toBeInTheDocument();
   });
 });

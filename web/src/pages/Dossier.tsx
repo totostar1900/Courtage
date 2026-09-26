@@ -1,10 +1,10 @@
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
 import { AidePage } from "../composants/AidePage";
-import { BoutonAller, FilAriane, niveauxDe, PaletteAller } from "../composants/Navigation";
+import { BarreMobile, BoutonAller, FilAriane, niveauxDe, PaletteAller } from "../composants/Navigation";
 import Visite, { lancerVisite } from "../composants/Visite";
 import { VISITE_DOSSIER } from "../guide/visite";
 import { etapes, type EtatDossier } from "../parcours";
@@ -57,6 +57,8 @@ export default function Dossier() {
   }, [org]);
 
   const { pathname } = useLocation();
+  const [menu, setMenu] = useState(false);
+  useEffect(() => { setMenu(false); }, [pathname]);     // une page choisie referme le menu (téléphone)
   // Chaque page ouverte devient l'endroit où reprendre (« Vos dossiers » le proposera à la prochaine visite).
   useEffect(() => {
     if (!donnee) return;
@@ -73,10 +75,17 @@ export default function Dossier() {
     <Contexte.Provider value={contexte}>
       <div className="dossier">
         <aside>
-          <NavLink to="." end className="discret" style={{ textDecoration: "none" }}>
-            <h2 style={{ marginBottom: 2 }}>{donnee.org.nom}</h2>
-          </NavLink>
-          <div className="discret" style={{ marginBottom: 12 }}>Tableau de bord du dossier</div>
+          <div className="dossier-tete">
+            <div>
+              <NavLink to="." end className="discret" style={{ textDecoration: "none" }}>
+                <h2 style={{ marginBottom: 2 }}>{donnee.org.nom}</h2>
+              </NavLink>
+              <div className="discret" style={{ marginBottom: 12 }}>Tableau de bord du dossier</div>
+            </div>
+            <button type="button" className="bouton-menu" aria-expanded={menu} aria-controls="menu-dossier"
+                    onClick={() => setMenu(!menu)}>{menu ? "Fermer" : "Menu"}</button>
+          </div>
+          <div id="menu-dossier" className="dossier-menu" data-ouvert={menu}>
           <BoutonAller />
           <ol className="parcours" data-visite="parcours">
             {etapes(donnee.etat).map((e, i) => (
@@ -117,12 +126,14 @@ export default function Dossier() {
             <button type="button" className="lien" onClick={lancerVisite}>Visite guidée</button>
             <NavLink to="/guide">Le guide</NavLink>
           </div>
+          </div>
         </aside>
         <section>
           <div className="entete-page"><FilAriane d={donnee} /><AidePage base={`/dossier/${donnee.org.id}`} /></div>
           <Outlet />
         </section>
         <PaletteAller d={donnee} />
+        <BarreMobile d={donnee} />
         <Visite etapes={VISITE_DOSSIER} auto />
       </div>
     </Contexte.Provider>
