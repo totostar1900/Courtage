@@ -125,8 +125,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 /* L'échéancier modulable : réglages en une rangée, axe discret, repère du fonds, légende, bulle noire. */
 .echeancier { position: relative; }
 .reglages { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 4px 0 14px; }
-.segments { display: inline-flex; align-items: center; gap: 2px; background: var(--fond); border: 1px solid var(--trait);
-  border-radius: 999px; padding: 2px; }
+.segments { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px; max-width: 100%; background: var(--fond);
+  border: 1px solid var(--trait); border-radius: 18px; padding: 2px; }
 .segments-nom { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--discret); padding: 0 6px 0 9px; }
 .echeancier .sous-titre { margin: -6px 0 8px; font-size: 13px; color: var(--discret); }
 .segments button { white-space: nowrap; border: 0; background: transparent; box-shadow: none; border-radius: 999px; padding: 4px 11px; min-height: 0;
@@ -256,3 +256,9 @@ button.lien { background: none; border: none; padding: 0; color: var(--indigo-vi
 .liste-pieces { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
 .liste-pieces li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .liste-pieces label { display: flex; gap: 10px; font-weight: 400; color: var(--encre); }
+
+/* Maquettes : la liste de ce qu'il faut essayer. */
+.essais { display: grid; gap: 8px; margin: 0; }
+.essais div { display: grid; grid-template-columns: 110px 1fr; gap: 12px; }
+.essais dt { font-weight: 600; }
+.essais dd { margin: 0; color: var(--encre-2); }
