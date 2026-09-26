@@ -91,12 +91,15 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
 # --- Dépendances --------------------------------------------------------------
 
 def session_db(request: Request):
+    """Une transaction par requête. Toujours `Depends(session_db, scope="function")` : sans cela, FastAPI
+    valide APRÈS l'envoi de la réponse, et le navigateur peut lire avant le COMMIT (sur Render, /moi
+    répondait 401 juste après la connexion). Un seul scope partout : deux scopes feraient deux sessions."""
     with Session(request.app.state.moteur, expire_on_commit=False) as session:
         with session.begin():
             yield session
 
 
-def identite(request: Request, session: Session = Depends(session_db),
+def identite(request: Request, session: Session = Depends(session_db, scope="function"),
              x_utilisateur: str | None = Header(default=None),
              authorization: str | None = Header(default=None),
              courtage_session: str | None = Cookie(default=None)) -> Utilisateur:
@@ -128,7 +131,7 @@ class Acces:
 
 def acces(*roles: str):
     """Membre de l'organisation, avec l'un des rôles donnés (tous si aucun), puis contexte RLS."""
-    def dependance(organisation_id: uuid.UUID, session: Session = Depends(session_db),
+    def dependance(organisation_id: uuid.UUID, session: Session = Depends(session_db, scope="function"),
                    moi: Utilisateur = Depends(identite)) -> Acces:
         role = session.scalar(select(Adhesion.role).where(
             Adhesion.utilisateur_id == moi.id, Adhesion.organisation_id == organisation_id))

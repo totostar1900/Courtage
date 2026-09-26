@@ -141,6 +141,10 @@ La même plateforme sur les offres gratuites de Render, pour un essai en ligne s
 3. Premier administrateur : l'offre gratuite n'a ni Shell ni accès à la base depuis Internet. Renseigner
    `COURTAGE_ADMIN_TELEPHONE` et `COURTAGE_ADMIN_NOM` (§4c), puis redéployer.
 4. Connexion : les codes s'écrivent dans l'onglet **Logs** du service. L'essai tourne en recette, sans Twilio.
+   Chercher `[connexion]` dans les Logs : chaque demande y dit ce qu'il en est (numéro masqué) — « code
+   envoyé », « numéro inconnu » (ce n'est pas le numéro de `COURTAGE_ADMIN_TELEPHONE`), « limite atteinte »
+   (3 demandes en 15 minutes : attendre), et à chaque essai « code refusé » avec sa raison ou « connecté ».
+   Seul le **dernier** code demandé est valable.
 
 Ce que l'offre gratuite ne fait pas :
 

@@ -35,7 +35,7 @@ class _Corps(BaseModel):
 # --- Moi, organisations, adhésions --------------------------------------------
 
 @routeur.get("/moi")
-def moi(session: Session = Depends(session_db), utilisateur: Utilisateur = Depends(identite)):
+def moi(session: Session = Depends(session_db, scope="function"), utilisateur: Utilisateur = Depends(identite)):
     rangs = session.execute(
         select(Organisation, Adhesion.role).join(Adhesion, Adhesion.organisation_id == Organisation.id)
         .where(Adhesion.utilisateur_id == utilisateur.id).order_by(Organisation.nom)).all()
@@ -50,10 +50,11 @@ class NouvelleOrganisation(_Corps):
     nom: str = Field(min_length=1)
     pays: str = Field(pattern=r"^[A-Z]{2}$")
     secteur: str | None = None
+    suivre: bool = False                  # celui qui ouvre le dossier en devient le conseiller
 
 
 @routeur.post("/organisations", status_code=201)
-def creer_organisation(corps: NouvelleOrganisation, session: Session = Depends(session_db),
+def creer_organisation(corps: NouvelleOrganisation, session: Session = Depends(session_db, scope="function"),
                        utilisateur: Utilisateur = Depends(identite)):
     if not utilisateur.admin_plateforme:
         raise ErreurMetier("acces_refuse", "Seule la plateforme ouvre un dossier client.", 403)
@@ -61,6 +62,11 @@ def creer_organisation(corps: NouvelleOrganisation, session: Session = Depends(s
     session.add(org)
     session.flush()
     journaliser(session, None, utilisateur.id, "organisation.creee", org.id, {"nom": org.nom, "pays": org.pays})
+    if corps.suivre:
+        session.add(Adhesion(utilisateur_id=utilisateur.id, organisation_id=org.id, role="conseiller"))
+        contexte(session.connection(), org.id)
+        journaliser(session, org.id, utilisateur.id, "adhesion.ajoutee", utilisateur.id,
+                    {"utilisateur_id": str(utilisateur.id), "role": "conseiller"})
     return {"id": str(org.id), "nom": org.nom, "pays": org.pays, "secteur": org.secteur}
 
 
@@ -70,7 +76,7 @@ class NouvelleAdhesion(_Corps):
 
 
 @routeur.post("/organisations/{organisation_id}/adhesions", status_code=201)
-def ajouter_adhesion(organisation_id: uuid.UUID, corps: NouvelleAdhesion, session: Session = Depends(session_db),
+def ajouter_adhesion(organisation_id: uuid.UUID, corps: NouvelleAdhesion, session: Session = Depends(session_db, scope="function"),
                      utilisateur: Utilisateur = Depends(identite)):
     role_appelant = session.scalar(select(Adhesion.role).where(
         Adhesion.utilisateur_id == utilisateur.id, Adhesion.organisation_id == organisation_id))
@@ -103,7 +109,7 @@ class NouveauMembre(_Corps):
 
 
 @routeur.post("/organisations/{organisation_id}/membres", status_code=201)
-def inscrire_membre(organisation_id: uuid.UUID, corps: NouveauMembre, session: Session = Depends(session_db),
+def inscrire_membre(organisation_id: uuid.UUID, corps: NouveauMembre, session: Session = Depends(session_db, scope="function"),
                     utilisateur: Utilisateur = Depends(identite)):
     """Inscrire quelqu'un par son numéro : il se connectera avec le code qu'il recevra."""
     role_appelant = session.scalar(select(Adhesion.role).where(
@@ -423,7 +429,7 @@ async def extraire_regime(request: Request, fichier: UploadFile = File(...), con
 
 @routeur.post("/referentiel/extraction")
 async def extraire_convention(request: Request, fichier: UploadFile = File(...), pays: str = Form(...),
-                              consentement: bool = Form(default=False), session: Session = Depends(session_db),
+                              consentement: bool = Form(default=False), session: Session = Depends(session_db, scope="function"),
                               utilisateur: Utilisateur = Depends(identite)):
     if not utilisateur.admin_plateforme:
         raise ErreurMetier("acces_refuse", "Le référentiel se tient par la plateforme.", 403)
@@ -806,11 +812,11 @@ def _piece_jointe(nom: str) -> dict:
 # --- Vérification publique (sans compte) --------------------------------------
 
 @routeur.get("/verifier/{numero}", dependencies=[Depends(limite("verification"))])
-def verifier_document(numero: str, request: Request, session: Session = Depends(session_db)):
+def verifier_document(numero: str, request: Request, session: Session = Depends(session_db, scope="function")):
     return rapport.verifier(session, numero, request.app.state.sceau)
 
 
 @routeur.post("/verifier/{numero}", dependencies=[Depends(limite("verification"))])
-async def verifier_fichier(numero: str, document: UploadFile = File(...), session: Session = Depends(session_db)):
+async def verifier_fichier(numero: str, document: UploadFile = File(...), session: Session = Depends(session_db, scope="function")):
     """Le fichier présenté est-il l'original, octet pour octet ?"""
     return {"numero": numero, "conforme": rapport.est_conforme(session, numero, await document.read())}

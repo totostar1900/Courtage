@@ -552,3 +552,40 @@ describe("partir d'un texte existant", () => {
     expect(screen.getByText(/sans envoi à un tiers/)).toBeInTheDocument();
   });
 });
+
+describe("une plateforme neuve", () => {
+  it("l'administrateur ouvre un dossier client, qu'il suit", async () => {
+    const appels = simulerApi({
+      "/moi": { id: "u", email: null, admin_plateforme: true, organisations: [] },
+      "POST /organisations": { id: ORG, nom: "Brasseries", pays: "GA", secteur: null },
+    });
+    ouvrir("/");
+    await userEvent.click(await screen.findByRole("button", { name: "Ouvrir un dossier client" }));
+    await userEvent.type(screen.getByLabelText("Entreprise"), "Brasseries");
+    await userEvent.selectOptions(screen.getByLabelText("Pays"), "GA");
+    await userEvent.click(screen.getByRole("button", { name: "Ouvrir le dossier" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin === "/organisations")).toBe(true));
+    const envoi = appels.find((a) => a.chemin === "/organisations")!;
+    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom: "Brasseries", pays: "GA", secteur: null, suivre: true });
+  });
+
+  it("un client n'a pas ce bouton", async () => {
+    simulerApi({ "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [] } });
+    ouvrir("/");
+    expect(await screen.findByText("Aucun dossier pour l'instant.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ouvrir un dossier client" })).not.toBeInTheDocument();
+  });
+
+  it("le conseiller inscrit la DRH par son numéro", async () => {
+    const appels = simulerApi({ ...dossier("conseiller"),
+      [`POST /organisations/${ORG}/membres`]: { utilisateur_id: "d", telephone: "+237699001122", role: "admin_client" } });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    expect(await screen.findByRole("heading", { name: "Équipe du dossier" })).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Nom"), "Mme DRH");
+    await userEvent.type(screen.getByLabelText("Téléphone"), "699001122");
+    await userEvent.click(screen.getByRole("button", { name: "Inscrire" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin === `/organisations/${ORG}/membres`)).toBe(true));
+    const envoi = appels.find((a) => a.chemin === `/organisations/${ORG}/membres`)!;
+    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", telephone: "699001122", role: "admin_client" });
+  });
+});
