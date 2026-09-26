@@ -42,3 +42,7 @@ le moteur Python).
 cd api && PYTHONPATH=src python scripts/capturer_demo.py <url propriétaire d'une base JETABLE> ../web/src/demo
 cd ../web && npm run demo        # -> dist-demo/demo-courtage.html
 ```
+
+## Déploiement
+
+Une image Docker (API + interface), une recette jetable : voir [DEPLOY.md](DEPLOY.md).

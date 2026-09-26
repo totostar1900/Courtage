@@ -12,13 +12,10 @@ Sortie : `donnees.json` (réponses par « MÉTHODE chemin ») et `documents.json
 """
 import base64
 import json
-import random
 import sys
 from datetime import date, timedelta
-from io import BytesIO
 from pathlib import Path
 
-import openpyxl
 import pymupdf
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
@@ -26,29 +23,10 @@ from sqlalchemy.engine import make_url
 
 from courtage.api import creer_app
 from courtage.db.migrations import migrer
+from courtage.demo import personnel_fictif as personnel
 
 V1 = "/api/v1"
 MOT_DE_PASSE = "demo-statique"
-
-
-def personnel(n=40, graine=2026) -> bytes:
-    """Un personnel inventé : 8 cadres, 32 employés, dates et salaires tirés au sort."""
-    hasard = random.Random(graine)
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.append(["Société Démo SA — état du personnel au 31/12/2025"])
-    ws.append([])
-    ws.append(["Matricule", "Nom", "Date de naissance", "Date d'embauche", "Salaire brut mensuel", "Catégorie"])
-    for i in range(n):
-        cadre = i < 8
-        naissance = date(1964, 1, 1) + timedelta(days=hasard.randint(0, 365 * 32))
-        embauche_min = naissance.replace(year=naissance.year + 21)
-        embauche = embauche_min + timedelta(days=hasard.randint(0, max((date(2025, 6, 30) - embauche_min).days, 1)))
-        salaire = hasard.randint(900, 2600) * 1000 if cadre else hasard.randint(160, 620) * 1000
-        ws.append([f"D{i + 1:03d}", "Nom fictif", naissance, embauche, salaire, "Cadre" if cadre else "Employé"])
-    tampon = BytesIO()
-    wb.save(tampon)
-    return tampon.getvalue()
 
 
 def main(url: str, sortie: Path) -> None:

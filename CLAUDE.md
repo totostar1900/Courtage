@@ -139,3 +139,16 @@ Le cas AZITO au 31/12/2019 (`api/tests/fixtures/azito_2019.json`) doit
 redonner 60 976 604 F de dette avec la convention CI et 41 404 223 F avec le
 barème APB Madagascar (le rapport 2023 erroné). Ne pas modifier ces attendus
 pour faire passer un test.
+
+## Déploiement
+
+`Dockerfile` (une image : l'API sert `web/dist`), `deploiement/demarrer.sh`,
+`deploiement/recette.yml`, `DEPLOY.md`. Au démarrage, `python -m courtage.deploiement`
+migre avec le PROPRIÉTAIRE, ouvre `courtage_app`, puis lit sept contrôles dans la base.
+Un FAIL arrête le démarrage. `GET /api/v1/sante` compare la révision en base à celle
+du code. **Une nouvelle table qui porte `organisation_id` doit avoir la RLS**, sinon
+le démarrage échoue (`HORS_RLS` ne contient qu'`adhesions`, lue avant qu'une
+organisation soit connue). Les polices sont servies par la plateforme (`@fontsource`),
+aucune ressource tierce. Les limites de fréquence (`api/limites.py`) vivent en mémoire,
+par processus.
+

@@ -11,6 +11,7 @@ from courtage.erreurs import ErreurMetier
 from courtage.services import journaliser
 
 from . import COOKIE, identite, session_db
+from .limites import limite
 
 routeur_connexion = APIRouter()
 
@@ -34,14 +35,14 @@ def mode(request: Request):
     return {"mode": request.app.state.authentification}
 
 
-@routeur_connexion.post("/code")
+@routeur_connexion.post("/code", dependencies=[Depends(limite("demande_code"))])
 def demander_code(corps: DemandeCode, request: Request, session: Session = Depends(session_db)):
     telephone = _numero(corps.telephone)
     auth.demander_code(session, telephone, request.app.state.expediteur, request.app.state.cle_auth)
     return REPONSE_DEMANDE
 
 
-@routeur_connexion.post("/verification")
+@routeur_connexion.post("/verification", dependencies=[Depends(limite("essai_code"))])
 def verifier(corps: Verification, request: Request, session: Session = Depends(session_db)):
     telephone = _numero(corps.telephone)
     utilisateur = auth.verifier_code(session, telephone, corps.code, request.app.state.cle_auth)

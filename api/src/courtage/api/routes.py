@@ -18,6 +18,7 @@ from courtage.financement import Offre, Scenario
 from courtage.services import analyse, etudes, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
+from .limites import limite
 
 routeur = APIRouter()
 
@@ -436,12 +437,12 @@ def _piece_jointe(nom: str) -> dict:
 
 # --- Vérification publique (sans compte) --------------------------------------
 
-@routeur.get("/verifier/{numero}")
+@routeur.get("/verifier/{numero}", dependencies=[Depends(limite("verification"))])
 def verifier_document(numero: str, request: Request, session: Session = Depends(session_db)):
     return rapport.verifier(session, numero, request.app.state.sceau)
 
 
-@routeur.post("/verifier/{numero}")
+@routeur.post("/verifier/{numero}", dependencies=[Depends(limite("verification"))])
 async def verifier_fichier(numero: str, document: UploadFile = File(...), session: Session = Depends(session_db)):
     """Le fichier présenté est-il l'original, octet pour octet ?"""
     return {"numero": numero, "conforme": rapport.est_conforme(session, numero, await document.read())}

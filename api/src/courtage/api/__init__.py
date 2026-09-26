@@ -15,6 +15,7 @@ l'en-tête `X-Utilisateur` ; il est refusé au démarrage en production.
 import os
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 from fastapi import Cookie, Depends, FastAPI, Header, Request
@@ -38,7 +39,9 @@ _SURES = {"GET", "HEAD", "OPTIONS"}
 
 def creer_app(moteur: Engine, authentification: ModeAuthentification = "session",
               cle_sceau: bytes | None = None, url_publique: str | None = None,
-              expediteur=None, cle_auth: bytes | None = None) -> FastAPI:
+              expediteur=None, cle_auth: bytes | None = None, dossier_web: Path | str | None = None) -> FastAPI:
+    """`dossier_web` : l'interface construite (`web/dist`), servie par la même application — une
+    seule origine, donc un cookie de session sans CORS ni domaine tiers."""
     production = os.environ.get("COURTAGE_ENV") == "production"
     if production and authentification == "entete_dev":
         raise RuntimeError("L'identité par en-tête est réservée au développement et aux tests.")
@@ -53,7 +56,13 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     app.state.sceau = ConfigSceau.depuis(cle_sceau, url_publique)
     app.state.expediteur = expediteur or ExpediteurJournal()
     app.state.cle_auth = cle_auth or auth.CLE_DE_DEVELOPPEMENT
-    app.state.cookie_securise = production
+    app.state.cookie_securise = production or os.environ.get("COURTAGE_ENV") == "recette"
+    from .limites import Limiteur
+    app.state.limites = {
+        "verification": Limiteur(30, 60),        # la vérification publique : 30 par minute et par adresse
+        "demande_code": Limiteur(10, 15 * 60),   # des codes pour 10 numéros par quart d'heure et par adresse
+        "essai_code": Limiteur(30, 15 * 60),
+    }
 
     @app.exception_handler(ErreurMetier)
     async def _erreur_metier(_: Request, e: ErreurMetier):
@@ -61,11 +70,16 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
 
     from .connexion import routeur_connexion
     from .routes import routeur
+    from .sante import routeur_sante
+    app.include_router(routeur_sante, prefix="/api/v1")
     app.include_router(routeur_connexion, prefix="/api/v1/auth")
     app.include_router(routeur, prefix="/api/v1")
     if authentification == "entete_dev":
         from .dev import routeur_dev
         app.include_router(routeur_dev, prefix="/api/v1/dev")
+    if dossier_web:
+        from .web import servir_interface
+        servir_interface(app, Path(dossier_web))
     return app
 
 

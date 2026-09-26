@@ -6,7 +6,9 @@ client AZITO avec ses conditions de rémunération, et dépose le fichier du
 personnel d'AZITO (23 salariés, sans nom) comme la DRH l'aurait fait. Imprime
 les identifiants. Tout passe par l'API sauf la création des trois personnes.
 
-Les données du fichier viennent du cas de test AZITO : dépôt privé seulement.
+Les données du fichier viennent du cas de test AZITO : dépôt privé seulement. Là où
+le cas n'est pas (l'image Docker ne porte pas les tests), le jeu sème à la place
+« Société Démo SA » et 40 salariés inventés : une recette n'a jamais de données réelles.
 """
 import io
 import json
@@ -15,6 +17,9 @@ import uuid
 from datetime import datetime
 from importlib.resources import files
 from pathlib import Path
+
+import random
+from datetime import date, timedelta
 
 import openpyxl
 from fastapi.testclient import TestClient
@@ -44,8 +49,10 @@ def semer(proprio: Engine, moteur_app: Engine | None = None) -> dict:
 
     client = TestClient(creer_app(moteur=moteur_app, authentification="entete_dev"))
     h = lambda qui: {"X-Utilisateur": str(ids[qui])}  # noqa: E731
-    org = client.post(f"{V1}/organisations", json={"nom": "AZITO (démonstration)", "pays": "CI", "secteur": "Énergie"},
-                      headers=h("admin")).json()["id"]
+    reel = _FIXTURE.is_file()
+    fiche = ({"nom": "AZITO (démonstration)", "pays": "CI", "secteur": "Énergie"} if reel
+             else {"nom": "Société Démo SA", "pays": "CM", "secteur": "Commerce"})
+    org = client.post(f"{V1}/organisations", json=fiche, headers=h("admin")).json()["id"]
     for qui, role in (("conseiller", "conseiller"), ("drh", "admin_client")):
         client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": str(ids[qui]), "role": role},
                     headers=h("admin"))
@@ -53,10 +60,32 @@ def semer(proprio: Engine, moteur_app: Engine | None = None) -> dict:
         "en_vigueur_du": "2019-01-01", "mode": "mixte", "honoraires_etude_ifc": 750_000,
         "honoraires_par_salarie": 2_000, "commission_bps": 1000})
     r = client.post(f"{V1}/organisations/{org}/fichiers", headers=h("drh"),
-                    files={"fichier": ("azito-personnel-2019.xlsx", _fichier())}, data={"date_donnees": "2019-12-31"})
+                    files={"fichier": ("azito-personnel-2019.xlsx", _fichier())} if reel
+                    else {"fichier": ("personnel-2025.xlsx", personnel_fictif())},
+                    data={"date_donnees": "2019-12-31" if reel else "2025-12-31"})
     r.raise_for_status()
     ids["organisation"] = uuid.UUID(org)
     return ids
+
+
+def personnel_fictif(n: int = 40, graine: int = 2026) -> bytes:
+    """Un personnel inventé (tirage fixe) : 8 cadres, 32 employés, dates et salaires tirés au sort."""
+    hasard = random.Random(graine)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Société Démo SA — état du personnel au 31/12/2025"])
+    ws.append([])
+    ws.append(["Matricule", "Nom", "Date de naissance", "Date d'embauche", "Salaire brut mensuel", "Catégorie"])
+    for i in range(n):
+        cadre = i < 8
+        naissance = date(1964, 1, 1) + timedelta(days=hasard.randint(0, 365 * 32))
+        embauche_min = naissance.replace(year=naissance.year + 21)
+        embauche = embauche_min + timedelta(days=hasard.randint(0, max((date(2025, 6, 30) - embauche_min).days, 1)))
+        salaire = hasard.randint(900, 2600) * 1000 if cadre else hasard.randint(160, 620) * 1000
+        ws.append([f"D{i + 1:03d}", "Nom fictif", naissance, embauche, salaire, "Cadre" if cadre else "Employé"])
+    tampon = io.BytesIO()
+    wb.save(tampon)
+    return tampon.getvalue()
 
 
 def _fichier() -> bytes:
