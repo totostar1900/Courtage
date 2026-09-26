@@ -14,3 +14,5 @@ jamais en réécrivant l'ancienne.
 | 2026-09-26 | La diaspora est ciblée dès la première année | parcours particulier en ligne, paiement hors zone à prévoir |
 | 2026-09-26 | Nom et marque : plus tard | nom de travail `courtage` |
 | 2026-09-26 | Barèmes camerounais depuis des sources en ligne, et non le barème ivoirien (écart de 67 % mesuré) | voir spec §10.1 |
+| 2026-09-26 | Au contrat IFC, souscripteur, assuré et bénéficiaire = l'entreprise ; le salarié est créancier de l'employeur | aucune identité de salarié avant un sinistre (spec §2.9) |
+| 2026-09-26 | Barème d'entreprise quand l'entreprise verse plus que sa convention | l'obligation implicite est évaluée (spec §7 bis) |

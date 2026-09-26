@@ -135,3 +135,27 @@ def test_refus_convention_a_valider():
 def test_refus_convention_hors_vigueur_a_la_date_d_evaluation(ref):
     ancienne = ref.convention("CM_COMMERCE", date(2023, 12, 31))
     assert "hors_vigueur" in motifs_de_refus(ancienne, pays_organisation="CM", date_evaluation=date(2024, 12, 31))
+
+
+# --- Barème d'entreprise : jamais moins que la convention ---------------------
+
+from courtage.actuariat.ifc import comparer_baremes  # noqa: E402
+from courtage.referentiel import BaremeTranches  # noqa: E402
+
+
+def _tranches(*taux):
+    bornes = [5, 10, None][:len(taux)] if len(taux) == 3 else [None]
+    return BaremeTranches(forme="tranches_cumulatives",
+                          tranches=[{"jusqu_a": b, "mois_par_annee": t} for b, t in zip(bornes, taux)])
+
+
+def test_un_bareme_plus_genereux_passe(ref):
+    ci = ref.convention("CI_CCI", date(2019, 12, 31)).bareme
+    assert comparer_baremes(_tranches(0.30, 0.40, 0.50), ci) == []
+
+
+def test_un_bareme_moins_genereux_est_refuse_avec_les_anciennetes_en_cause(ref):
+    ci = ref.convention("CI_CCI", date(2019, 12, 31)).bareme
+    en_dessous = comparer_baremes(_tranches(0.35), ci)  # 35 % partout : rattrapé par les 40 % de la convention
+    assert en_dessous[0] == 16  # 15 ans : 5,25 mois des deux côtés ; 16 ans : 5,60 contre 5,65
+    assert en_dessous == list(range(16, 51))

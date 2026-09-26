@@ -102,6 +102,11 @@ def mois_d_ifc(bareme: Bareme, anciennete: int) -> float:
     raise TypeError(f"barème inconnu : {type(bareme).__name__}")
 
 
+def comparer_baremes(bareme: Bareme, minimum: Bareme, jusqu_a: int = 50) -> list[int]:
+    """Les anciennetés (0 à `jusqu_a` ans) où `bareme` donne moins que `minimum`."""
+    return [n for n in range(jusqu_a + 1) if mois_d_ifc(bareme, n) < mois_d_ifc(minimum, n) - 1e-9]
+
+
 def probabilite_presence(age: float, age_retraite: int, turnover: Mapping[int, float]) -> float:
     """Probabilité de ne pas quitter l'entreprise d'ici la retraite."""
     p = 1.0
@@ -115,13 +120,17 @@ def evaluer(
     h: Hypotheses,
     convention: Convention,
     presences: Mapping[str, float] | None = None,
+    bareme: Bareme | None = None,
 ) -> Resultat:
     """Évalue l'engagement IFC.
 
     `presences` reprend des probabilités de présence fournies par une étude
     existante (rapprochement avec un classeur) au lieu de les calculer.
+    `bareme` remplace celui de la convention : le barème de l'entreprise quand
+    elle verse plus que sa convention.
     """
-    lignes = [_evaluer_un(s, h, convention, presences) for s in salaries]
+    bareme = bareme if bareme is not None else convention.bareme
+    lignes = [_evaluer_un(s, h, bareme, presences) for s in salaries]
     dette = sum(l.dette for l in lignes)
     charge = sum(l.charge for l in lignes)
     nette = max(dette + charge - h.fonds_disponible, 0.0)
@@ -138,7 +147,7 @@ def evaluer(
     return Resultat(VERSION_MOTEUR, convention.code, lignes, totaux)
 
 
-def _evaluer_un(s: Salarie, h: Hypotheses, convention: Convention, presences) -> Ligne:
+def _evaluer_un(s: Salarie, h: Hypotheses, bareme: Bareme, presences) -> Ligne:
     age = annees_entre(s.naissance, h.date_evaluation)
     anciennete = 0.0 if s.embauche > h.date_evaluation else annees_entre(s.embauche, h.date_evaluation)
     date_retraite = s.naissance + relativedelta(years=h.age_retraite)
@@ -148,7 +157,7 @@ def _evaluer_un(s: Salarie, h: Hypotheses, convention: Convention, presences) ->
 
     croissance = ((1 + h.inflation) * (1 + h.croissance_salaires)) ** restantes
     salaire_final = s.salaire_annuel / 12 * croissance
-    ifc = salaire_final * mois_d_ifc(convention.bareme, floor(anciennete_totale))
+    ifc = salaire_final * mois_d_ifc(bareme, floor(anciennete_totale))
 
     survie = h.table.survie(floor(age), h.age_retraite) if not au_dela else 1.0
     if presences is not None and s.matricule in presences:

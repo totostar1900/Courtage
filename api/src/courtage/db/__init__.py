@@ -28,6 +28,9 @@ def contexte(connexion, organisation_id: uuid.UUID) -> None:
 RoleAdhesion = ENUM("admin_client", "lecteur_client", "conseiller", name="role_adhesion", create_type=False)
 StatutEtude = ENUM("brouillon", "emise", name="statut_etude", create_type=False)
 Periodicite = ENUM("mensuel", "annuel", name="periodicite_salaire", create_type=False)
+Fondement = ENUM("accord_entreprise", "contrat_travail", "usage", "decision_direction",
+                 name="fondement_bareme", create_type=False)
+StatutBareme = ENUM("propose", "valide", name="statut_bareme", create_type=False)
 ModeRemuneration = ENUM("honoraires", "commission", "mixte", name="mode_remuneration", create_type=False)
 
 
@@ -46,6 +49,7 @@ class Utilisateur(Base):
     telephone: Mapped[str | None] = mapped_column(Text)
     email: Mapped[str | None] = mapped_column(Text)
     admin_plateforme: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
+    nom_affiche: Mapped[str | None] = mapped_column(Text)
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
@@ -91,6 +95,7 @@ class Etude(Base):
     remplace_etude_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("etudes.id"))
     conditions_remuneration_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("conditions_remuneration.id"))
     honoraires_ht: Mapped[int | None] = mapped_column(BigInteger)
+    bareme_entreprise_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("baremes_entreprise.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
@@ -106,6 +111,27 @@ class ConditionsRemuneration(Base):
     note: Mapped[str | None] = mapped_column(Text)
     cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class BaremeEntreprise(Base):
+    __tablename__ = "baremes_entreprise"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    libelle: Mapped[str] = mapped_column(Text)
+    fondement: Mapped[str] = mapped_column(Fondement)
+    document_reference: Mapped[str] = mapped_column(Text)
+    convention_code: Mapped[str] = mapped_column(Text)
+    en_vigueur_du: Mapped[date] = mapped_column(Date)
+    en_vigueur_au: Mapped[date | None] = mapped_column(Date)
+    bareme: Mapped[dict] = mapped_column(JSONB)
+    statut: Mapped[str] = mapped_column(StatutBareme, server_default=FetchedValue())
+    propose_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    valide_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    valide_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+    def en_vigueur(self, jour: date) -> bool:
+        return self.en_vigueur_du <= jour and (self.en_vigueur_au is None or jour <= self.en_vigueur_au)
 
 
 class EntreeJournal(Base):

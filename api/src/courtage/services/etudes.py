@@ -16,13 +16,13 @@ from datetime import date, datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from courtage.actuariat.ifc import VERSION_MOTEUR, Hypotheses, Resultat, evaluer
+from courtage.actuariat.ifc import VERSION_MOTEUR, Hypotheses, Resultat, comparer_baremes, evaluer
 from courtage.db import Etude, Organisation
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie, controler, controler_parametres, controler_resultat, salaries
 from courtage.referentiel import HYPOTHESES_PAR_DEFAUT, motifs_de_refus, referentiel_courant
 
-from . import fichiers, journaliser, remuneration
+from . import baremes, fichiers, journaliser, remuneration
 
 ECART_MAX_ETUDE_PRECEDENTE = 0.25
 AGE_PREMIER_EMPLOI = 18
@@ -38,6 +38,7 @@ class Saisie:
     fonds_disponible: int
     hypotheses: dict = field(default_factory=dict)
     justification: str | None = None
+    bareme_entreprise_id: uuid.UUID | None = None
 
 
 # --- Écritures ----------------------------------------------------------------
@@ -104,6 +105,14 @@ def motifs_emission(session: Session, org: Organisation, etude: Etude, aujourd_h
     motifs = sorted({a["code"] for a in etude.resultats["anomalies"] if a["niveau"] == "bloquant"})
     convention = referentiel_courant().convention(etude.convention_code, etude.convention_du)
     motifs += motifs_de_refus(convention, pays_organisation=org.pays, date_evaluation=etude.date_evaluation)
+    if etude.bareme_entreprise_id is not None:
+        b = baremes.obtenir(session, etude.bareme_entreprise_id)
+        if b.statut != "valide":
+            motifs.append("bareme_entreprise_a_valider")
+        if not b.en_vigueur(etude.date_evaluation):
+            motifs.append("bareme_entreprise_hors_vigueur")
+        if comparer_baremes(baremes.type_de(b.bareme), convention.bareme):
+            motifs.append("bareme_inferieur_convention")
     if remuneration.en_vigueur(session, aujourd_hui) is None:
         motifs.append("remuneration_absente")
     return motifs
@@ -117,6 +126,7 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
     else:
         emission = {"possible": False, "motifs": []}
     convention = referentiel_courant().convention(etude.convention_code, etude.convention_du)
+    bareme = baremes.en_clair(baremes.obtenir(session, etude.bareme_entreprise_id)) if etude.bareme_entreprise_id else None
     return {
         "id": str(etude.id), "statut": etude.statut, "fichier_id": str(etude.fichier_id),
         "date_evaluation": etude.date_evaluation.isoformat(),
@@ -124,6 +134,7 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
                        "statut": convention.statut, "verification": convention.verification},
         "referentiel_version": etude.referentiel_version, "version_moteur": etude.version_moteur,
         "hypotheses": etude.hypotheses, "fonds_disponible": etude.fonds_disponible,
+        "bareme_entreprise": bareme, "totaux_convention": r.get("totaux_convention"),
         "totaux": r["totaux"], "echeancier": r["echeancier"], "sensibilites": r["sensibilites"],
         "lignes": r["lignes"], "anomalies": r["anomalies"], "emission": emission,
         "empreinte": etude.empreinte, "honoraires_ht": etude.honoraires_ht,
@@ -141,6 +152,7 @@ def empreinte(etude: Etude) -> str:
         "convention_du": etude.convention_du.isoformat(), "referentiel_version": etude.referentiel_version,
         "version_moteur": etude.version_moteur, "hypotheses": etude.hypotheses,
         "fonds_disponible": etude.fonds_disponible, "resultats": etude.resultats,
+        "bareme_entreprise_id": str(etude.bareme_entreprise_id) if etude.bareme_entreprise_id else None,
     }
     canonique = json.dumps(contenu, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(canonique.encode("utf-8")).hexdigest()
@@ -166,7 +178,14 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         table=ref.table(valeurs["table"]), fonds_disponible=saisie.fonds_disponible,
         frais_sur_cotisation=valeurs["frais_sur_cotisation"],
     )
-    resultat = evaluer(salaries(lecture), h, convention)
+    bareme = None
+    if saisie.bareme_entreprise_id is not None:
+        b = baremes.obtenir(session, saisie.bareme_entreprise_id)
+        if b.convention_code != convention.code:
+            raise ErreurMetier("bareme_autre_convention",
+                               f"Ce barème améliore {b.convention_code}, pas {convention.code}.", 422)
+        bareme = baremes.type_de(b.bareme)
+    resultat = evaluer(salaries(lecture), h, convention, bareme=bareme)
 
     anomalies: list[Anomalie] = [
         *lecture.anomalies,
@@ -180,11 +199,14 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         "convention_du": convention.en_vigueur_du, "date_evaluation": saisie.date_evaluation,
         "hypotheses": {"valeurs": valeurs, "ecarts": ecarts, "justification": saisie.justification},
         "fonds_disponible": saisie.fonds_disponible, "version_moteur": VERSION_MOTEUR,
+        "bareme_entreprise_id": saisie.bareme_entreprise_id,
         "resultats": {
             "totaux": _totaux(resultat),
+            # Ce que l'accord coûte au-delà de la convention.
+            **({"totaux_convention": _totaux(evaluer(salaries(lecture), h, convention))} if bareme else {}),
             "lignes": _lignes(resultat),
             "echeancier": _echeancier(resultat, saisie.date_evaluation),
-            "sensibilites": _sensibilites(lecture, h, convention),
+            "sensibilites": _sensibilites(lecture, h, convention, bareme),
             "anomalies": [asdict(a) for a in anomalies],
         },
     }
@@ -254,14 +276,14 @@ def _echeancier(r: Resultat, date_evaluation: date) -> list[dict]:
             for a, v in sorted(par_annee.items())]
 
 
-def _sensibilites(lecture, h: Hypotheses, convention) -> dict:
+def _sensibilites(lecture, h: Hypotheses, convention, bareme) -> dict:
     variantes = {
         "taux_actualisation_moins_1pt": replace(h, taux_actualisation=h.taux_actualisation - 0.01),
         "taux_actualisation_plus_1pt": replace(h, taux_actualisation=h.taux_actualisation + 0.01),
         "croissance_salaires_plus_1pt": replace(h, croissance_salaires=h.croissance_salaires + 0.01),
     }
     sal = salaries(lecture)
-    totaux = {nom: evaluer(sal, v, convention).totaux for nom, v in variantes.items()}
+    totaux = {nom: evaluer(sal, v, convention, bareme=bareme).totaux for nom, v in variantes.items()}
     return {nom: {"dette": t.dette, "charge": t.charge} for nom, t in totaux.items()}
 
 

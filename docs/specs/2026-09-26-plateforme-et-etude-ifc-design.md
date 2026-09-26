@@ -44,7 +44,31 @@ comptes.
    applicatif n'est pas propriétaire des tables.
 8. **Minimisation des données.** Le fichier du personnel n'a besoin d'aucun
    nom : matricule, sexe, date de naissance, date d'embauche, salaire. Une
-   colonne de nom est ignorée à la lecture et n'est jamais stockée.
+   colonne de nom est ignorée à la lecture et n'est jamais stockée. Ce
+   recensement reste une donnée personnelle (dates et salaire suffisent souvent
+   à reconnaître quelqu'un dans une petite entreprise) et se protège comme tel.
+9. **L'évaluation ne demande aucune identité ; l'identité n'entre qu'avec un
+   sinistre** (ajouté le 2026-09-26), dans un dossier séparé, aux accès plus
+   étroits, aux champs chiffrés, à la conservation limitée. Spécification des
+   sinistres à venir avec le placement.
+10. **Une entreprise verse au moins sa convention.** Elle peut verser plus ;
+   si elle le fait habituellement (accord, contrats, usage constant), sa dette
+   réelle est plus lourde que la dette conventionnelle (obligation implicite,
+   IAS 19) et l'étude l'évalue avec SON barème (§7 bis).
+
+### Qui est qui dans un contrat IFC
+
+Le **souscripteur**, l'**assuré** et le **bénéficiaire** du contrat sont
+l'entreprise : l'engagement couvert est le sien, et l'assureur lui rembourse
+les indemnités qu'elle verse, dans la limite du fonds. Le salarié n'a pas de
+lien avec l'assureur : il est créancier de son employeur. La plateforme ne
+traite donc qu'avec l'entreprise.
+
+Au sinistre (départ en retraite), l'entreprise déclare et verse ; sa latitude
+ne joue que vers le haut. Le contrat devra dire si le fonds rembourse le
+montant conventionnel ou le montant versé (plafonné) : c'est une donnée de la
+police, à modéliser avec le placement. La plateforme recalculera alors le
+montant conventionnel au jour du départ et montrera l'écart avec le versement.
 
 ## 3. Pile technique
 
@@ -132,6 +156,21 @@ Le barème est une **donnée**, de deux formes :
 
 Le moteur est une fonction pure : pas de base, pas de date du jour. Il rend le
 détail par salarié et les totaux, arrondis à l'entier.
+
+### 7 bis. Barème d'entreprise (ajouté le 2026-09-26)
+
+Un barème propre à une organisation, qui AMÉLIORE une convention précise :
+libellé, fondement (`accord_entreprise` | `contrat_travail` | `usage` |
+`decision_direction`), référence du document, dates de vigueur, barème (même
+format que le référentiel). Proposé par le client ou le conseiller, validé par
+le conseiller ; validé, il ne bouge plus.
+
+Il ne peut jamais donner moins que la convention : vérifié à la proposition
+(refus, avec les anciennetés en cause) et à chaque étude contre la version de
+la convention en vigueur à la date d'évaluation, parce que le minimum légal
+monte (commerce camerounais au 16/01/2024) : un accord dépassé par une
+révision bloque l'émission. Une étude avec barème d'entreprise donne aussi
+ses totaux conventionnels : ce que l'accord coûte au-delà de la convention.
 
 **Tests de référence** : le cas AZITO au 31/12/2019 doit redonner la dette du
 classeur Ariane (60 976 604 F, convention CI) et celle du rapport 2023

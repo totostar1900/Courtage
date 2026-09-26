@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
-from courtage.services import etudes, fichiers, journaliser, remuneration
+from courtage.services import baremes, etudes, fichiers, journaliser, remuneration
 
 from . import Acces, acces, identite, session_db
 
@@ -107,6 +107,33 @@ def lire_remuneration(a: Acces = Depends(acces(*TOUS))):
     }
 
 
+# --- Barèmes d'entreprise ----------------------------------------------------
+
+class NouveauBareme(_Corps):
+    libelle: str = Field(min_length=1)
+    fondement: Literal["accord_entreprise", "contrat_travail", "usage", "decision_direction"]
+    document_reference: str = Field(min_length=1)
+    convention_code: str
+    en_vigueur_du: date
+    en_vigueur_au: date | None = None
+    bareme: dict
+
+
+@routeur.post("/organisations/{organisation_id}/baremes", status_code=201)
+def proposer_bareme(corps: NouveauBareme, a: Acces = Depends(acces(*CLIENT))):
+    return baremes.en_clair(baremes.proposer(a.session, a.organisation, a.utilisateur.id, **corps.model_dump()))
+
+
+@routeur.get("/organisations/{organisation_id}/baremes")
+def lister_baremes(a: Acces = Depends(acces(*TOUS))):
+    return [baremes.en_clair(b) for b in baremes.lister(a.session)]
+
+
+@routeur.post("/organisations/{organisation_id}/baremes/{bareme_id}/validation")
+def valider_bareme(bareme_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))):
+    return baremes.en_clair(baremes.valider(a.session, baremes.obtenir(a.session, bareme_id), a.utilisateur.id))
+
+
 # --- Fichiers -----------------------------------------------------------------
 
 @routeur.post("/organisations/{organisation_id}/fichiers", status_code=201)
@@ -134,6 +161,7 @@ class ParametresEtude(_Corps):
     fonds_disponible: int = Field(ge=0)
     hypotheses: dict[str, float] = {}
     justification: str | None = None
+    bareme_entreprise_id: uuid.UUID | None = None
 
 
 def _saisie(p: ParametresEtude) -> etudes.Saisie:
