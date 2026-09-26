@@ -114,7 +114,8 @@ export const CHAPITRES: Chapitre[] = [
         "Dette actuarielle + charge annuelle − fonds constitué = cotisation nette. Cotisation nette + frais de l'assureur = cotisation à verser.",
         "Le tableau « Du passif à la cotisation » montre chaque ligne au franc près : les quatre cartes se réconcilient toujours." ] },
       { titre: "L'émission", texte: [
-        "Le conseiller émet l'étude quand elle est complète. Elle est alors figée, et son rapport PDF est scellé et numéroté (RL-…)." ] },
+        "Le conseiller émet l'étude quand elle est complète. Elle est alors figée, et son rapport PDF est scellé et numéroté (RL-…).",
+        "« Exporter en Excel » donne l'étude en classeur : la synthèse et les hypothèses, l'échéancier (cumuls et parts en formules), les catégories, les sensibilités, et le calcul salarié par salarié, par matricule." ] },
     ],
     termes: ["dette", "charge", "fonds", "cotisation_nette", "frais_cotisation", "cotisation", "emission"],
   },
@@ -142,7 +143,8 @@ export const CHAPITRES: Chapitre[] = [
         "Les réponses sont classées par leur coût net actualisé, le même calcul que la comparaison d'offres. La recommandée est la moins chère des CONFORMES : une offre moins chère qui impose une pénalité de transfert ne l'est pas.",
         "L'entreprise choisit. Retenir une autre offre que la recommandée est permis, et se motive : la raison figure au dossier. Un cahier attribué est clos ; le conseiller enregistre alors le contrat." ] },
       { titre: "Changer d'assureur", texte: [
-        "Les conditions de transfert (préavis, pénalité) font partie des exigences : c'est ce qui vous permettra de changer d'assureur plus tard sans perdre votre fonds." ] },
+        "Les conditions de transfert (préavis, pénalité) font partie des exigences : c'est ce qui vous permettra de changer d'assureur plus tard sans perdre votre fonds.",
+        "Les réponses s'exportent en Excel : le classement, la conformité critère par critère et la projection sous les trois scénarios de rendement." ] },
     ],
     termes: ["cahier", "anonymat"],
   },

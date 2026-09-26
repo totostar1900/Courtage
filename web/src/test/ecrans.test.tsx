@@ -467,6 +467,23 @@ describe("les réponses des assureurs", () => {
     expect(JSON.parse(appels.find((x) => x.chemin.endsWith("/choix"))!.init!.body as string)).toEqual({ reponse_id: "r1", motif: "Service" });
   });
 
+  it("l'étude et les réponses s'exportent en Excel, sous un nom qui dit ce qu'elles sont", async () => {
+    const noms: string[] = [];
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    URL.revokeObjectURL = vi.fn();
+    const clic = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      noms.push(this.download); });
+    const appels = simulerApi({ ...dossier("admin_client", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: reponses(),
+      [`/organisations/${ORG}/fiches/f1/reponses/export`]: new Response(new Blob(["xlsx"])),
+      [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }),
+      [`/organisations/${ORG}/etudes/e1/export`]: new Response(new Blob(["xlsx"])) });
+    ouvrir(`/dossier/${ORG}/cahier/f1`);
+    await userEvent.click(await screen.findByRole("button", { name: "Exporter en Excel" }));
+    await waitFor(() => expect(noms).toEqual(["reponses-assureurs-RL-AAAA-BBBB.xlsx"]));
+    clic.mockRestore();
+    expect(appels.map((a) => a.chemin)).toContain(`/organisations/${ORG}/fiches/f1/reponses/export`);
+  });
+
   it("le conseiller saisit une réponse : la grille part en JSON, l'offre à côté", async () => {
     const appels = simulerApi({ ...dossier("conseiller", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: { ...reponses(), reponses: [] },
       [`POST /organisations/${ORG}/fiches/f1/reponses`]: reponse("r3", "Assureur C", 1, 1, true) });
@@ -908,5 +925,21 @@ describe("l'aide propre à chaque page", () => {
     await userEvent.keyboard("{Control>}k{/Control}");
     await userEvent.type(screen.getByRole("textbox", { name: "Rechercher" }), "?");
     expect(screen.queryByRole("dialog", { name: "Aide sur cette page" })).not.toBeInTheDocument();
+  });
+});
+
+describe("l'export de l'étude", () => {
+  it("« Exporter en Excel » télécharge le classeur de l'étude", async () => {
+    const noms: string[] = [];
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    URL.revokeObjectURL = vi.fn();
+    const clic = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      noms.push(this.download); });
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: [] }),
+      [`/organisations/${ORG}/etudes/e1/export`]: new Response(new Blob(["xlsx"])) });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    await userEvent.click(await screen.findByRole("button", { name: "Exporter en Excel" }));
+    await waitFor(() => expect(noms).toEqual(["etude-ifc-2019-12-31.xlsx"]));
+    clic.mockRestore();
   });
 });

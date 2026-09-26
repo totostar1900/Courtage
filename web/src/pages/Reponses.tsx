@@ -19,6 +19,7 @@ export default function Reponses() {
   const base = `/organisations/${d.org.id}/fiches/${fiche}`;
   const { donnee: x, erreur, recharger } = useCharge(() => api.get<ReponsesFiche>(`${base}/reponses`), [fiche]);
   const [volet, setVolet] = useState<null | "saisir" | { corriger: ReponseAssureur }>(null);
+  const [erreurExport, setErreurExport] = useState<unknown>(null);
   const numero = d.fiches.find((f) => f.id === fiche)?.numero;
   if (erreur) return <Erreur erreur={erreur} />;
   if (!x) return <p className="discret">Chargement…</p>;
@@ -31,6 +32,15 @@ export default function Reponses() {
       <p className="discret">Cahier {numero} · réponses attendues avant le {dateFr(x.date_limite_reponse)}. Chaque réponse est
         confrontée aux conditions demandées, puis classée par son coût net actualisé ; la recommandée est la moins chère des
         conformes. Le choix appartient à l'entreprise.</p>
+      {x.reponses.length > 0 && (
+        <div className="actions" style={{ marginTop: 0 }}>
+          <button type="button" onClick={() => { setErreurExport(null);
+            api.telecharger(`${base}/reponses/export`, `reponses-assureurs-${numero ?? "cahier"}.xlsx`).catch(setErreurExport); }}>
+            Exporter en Excel</button>
+          <span className="discret">La comparaison, la conformité critère par critère et les trois scénarios de rendement.</span>
+        </div>
+      )}
+      <Erreur erreur={erreurExport} />
 
       {x.choix && (
         <div className="carte section" style={{ borderColor: "var(--bien)" }} data-choix>
