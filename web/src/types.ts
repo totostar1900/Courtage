@@ -306,6 +306,15 @@ export interface VersionProposee {
   en_vigueur_du: string | null; fondement: string; document_reference: string; categories: Categorie[];
 }
 
+export interface ModeleType {
+  code: string; modele: "minimum" | "plus_25" | "cadres" | "simple"; titre: string; description: string;
+  convention: { code: string; libelle: string; statut: "valide" | "a_valider" };
+  version: VersionProposee;
+  illustration: { anciennete: number; minimum: number; par_categorie: Record<string, number> }[];
+}
+
+export interface ModelesDuPays { pays: string; pays_libelle: string; modeles: ModeleType[] }
+
 export interface ExtractionProposee extends ModeExtraction {
   id: string;
   version: VersionProposee | Record<string, never>;

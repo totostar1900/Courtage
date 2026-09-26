@@ -73,6 +73,7 @@ def main(url: str, sortie: Path) -> None:
         reponses[cle or f"{methode} {chemin}"] = r.json()
 
     capter("/referentiel/conventions")
+    capter("/referentiel/modeles?pays=CM")
     capter("/dev/utilisateurs")
     reponses["GET /dev/utilisateurs"] = [u for u in reponses["GET /dev/utilisateurs"] if not u["admin_plateforme"]]
     for qui in ("drh", "conseiller"):

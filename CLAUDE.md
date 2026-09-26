@@ -237,6 +237,15 @@ chère des conformes. **Le choix appartient à l'entreprise** : un par cahier, e
 s'il ne se porte pas sur la recommandée. Une réponse arrive en multipart : la grille
 est un champ JSON `donnees`, l'offre PDF est à côté.
 
+## Modèles types
+
+`courtage/modeles.py` (pur), `GET /referentiel/modeles?pays=` (public, CEMAC ; un pays sans convention rend
+une liste vide), `composants/ModelesTypes.tsx`. Quatre barèmes CALCULÉS depuis chaque convention en vigueur
+— minimum, +25 %, cadres à 1,5, barème unique —, arrondis vers le haut : **conformes par construction**, un
+test le vérifie de 1 à 45 ans. Servis comme une `VersionProposee` : le formulaire les reprend, rien n'est
+enregistré sans relecture. Aucune donnée d'entreprise. Première étape de « consulter des régimes » ; le
+catalogue anonyme et la comparaison chiffrée viendront après (docs/specs/2026-09-26-modeles-types-design.md).
+
 ## Extraction assistée
 
 `courtage/extraction/` (module pur + deux moteurs) et `services/extractions.py`,

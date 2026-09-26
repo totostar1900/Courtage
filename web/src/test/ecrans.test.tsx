@@ -589,3 +589,46 @@ describe("une plateforme neuve", () => {
     expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", telephone: "699001122", role: "admin_client" });
   });
 });
+
+describe("les modèles types", () => {
+  const camerounais = () => ({ ...dossier("admin_client"),
+    "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [{ id: ORG, nom: "Démo CM", pays: "CM", role: "admin_client" }] } });
+  const bareme = (taux: number) => ({ forme: "tranches_cumulatives", tranches: [{ jusqu_a: null, mois_par_annee: taux }] });
+  const categorie = (nom: string, taux: number) => ({ categorie: nom, convention_code: "CM_COMMERCE", bareme: bareme(taux),
+    anciennete_minimale: 0, plafond_mois: null, arrondi: "annees", base_salaire: "dernier", avec_primes: false, evenements: ["retraite"] });
+  const modele = (code: string, titre: string, categories: ReturnType<typeof categorie>[]) => ({
+    code: `CM_COMMERCE:${code}`, modele: code, titre, description: `${titre}, expliqué.`,
+    convention: { code: "CM_COMMERCE", libelle: "Commerce (Cameroun)", statut: "valide" },
+    version: { en_vigueur_du: null, fondement: "accord_entreprise", document_reference: `Modèle type de la plateforme : ${titre}`, categories },
+    illustration: [10, 20, 30].map((n) => ({ anciennete: n, minimum: n * 0.5,
+      par_categorie: Object.fromEntries(categories.map((c) => [c.categorie, n * c.bareme.tranches[0].mois_par_annee])) })) });
+  const modeles = { pays: "CM", pays_libelle: "Cameroun", modeles: [
+    modele("minimum", "Minimum conventionnel", [categorie("*", 0.5)]),
+    modele("cadres", "Cadres favorisés", [categorie("Cadre", 0.75), categorie("*", 0.5)])] };
+
+  it("se lit face à la convention, puis se reprend dans le formulaire", async () => {
+    const appels = simulerApi({ ...camerounais(), "/extraction/mode": { moteur: "regles", modele: null, envoie_a_un_tiers: false, pays_couverts: { CM: "Cameroun" } },
+      "/referentiel/modeles": modeles });
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Décrire un régime" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Partir d'un modèle type" }));
+    const cadres = (await screen.findByText("Cadres favorisés")).closest("[data-modele]") as HTMLElement;
+    expect(within(cadres).getByRole("columnheader", { name: "Cadre" })).toBeInTheDocument();
+    expect(within(cadres).getByRole("columnheader", { name: "Autres" })).toBeInTheDocument();
+    const vingt = within(cadres).getByRole("row", { name: /^20 ans/ });
+    expect(within(vingt).getAllByRole("cell").map((c) => c.textContent)).toEqual(["20 ans", "10 mois", "15 mois", "10 mois"]);
+    expect(appels.some((a) => a.chemin === "/referentiel/modeles")).toBe(true);
+    await userEvent.click(within(cadres).getByRole("button", { name: "Reprendre dans le formulaire" }));
+    expect(screen.getByLabelText("Document")).toHaveValue("Modèle type de la plateforme : Cadres favorisés");
+    expect(screen.queryByText("Minimum conventionnel")).not.toBeInTheDocument();   // la liste se referme
+  });
+
+  it("un pays sans convention préremplie le dit", async () => {
+    simulerApi({ ...camerounais(), "/extraction/mode": { moteur: "regles", modele: null, envoie_a_un_tiers: false, pays_couverts: {} },
+      "/referentiel/modeles": { pays: "GA", pays_libelle: "Gabon", modeles: [] } });
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Décrire un régime" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Partir d'un modèle type" }));
+    expect(await screen.findByText(/Pas encore de convention préremplie pour Gabon/)).toBeInTheDocument();
+  });
+});

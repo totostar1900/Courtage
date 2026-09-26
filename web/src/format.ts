@@ -21,3 +21,8 @@ export function dateFr(iso: string | null | undefined): string {
   const [a, m, j] = iso.slice(0, 10).split("-");
   return `${j}/${m}/${a}`;
 }
+
+/** Des mois d'indemnité, à la française : « 3,8 mois », « 14,5 mois ». */
+export function mois(n: number): string {
+  return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} mois`;
+}

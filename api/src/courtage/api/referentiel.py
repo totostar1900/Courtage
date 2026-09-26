@@ -7,9 +7,11 @@ garde son ancienne version : une étude datée d'avant s'y réfère).
 """
 from datetime import date
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from courtage.actuariat.ifc import mois_d_ifc
+from courtage.erreurs import ErreurMetier
+from courtage.modeles import modeles_du_pays
 from courtage.referentiel import CEMAC, referentiel_courant
 
 routeur_referentiel = APIRouter()
@@ -32,3 +34,11 @@ def conventions():
             "illustration": [{"anciennete": n, "mois": round(mois_d_ifc(c.bareme, n), 2)} for n in ANCIENNETES],
         } for c in sorted(ref.conventions, key=lambda c: (c.pays, c.code, c.en_vigueur_du)) if c.pays in CEMAC],
     }
+
+
+@routeur_referentiel.get("/referentiel/modeles")
+def modeles(pays: str = Query(pattern=r"^[A-Z]{2}$")):
+    """Les modèles types d'un pays de la CEMAC, calculés depuis ses conventions en vigueur : publics, comme elles."""
+    if pays not in CEMAC:
+        raise ErreurMetier("pays_non_couvert", "La plateforme couvre pour l'instant les pays de la CEMAC.", 422)
+    return {"pays": pays, "pays_libelle": CEMAC[pays], "modeles": modeles_du_pays(referentiel_courant(), pays, date.today())}
