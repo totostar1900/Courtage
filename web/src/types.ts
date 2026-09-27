@@ -144,7 +144,6 @@ export interface Etude {
   anomalies: Anomalie[];
   emission: { possible: boolean; motifs: string[] };
   empreinte: string | null;
-  honoraires_ht: number | null;
   emise_le: string | null;
   rapport: { numero: string } | null;
   suppression?: { confirmation: string | null; raison_de_garder: string | null };
@@ -158,17 +157,6 @@ export interface Experience {
   rotation: { taux: number | null; departs: number; annees: number; effectif: number; taux_hypothese: number;
     credible: boolean; proposition: { taux_turnover: number; justification: string } | null; message: string };
   paiements_du_fonds: { depuis: string | null; montant: number };
-}
-
-export interface Conditions {
-  id: string;
-  raison_de_garder?: string | null;
-  en_vigueur_du: string;
-  mode: "honoraires" | "commission" | "mixte";
-  honoraires_etude_ifc: number;
-  honoraires_par_salarie: number;
-  commission_bps: number;
-  note: string | null;
 }
 
 export interface Offre {

@@ -12,10 +12,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from courtage.auth.telephone import normaliser
-from courtage.db import Adhesion, ConditionsRemuneration, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
+from courtage.db import Adhesion, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.financement import Offre, Scenario
-from courtage.services import alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -221,43 +221,6 @@ def retirer_membre(utilisateur_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     """Le membre quitte le dossier ; ce qu'il a fait reste au journal, sous son nom."""
     equipe.retirer(a.session, a.organisation, a.utilisateur, a.role, utilisateur_id)
     return equipe.lister(a.session, a.organisation, a.utilisateur, a.role)
-
-
-# --- Rémunération -------------------------------------------------------------
-
-class NouvellesConditions(_Corps):
-    en_vigueur_du: date
-    mode: Literal["honoraires", "commission", "mixte"]
-    honoraires_etude_ifc: int = Field(default=0, ge=0)
-    honoraires_par_salarie: int = Field(default=0, ge=0)
-    commission_bps: int = Field(default=0, ge=0, le=10000)
-    note: str | None = None
-
-
-@routeur.post("/organisations/{organisation_id}/remuneration", status_code=201)
-def fixer_remuneration(corps: NouvellesConditions, a: Acces = Depends(acces(*CONSEIL))):
-    c = remuneration.fixer(a.session, a.organisation.id, a.utilisateur.id, **corps.model_dump())
-    return remuneration.en_clair(c)
-
-
-@routeur.get("/organisations/{organisation_id}/remuneration")
-def lire_remuneration(a: Acces = Depends(acces(*TOUS))):
-    courantes = remuneration.en_vigueur(a.session, date.today())
-    return {
-        "en_vigueur": remuneration.en_clair(courantes) if courantes else None,
-        "historique": [{**remuneration.en_clair(c), "raison_de_garder": remuneration.raison_de_garder(a.session, c)}
-                       for c in remuneration.historique(a.session)],
-    }
-
-
-@routeur.delete("/organisations/{organisation_id}/remuneration/{conditions_id}")
-def supprimer_remuneration(conditions_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))):
-    """Des conditions saisies par erreur, dont aucune étude n'a tiré ses honoraires."""
-    c = a.session.get(ConditionsRemuneration, conditions_id)
-    if c is None:
-        raise Introuvable("Conditions")
-    remuneration.supprimer(a.session, c, a.utilisateur.id)
-    return {"supprimees": True}
 
 
 # --- Contrats : courtage ou comparaison --------------------------------------------

@@ -7,7 +7,7 @@ seul avec son assureur et aucune identité n'est jamais demandée.
 
 Un contrat ne se modifie pas : un nouveau s'ajoute avec sa date d'effet. Sans
 contrat, le client est en comparaison — la plateforme ne suppose jamais un
-mandat qu'elle n'a pas. Le service se lit ICI, jamais sur la rémunération.
+mandat qu'elle n'a pas.
 """
 import uuid
 from dataclasses import dataclass
@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from courtage.db import Contrat, DossierPriseEnCharge, Prestation
 from courtage.erreurs import ErreurMetier
 
-from . import journaliser, remuneration
+from . import journaliser
 
 Service = Literal["courtage", "comparaison"]
 
@@ -68,14 +68,7 @@ def service_a_la_date(session: Session, jour: date) -> ServiceEnVigueur:
 
 
 def constats(session: Session, jour: date) -> list[dict]:
-    """Ce que le conseiller doit voir : une rémunération qui ne va pas avec le service."""
-    service = service_a_la_date(session, jour).service
-    conditions = remuneration.en_vigueur(session, jour)
-    if conditions and conditions.commission_bps > 0 and service != "courtage":
-        return [{"niveau": "avertit", "code": "commission_sans_mandat",
-                 "message": "La rémunération prévoit une commission, mais aucun mandat de courtage n'est enregistré : "
-                            "une commission se perçoit sur un contrat placé. Enregistrez le mandat, ou revoyez la "
-                            "rémunération."}]
+    """Ce que le conseiller doit voir sur le contrat ; rien pour l'instant."""
     return []
 
 

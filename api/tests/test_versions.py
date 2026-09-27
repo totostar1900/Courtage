@@ -145,19 +145,7 @@ def test_un_fichier_se_supprime_ou_s_allege_selon_ce_qui_le_cite(client, azito):
     assert client.get(f"{V1}/organisations/{org}/etudes/{e['id']}/rapport", headers=h).status_code == 200
 
 
-def test_des_conditions_et_un_contrat_saisis_par_erreur_se_suppriment(client, azito):
+def test_un_contrat_saisi_par_erreur_se_supprime(client, azito):
     org, h = azito["org"], en_tant_que(azito["conseiller"])
-    c = client.post(f"{V1}/organisations/{org}/remuneration", headers=h, json={
-        "en_vigueur_du": "2030-01-01", "mode": "honoraires", "honoraires_etude_ifc": 1, "honoraires_par_salarie": 0}).json()
-    hist = client.get(f"{V1}/organisations/{org}/remuneration", headers=h).json()["historique"]
-    assert next(x for x in hist if x["id"] == c["id"])["raison_de_garder"] is None
-    assert client.delete(f"{V1}/organisations/{org}/remuneration/{c['id']}", headers=en_tant_que(azito["drh"])).status_code == 403
-    assert client.delete(f"{V1}/organisations/{org}/remuneration/{c['id']}", headers=h).json() == {"supprimees": True}
-    # Des conditions dont une étude émise a tiré ses honoraires restent.
-    e = etude(client, azito).json()
-    client.post(f"{V1}/organisations/{org}/etudes/{e['id']}/emission", headers=h)
-    hist = client.get(f"{V1}/organisations/{org}/remuneration", headers=h).json()["historique"]
-    utilisee = next(x for x in hist if x["raison_de_garder"])
-    assert client.delete(f"{V1}/organisations/{org}/remuneration/{utilisee['id']}", headers=h).json()["code"] == "conditions_utilisees"
     k = client.post(f"{V1}/organisations/{org}/contrats", headers=h, json={"en_vigueur_du": "2031-01-01", "service": "comparaison"}).json()
     assert client.delete(f"{V1}/organisations/{org}/contrats/{k['id']}", headers=h).json() == {"supprime": True}

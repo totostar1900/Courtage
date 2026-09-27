@@ -59,11 +59,11 @@ describe("le dossier", () => {
 describe("l'émission d'une étude", () => {
   it("le conseiller voit pourquoi il ne peut pas encore émettre", async () => {
     simulerApi({ ...dossier("conseiller"),
-                 [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: ["pays_different", "remuneration_absente"] }) });
+                 [`/organisations/${ORG}/etudes/e1`]: etude({ possible: false, motifs: ["pays_different"] }) });
     ouvrir(`/dossier/${ORG}/etudes/e1`);
     const bouton = await screen.findByRole("button", { name: /Émettre et sceller/ });
     expect(bouton).toBeDisabled();
-    expect(screen.getByText(/convention d'un autre pays · conditions de rémunération à fixer/)).toBeInTheDocument();
+    expect(screen.getByText(/convention d'un autre pays/)).toBeInTheDocument();
   });
 
   it("le client ne peut pas émettre : c'est son conseiller qui le fait", async () => {
@@ -961,7 +961,7 @@ describe("reprendre où l'on s'était arrêté", () => {
 describe("l'aide propre à chaque page", () => {
   it("chaque page du dossier a son aide", async () => {
     const { chapitresDe } = await import("../composants/AidePage");
-    for (const page of ["", "personnel", "regime", "simulation", "etudes", "financement", "cahier", "remuneration",
+    for (const page of ["", "personnel", "regime", "simulation", "etudes", "financement", "cahier",
                         "contrat", "departs", "dossiers", "equipe"]) {
       expect(chapitresDe(page).length, `page « ${page} »`).toBeGreaterThan(0);
     }

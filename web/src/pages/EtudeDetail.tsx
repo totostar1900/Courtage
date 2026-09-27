@@ -92,9 +92,6 @@ export default function EtudeDetail() {
           <Link to="financement"><button>Financer cet engagement</button></Link>
         </div>
         <Erreur erreur={erreurAction} />
-        {e.statut === "emise" && e.honoraires_ht !== null && d.role !== "lecteur_client" && (
-          <p className="discret">Honoraires de l'étude : {montant(e.honoraires_ht)} HT, selon vos conditions.</p>
-        )}
       </div>
 
       <div className="carte section">

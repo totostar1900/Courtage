@@ -32,7 +32,6 @@ Periodicite = ENUM("mensuel", "annuel", name="periodicite_salaire", create_type=
 Fondement = ENUM("accord_entreprise", "contrat_travail", "usage", "decision_direction",
                  name="fondement_bareme", create_type=False)
 StatutBareme = ENUM("propose", "valide", name="statut_bareme", create_type=False)
-ModeRemuneration = ENUM("honoraires", "commission", "mixte", name="mode_remuneration", create_type=False)
 MotifDepart = ENUM("retraite", "demission", "licenciement", "deces", "autre", name="motif_depart", create_type=False)
 EtapeDossier = ENUM("declare", "a_completer", "resoumis", "verifie", "transmis", "paye", "refuse",
                     "identite_effacee", name="etape_dossier", create_type=False)
@@ -116,24 +115,8 @@ class Etude(Base):
     emise_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
     emise_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     remplace_etude_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("etudes.id"))
-    conditions_remuneration_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("conditions_remuneration.id"))
-    honoraires_ht: Mapped[int | None] = mapped_column(BigInteger)
     bareme_entreprise_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("baremes_entreprise.id"))
     regime_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("regimes_versions.id"))
-    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
-
-
-class ConditionsRemuneration(Base):
-    __tablename__ = "conditions_remuneration"
-    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
-    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
-    en_vigueur_du: Mapped[date] = mapped_column(Date)
-    mode: Mapped[str] = mapped_column(ModeRemuneration)
-    honoraires_etude_ifc: Mapped[int] = mapped_column(BigInteger)
-    honoraires_par_salarie: Mapped[int] = mapped_column(BigInteger)
-    commission_bps: Mapped[int] = mapped_column(Integer)
-    note: Mapped[str | None] = mapped_column(Text)
-    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 

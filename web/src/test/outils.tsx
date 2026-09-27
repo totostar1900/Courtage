@@ -60,7 +60,7 @@ export function etude(emission: { possible: boolean; motifs: string[] }, statut 
     totaux_convention: null, par_categorie: null,
     echeancier: [{ annee: 2021, effectif: 1, ifc: 3000000, prestations_probables: 2900000, vapf: 2800000 }],
     sensibilites: { taux_actualisation_moins_1pt: { dette: 66000000, charge: 1 } },
-    anomalies: [], emission, empreinte: null, honoraires_ht: null, emise_le: null,
+    anomalies: [], emission, empreinte: null, emise_le: null,
     rapport: statut === "emise" ? { numero: "RL-AAAA-BBBB" } : null,
   };
 }

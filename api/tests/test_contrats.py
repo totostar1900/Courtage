@@ -72,15 +72,6 @@ def test_deux_contrats_le_meme_jour(client, azito):
     assert r.status_code == 409 and r.json()["code"] == "contrat_deja_enregistre"
 
 
-def test_une_commission_sans_mandat_est_signalee(client, azito):
-    # AZITO rémunère son conseiller en mixte (10 % de commission) : sans courtage, une commission n'a pas de mandat.
-    constats = client.get(url(azito), headers=en_tant_que(azito["conseiller"])).json()["constats"]
-    assert [c["code"] for c in constats] == ["commission_sans_mandat"] and constats[0]["niveau"] == "avertit"
-    client.post(url(azito), json=COURTAGE, headers=en_tant_que(azito["conseiller"]))
-    lu = client.get(url(azito), headers=en_tant_que(azito["conseiller"])).json()
-    assert lu["constats"] == []
-
-
 def test_un_contrat_ne_se_modifie_pas(client, azito, bases):
     client.post(url(azito), json=COURTAGE, headers=en_tant_que(azito["conseiller"]))
     with pytest.raises(ProgrammingError, match="permission"):

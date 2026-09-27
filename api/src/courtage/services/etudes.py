@@ -3,8 +3,8 @@
 Un brouillon garde tout ce qu'il faut pour être refait à l'identique : la
 version du référentiel, la convention et la date d'effet de son barème, les
 hypothèses retenues et leurs écarts justifiés, le fichier tel que lu. À
-l'émission s'ajoutent l'empreinte, l'émetteur et les honoraires dus selon les
-conditions du jour ; la base interdit ensuite toute modification.
+l'émission s'ajoutent l'empreinte et l'émetteur ; la base interdit ensuite
+toute modification.
 """
 import hashlib
 import json
@@ -22,7 +22,7 @@ from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie, controler, controler_parametres, controler_resultat, salaries
 from courtage.referentiel import motifs_de_refus, referentiel_courant
 
-from . import baremes, experience, fichiers, hypotheses, journaliser, regimes, remuneration
+from . import baremes, experience, fichiers, hypotheses, journaliser, regimes
 
 ECART_MAX_ETUDE_PRECEDENTE = 0.25
 AGE_PREMIER_EMPLOI = hypotheses.AGE_PREMIER_EMPLOI
@@ -104,16 +104,13 @@ def emettre(session: Session, org: Organisation, etude: Etude, auteur: uuid.UUID
     if motifs:
         raise ErreurMetier("emission_refusee", "L'étude ne peut pas être émise : " + ", ".join(motifs) + ".", 409,
                            {"motifs": motifs})
-    conditions = remuneration.en_vigueur(session, aujourd_hui)
     etude.statut = "emise"
     etude.emise_par = auteur
     etude.emise_le = datetime.now(timezone.utc)
-    etude.conditions_remuneration_id = conditions.id
-    etude.honoraires_ht = remuneration.honoraires_etude(conditions, etude.resultats["totaux"]["effectif"])
     etude.empreinte = empreinte(etude)
     session.flush()
     journaliser(session, org.id, auteur, "etude.emise", etude.id,
-                {"empreinte": etude.empreinte, "honoraires_ht": etude.honoraires_ht})
+                {"empreinte": etude.empreinte})
     return etude
 
 
@@ -157,8 +154,6 @@ def motifs_emission(session: Session, org: Organisation, etude: Etude, aujourd_h
             motifs.append("bareme_entreprise_hors_vigueur")
         if comparer_baremes(baremes.type_de(b.bareme), convention.bareme):
             motifs.append("bareme_inferieur_convention")
-    if remuneration.en_vigueur(session, aujourd_hui) is None:
-        motifs.append("remuneration_absente")
     if org.etat in ("suspendu", "cloture"):
         motifs.append(f"dossier_{org.etat}")
     return motifs
@@ -189,7 +184,7 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
         "totaux": r["totaux"], "echeancier": r["echeancier"], "sensibilites": r["sensibilites"],
         "lignes": r["lignes"], "anomalies": r["anomalies"], "emission": emission,
         "experience": r.get("experience"),
-        "empreinte": etude.empreinte, "honoraires_ht": etude.honoraires_ht,
+        "empreinte": etude.empreinte,
         "emise_le": etude.emise_le.isoformat() if etude.emise_le else None,
         "emise_par": str(etude.emise_par) if etude.emise_par else None,
         "remplace_etude_id": str(etude.remplace_etude_id) if etude.remplace_etude_id else None,

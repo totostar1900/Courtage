@@ -27,7 +27,7 @@ export const CHAPITRES: Chapitre[] = [
         "Tout se vérifie. Un rapport émis est scellé ; n'importe qui peut vérifier en ligne qu'il n'a pas été modifié." ] },
       { titre: "Qui fait quoi", texte: [
         "L'entreprise (la DRH) dépose le personnel, décrit et adopte son régime.",
-        "Le conseiller relit, émet l'étude et le cahier des charges, fixe sa rémunération de façon transparente.",
+        "Le conseiller relit, émet l'étude et le cahier des charges.",
         "Les assureurs répondent au cahier des charges ; vous comparez sur une base commune." ] },
       { titre: "Les points d'attention", texte: [
         "Le tableau de bord du dossier liste ce qui attend : une étude de plus de 12 mois (une clôture est passée), un fichier du personnel trop ancien, un brouillon ou une version du régime en attente depuis plus de 30 jours, un dossier de prise en charge qui n'avance plus (l'assureur tarde à payer, des pièces sont attendues, un refus), un cahier des charges dont la date limite est passée.",
@@ -216,20 +216,6 @@ export const CHAPITRES: Chapitre[] = [
         "Le cahier des charges montre aux assureurs les retraites passées par années regroupées — au moins trois par période — et les délais de paiement constatés sur les dossiers suivis." ] },
     ],
     termes: ["turnover", "fonds", "prise_en_charge", "courtage", "comparaison"],
-  },
-  {
-    id: "remuneration", groupe: "Le parcours", titre: "Comment nous sommes rémunérés", ecran: "remuneration",
-    resume: "Ce que vous payez, ce que l'assureur nous verse : écrit avant que vous ne signiez.",
-    sections: [
-      { titre: "Trois façons d'être rémunéré", texte: [
-        "Des honoraires, que vous payez : par étude actuarielle et, le cas échéant, par salarié évalué, hors taxes.",
-        "Une commission, que l'assureur retenu nous verse : un pourcentage des primes, affiché tel quel.",
-        "Ou les deux. La page dit toujours lequel, et depuis quand." ] },
-      { titre: "Qui les fixe, et ce que ça change", texte: [
-        "Votre conseiller enregistre les conditions, datées ; les anciennes restent dans l'historique.",
-        "Tant qu'aucune condition n'est fixée, une étude ne peut pas être émise : vous savez ce qu'elle coûte avant de la recevoir.",
-        "Une commission suppose un mandat de courtage : sans mandat enregistré au contrat, la plateforme le signale." ] },
-    ],
   },
   {
     id: "equipe", groupe: "Le parcours", titre: "L'équipe du dossier", ecran: "equipe",

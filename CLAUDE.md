@@ -97,7 +97,7 @@ api/src/courtage/
 - React + TypeScript + Vite ; `npm test` (Vitest, jsdom) et `npm run build`
   (`tsc` puis Vite) doivent passer avant un commit.
 - Inspirée des courtiers en ligne (plan, tâche 7) : un parcours en étapes, le
-  conseiller visible, les offres en cartes, la rémunération en clair.
+  conseiller visible, les offres en cartes.
 - Les droits se DISENT à l'écran (« votre conseiller émet », « l'adoption
   appartient à l'entreprise ») mais se DÉCIDENT dans l'API : l'interface ne
   cache un bouton que pour la clarté.
@@ -177,8 +177,8 @@ client est en comparaison** : la plateforme ne suppose jamais un mandat. Une
 prestation relève du service en vigueur à la date du départ
 (`service_a_la_date`), et seule une prestation en courtage pourra collecter une
 identité (spec `2026-09-26-prestations-ifc-design.md`). Le service se lit sur le
-contrat, **jamais sur la rémunération** : une commission hors courtage est un constat
-(`commission_sans_mandat`), pas une correction.
+contrat. **La plateforme ne porte aucune rémunération du courtier** (migration
+`0021_sans_remuneration`) : ce qu'il facture relève de son mandat, signé à part.
 
 ## Prestations
 

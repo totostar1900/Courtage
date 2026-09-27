@@ -17,7 +17,6 @@ import Financement from "./pages/Financement";
 import Guide from "./pages/Guide";
 import Personnel from "./pages/Personnel";
 import Regime from "./pages/Regime";
-import Remuneration from "./pages/Remuneration";
 import Reponses from "./pages/Reponses";
 import Simulation from "./pages/Simulation";
 import TableauDeBord from "./pages/TableauDeBord";
@@ -52,7 +51,6 @@ export default function App() {
             <Route path="financement" element={<Financement />} />
             <Route path="cahier" element={<Cahier />} />
             <Route path="cahier/:fiche" element={<Reponses />} />
-            <Route path="remuneration" element={<Remuneration />} />
             <Route path="contrat" element={<Contrat />} />
             <Route path="departs" element={<Departs />} />
             <Route path="equipe" element={<Equipe />} />
