@@ -25,10 +25,46 @@
   td.n, th.n { text-align: right; white-space: nowrap; }
   .note { font-size: 8pt; color: #55607a; }
   .reponse td:last-child { border-bottom: 0.3mm dotted #55607a; width: 35%; }
+  h3 { font-size: 10.5pt; margin: 5mm 0 2mm; color: #1b2240; }
+  table.bareme { table-layout: fixed; }
+  table.bareme th { white-space: normal; }
+  table.bareme th, table.bareme td { padding: 1.2mm 2.5mm; }
+  table.bareme tr:nth-child(even) td { background: #f6f7fb; }
+  table.conditions th { width: 40%; background: #f6f7fb; text-transform: none; letter-spacing: 0; font-size: 8.5pt; color: #3d4566; }
+  .deux { table-layout: fixed; width: 100%; border-collapse: separate; border-spacing: 0; margin: 0; }
+  .deux > tbody > tr > td { border: 0; padding: 0; vertical-align: top; }
+  .deux > tbody > tr > td:first-child { width: 57%; padding-right: 4mm; }
+  .categorie { break-inside: avoid; page-break-inside: avoid; }
+  table.conditions th { width: 45%; }
+  table.conditions { table-layout: fixed; }
+  .etiquette { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .05em; color: #55607a; margin: 0 0 1mm; }
 </style>
 </head>
 <body>
-{% macro bareme(k) %}{% if k.bareme.forme == "tranches_cumulatives" %}{% set ns = namespace(de=1) %}{% for t in k.bareme.tranches %}{{ t.mois_par_annee | pct(0) }} d'un mois de salaire par année {% if t.jusqu_a %}de {{ ns.de }} à {{ t.jusqu_a }} ans{% set ns.de = t.jusqu_a + 1 %}{% else %}au-delà de {{ ns.de - 1 }} ans{% endif %}{% if not loop.last %} ; {% endif %}{% endfor %}{% else %}{% for p in k.bareme.paliers %}{{ p.mois }} mois de salaire à partir de {{ p.a_partir_de }} ans{% if not loop.last %} ; {% endif %}{% endfor %}{% endif %}{% endmacro %}
+{% macro mois(x) %}{{ ("%.2f" | format(x)).rstrip("0").rstrip(".") | replace(".", ",") }}{% endmacro %}
+{% macro bareme(k) %}{% if k.bareme.forme == "tranches_cumulatives" %}{% set ns = namespace(de=1, cumul=0) %}
+<table class="bareme">
+  <colgroup><col style="width: 36%"><col style="width: 30%"><col style="width: 34%"></colgroup>
+  <tr><th>Ancienneté</th><th class="n">Par année</th><th class="n">Acquis en fin<br>de tranche</th></tr>
+  {% for t in k.bareme.tranches %}<tr>
+    <td>{% if t.jusqu_a %}{% if ns.de == t.jusqu_a %}{{ ns.de }}<sup>e</sup> année{% else %}De {{ ns.de }} à {{ t.jusqu_a }} ans{% endif %}{% else %}Au-delà de {{ ns.de - 1 }} ans{% endif %}</td>
+    <td class="n">{{ t.mois_par_annee | pct(0) }} d'un mois</td>
+    <td class="n">{% if t.jusqu_a %}{% set ns.cumul = ns.cumul + (t.jusqu_a - ns.de + 1) * t.mois_par_annee %}{{ mois(ns.cumul) }} mois{% set ns.de = t.jusqu_a + 1 %}{% else %}+ {{ t.mois_par_annee | pct(0) }} / an{% endif %}</td>
+  </tr>{% endfor %}
+</table>{% else %}
+<table class="bareme">
+  <tr><th>Ancienneté atteinte</th><th class="n">Indemnité</th></tr>
+  {% for p in k.bareme.paliers %}<tr><td>{{ p.a_partir_de }} ans{% if not loop.last %} à {{ loop.nextitem.a_partir_de - 1 }} ans{% else %} et plus{% endif %}</td><td class="n">{{ mois(p.mois) }} mois de salaire</td></tr>{% endfor %}
+</table>{% endif %}{% endmacro %}
+{% macro conditions(k, evenements=False) %}
+<table class="conditions">
+  <tr><th>Ancienneté min.</th><td>{% if k.anciennete_minimale %}{{ k.anciennete_minimale }} ans{% else %}Aucune{% endif %}</td></tr>
+  <tr><th>Plafond</th><td>{% if k.plafond_mois %}{{ k.plafond_mois }} mois de salaire{% else %}Aucun{% endif %}</td></tr>
+  <tr><th>Salaire retenu</th><td>{{ k.base_salaire | capitalize }}</td></tr>
+  <tr><th>Primes</th><td>{% if k.avec_primes %}Comprises{% else %}Non comprises{% endif %}</td></tr>
+  {% if evenements %}<tr><th>Événements couverts</th><td>{% set L = {"retraite": "retraite", "depart_anticipe": "départ anticipé", "licenciement_economique": "licenciement économique", "deces": "décès"} %}{% for e in k.evenements %}{% if loop.first %}{{ L.get(e, e) | capitalize }}{% else %}{{ L.get(e, e) }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
+{% endif %}
+</table>{% endmacro %}
 <div class="bandeau">
   <div class="sous">Note d'information aux salariés · Indemnité de départ à la retraite</div>
   <h1>{{ c.organisation.nom }}</h1>
@@ -40,15 +76,20 @@
 <p>Quand vous partez à la retraite, l'entreprise vous verse une indemnité, calculée en mois de salaire selon votre
 ancienneté. Voici ce que prévoit le régime de l'entreprise ({{ c.regime.fondement | lower }} : {{ c.regime.document_reference }}).</p>
 {% for k in c.categories %}
+<div class="categorie">
 <h3>{{ k.categorie }}</h3>
-<p>{{ bareme(k) }}.{% if k.anciennete_minimale %} Il faut au moins {{ k.anciennete_minimale }} ans d'ancienneté pour y avoir droit.{% endif %}{% if k.plafond_mois %} L'indemnité ne dépasse pas {{ k.plafond_mois }} mois de salaire.{% endif %}
-Le salaire retenu est {{ k.base_salaire }}{% if k.avec_primes %}, primes comprises{% endif %}.</p>
+<table class="deux"><tr>
+  <td><p class="etiquette">Le barème</p>{{ bareme(k) }}</td>
+  <td><p class="etiquette">Les conditions</p>{{ conditions(k) }}</td>
+</tr></table>
+<p class="etiquette">Ce que cela donne</p>
 <table>
   <tr><th>Ancienneté au départ</th>{% for i in k.illustration %}<th class="n">{{ i.anciennete }} ans</th>{% endfor %}</tr>
-  <tr><td>Régime de l'entreprise</td>{% for i in k.illustration %}<td class="n">{{ "%.1f" | format(i.mois) | replace(".", ",") }} mois</td>{% endfor %}</tr>
-  <tr><td>Minimum de la convention</td>{% for i in k.illustration %}<td class="n">{{ "%.1f" | format(i.convention) | replace(".", ",") }} mois</td>{% endfor %}</tr>
+  <tr><td>Régime de l'entreprise</td>{% for i in k.illustration %}<td class="n">{{ mois(i.mois) }} mois</td>{% endfor %}</tr>
+  <tr><td>Minimum de la convention</td>{% for i in k.illustration %}<td class="n">{{ mois(i.convention) }} mois</td>{% endfor %}</tr>
 </table>
 <p class="note">Vous gardez toujours droit au minimum de la {{ k.convention }} : si le régime donnait moins à votre ancienneté, c'est la convention qui s'applique.</p>
+</div>
 {% endfor %}
 
 <h2>Bon à savoir</h2>
