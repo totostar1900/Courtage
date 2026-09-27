@@ -11,7 +11,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from courtage.actuariat.ifc import Regles, Resultat, evaluer
+from courtage.actuariat.ifc import Regles, Resultat, evaluer, mois_dus
 from courtage.analyse import concentration
 from courtage.db import Organisation
 from courtage.erreurs import ErreurMetier
@@ -21,6 +21,7 @@ from courtage.referentiel import referentiel_courant
 from . import etudes, fichiers, regimes
 
 MAX_VARIANTES = 6
+ANCIENNETE_MAX = 40            # années sur la courbe des mois versés
 TETE = 5   # les cinq premiers bénéficiaires
 
 
@@ -50,9 +51,10 @@ def simuler(session: Session, org: Organisation, *, fichier_id: uuid.UUID, date_
     sal = salaries(lecture)
     h = etudes.hypotheses_moteur(_valeurs(hypotheses), date_evaluation, fonds_disponible)
 
-    base = evaluer(sal, h, convention, regles={"*": Regles(bareme=convention.bareme)})
+    regles_base = {"*": Regles(bareme=convention.bareme)}
+    base = evaluer(sal, h, convention, regles=regles_base)
     resultats = [_resume("Convention seule", {"convention": convention.code}, base, base, sal, fonds_disponible,
-                         date_evaluation, [])]
+                         date_evaluation, [], regles_base)]
     for v in variantes:
         try:
             regles, constats, source = _regles_de_la_variante(session, v, date_evaluation)
@@ -61,7 +63,7 @@ def simuler(session: Session, org: Organisation, *, fichier_id: uuid.UUID, date_
             resultats.append({"nom": v.nom, "erreur": {"code": e.code, "message": e.message, "details": e.details}})
             continue
         r = evaluer(sal, h, convention, regles=regles)
-        resultats.append(_resume(v.nom, source, r, base, sal, fonds_disponible, date_evaluation, constats))
+        resultats.append(_resume(v.nom, source, r, base, sal, fonds_disponible, date_evaluation, constats, regles))
     return {"date_evaluation": date_evaluation.isoformat(), "convention": convention.code,
             "hypotheses": _valeurs(hypotheses), "fonds_disponible": fonds_disponible, "resultats": resultats}
 
@@ -77,7 +79,7 @@ def _regles_de_la_variante(session: Session, v: Variante, jour: date):
 
 
 def _resume(nom: str, source: dict, r: Resultat, base: Resultat, sal, fonds: int, jour: date,
-            constats: list[dict]) -> dict:
+            constats: list[dict], regles: dict[str, Regles]) -> dict:
     dettes = sorted((l.dette for l in r.lignes), reverse=True)
     total = sum(dettes) or 1.0
     c = concentration(r, base, sal)
@@ -93,6 +95,11 @@ def _resume(nom: str, source: dict, r: Resultat, base: Resultat, sal, fonds: int
         "part_cinq_premiers": round(sum(dettes[:TETE]) / total, 4),
         "concentration": {"niveau": c.niveau, **c.chiffres} if c else None,
         "constats": constats,
+        # Pour comparer les régimes : ce que chaque barème verse selon l'ancienneté, et ce que chaque salarié
+        # toucherait à son départ (par matricule : la plateforme ne connaît pas les noms).
+        "courbes": {c: [round(mois_dus(x, n)[0], 3) for n in range(ANCIENNETE_MAX + 1)] for c, x in regles.items()},
+        "ifc_par_salarie": {l.matricule: round(l.ifc) for l in r.lignes},
+        "categorie_par_salarie": {l.matricule: l.categorie or "*" for l in r.lignes},
     }
 
 

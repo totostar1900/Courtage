@@ -16,7 +16,7 @@ function compact(v: number, enMontant: boolean): string {
   return String(Math.round(v));
 }
 
-function Segments<T extends string | number>({ nom, valeur, options, onChange, desactive }: {
+export function Segments<T extends string | number>({ nom, valeur, options, onChange, desactive }: {
   nom: string; valeur: T; options: [T, string][]; onChange: (v: T) => void; desactive?: (v: T) => string | null;
 }) {
   return (

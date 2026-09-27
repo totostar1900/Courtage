@@ -1,6 +1,8 @@
 import { useState } from "react";
 
 import { api } from "../api";
+import type { Variante } from "../comparatif";
+import { Comparatif } from "../composants/Comparatif";
 import { Constats, Erreur, Volet } from "../composants/communs";
 import { EditeurCategories, CONVENTION_PAR_PAYS, categorieVide } from "../composants/EditeurCategories";
 import { millions, montant, pct } from "../format";
@@ -16,6 +18,7 @@ interface ResultatVariante {
   part_cinq_premiers?: number;
   concentration?: { niveau: string; part_des_mieux_payes: number; effectif_mieux_payes: number } | null;
   constats?: Constat[];
+  courbes?: Record<string, number[]>;
 }
 
 export default function Simulation() {
@@ -89,6 +92,9 @@ export default function Simulation() {
         <Volet titre="Résultats de la simulation" onFermer={() => setResultats(null)} className="section">
           <div className="grille g3">
             {resultats.map((r) => <CarteVariante key={r.nom} r={r} />)}
+          </div>
+          <div className="section">
+            <Comparatif variantes={resultats.filter((r) => !r.erreur && r.courbes) as unknown as Variante[]} />
           </div>
         </Volet>
       )}

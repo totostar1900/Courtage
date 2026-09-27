@@ -1069,3 +1069,35 @@ describe("l'horizon de l'échéancier", () => {
     expect([...axe.querySelectorAll("span")].map((s) => s.textContent).filter(Boolean)).toHaveLength(12);
   });
 });
+
+describe("le comparatif des régimes", () => {
+  const resultat = (nom: string, dette: number, ifc: Record<string, number>, courbes: Record<string, number[]>) => ({
+    nom, totaux: { effectif: 2, vapf: dette, dette, charge: dette / 10, cotisation_nette: 0, cotisation_totale: 0 },
+    cotisation_initiale: dette, ecart_convention: 0, part_cinq_premiers: 1, concentration: null, constats: [], echeancier: [],
+    courbes, ifc_par_salarie: ifc, categorie_par_salarie: { M1: "Cadre", M2: "Employé" },
+  });
+
+  it("après la simulation : les chiffres côte à côte, la courbe, qui gagne et qui perd, et le tableau", async () => {
+    simulerApi({ ...dossier("admin_client"), [`POST /organisations/${ORG}/simulations`]: { resultats: [
+      resultat("Convention seule", 1_000_000, { M1: 400_000, M2: 200_000 }, { "*": [0, 1, 2] }),
+      resultat("Accord, version 1", 1_200_000, { M1: 600_000, M2: 200_000 }, { Cadre: [0, 2, 4], "*": [0, 1, 2] }),
+      resultat("Accord, version 2", 900_000, { M1: 300_000, M2: 250_000 }, { "*": [0, 1.5, 2.5] }),
+    ] } });
+    ouvrir(`/dossier/${ORG}/simulation`);
+    await userEvent.click(await screen.findByRole("button", { name: "Simuler" }));
+    const bloc = within((await screen.findByRole("heading", { name: "Comparer les régimes" })).closest(".comparatif") as HTMLElement);
+    // Les noms communs se raccourcissent : « version 1 », « version 2 », pas deux « Accord, … » identiques.
+    expect(bloc.getAllByText("version 1").length).toBeGreaterThan(0);
+    expect(bloc.getAllByText("+20 %").length).toBeGreaterThan(0);
+    // La courbe s'ouvre sur la catégorie où les régimes diffèrent.
+    expect(within(bloc.getByRole("radiogroup", { name: "Catégorie" })).getByRole("radio", { name: "Cadre" }))
+      .toHaveAttribute("aria-checked", "true");
+    const version2 = bloc.getByText("Accord, version 2", { selector: ".bilan-tete b" }).closest(".bilan") as HTMLElement;
+    expect(version2.textContent).toMatch(/1 gagne .*0 inchangé .*1 perd/);
+    await userEvent.click(within(bloc.getByRole("radiogroup", { name: "Comparer à" })).getByRole("radio", { name: "Accord, version 1" }));
+    expect(bloc.getByText("Convention seule", { selector: ".bilan-tete b" })).toBeInTheDocument();
+    await userEvent.click(bloc.getByRole("button", { name: "Voir le tableau" }));
+    expect(bloc.getByRole("cell", { name: "Dette par salarié" })).toBeInTheDocument();
+    expect(bloc.getByText("1 gagnent, 0 perdent")).toBeInTheDocument();
+  });
+});
