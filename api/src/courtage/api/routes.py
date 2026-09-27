@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, ConditionsRemuneration, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.financement import Offre, Scenario
-from courtage.services import alertes, analyse, cycle, equipe, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -114,6 +114,36 @@ def changer_cycle(corps: ChangementEtat, a: Acces = Depends(acces(*CONSEIL))):
 
 
 Droits = Literal["admin_client", "contributeur_client", "lecteur_client", "conseiller"]
+
+
+@routeur.get("/organisations/{organisation_id}/nettoyage")
+def lire_nettoyage(a: Acces = Depends(acces("admin_client", "conseiller"))):
+    """Ce que le dossier contient, et ce que chaque choix du nettoyage ferait partir."""
+    return nettoyage.inventaire(a.session)
+
+
+@routeur.get("/organisations/{organisation_id}/archive")
+def telecharger_archive(a: Acces = Depends(acces(*TOUS))):
+    """Tout ce que l'entreprise voudra garder : documents scellés, études en Excel, sommaire des numéros."""
+    journaliser(a.session, a.organisation.id, a.utilisateur.id, "dossier.archive_telechargee", a.organisation.id, {})
+    nom = f"archive-{a.organisation.nom}-{date.today().isoformat()}.zip"
+    return Response(nettoyage.archive(a.session, a.organisation, date.today()), media_type="application/zip",
+                    headers=_piece_jointe(nom))
+
+
+class Nettoyage(_Corps):
+    fichiers: Literal["alleger", "supprimer"] | None = None
+    brouillons: bool = False
+    etudes_emises: bool = False
+    confirmation: str = ""
+
+
+@routeur.post("/organisations/{organisation_id}/nettoyage")
+def nettoyer_dossier(corps: Nettoyage, a: Acces = Depends(acces("admin_client", "conseiller"))):
+    """Faire partir ce qui a été choisi ; les sceaux et le journal restent."""
+    return nettoyage.nettoyer(a.session, a.organisation, a.utilisateur.id, fichiers_=corps.fichiers,
+                             brouillons=corps.brouillons, etudes_emises=corps.etudes_emises,
+                             confirmation=corps.confirmation)
 
 
 class NouvelleAdhesion(_Corps):

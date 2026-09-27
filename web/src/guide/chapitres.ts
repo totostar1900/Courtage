@@ -249,6 +249,11 @@ export const CHAPITRES: Chapitre[] = [
         "Clôturé (fin du mandat, changement de courtier, cessation) : lecture seule pour tous. Le conseiller peut encore le reprendre pendant 90 jours ; au-delà, le dossier est archivé.",
         "Archivé : le personnel déposé est effacé et le dossier ne s'ouvre plus. Les études, les rapports scellés et le journal sont conservés : chaque document reste vérifiable par son numéro.",
         "Seul un dossier vide, ouvert par erreur, se supprime. Dès qu'un document a été émis, son numéro circule : le dossier se clôture, il ne disparaît pas." ] },
+      { titre: "Nettoyer le dossier", texte: [
+        "La plateforme sert à souscrire et suivre une assurance IFC, pas à garder le personnel. « Nettoyer le dossier », en bas de la page Équipe (administrateur de l'entreprise ou conseiller), se fait en trois temps.",
+        "Télécharger l'archive : chaque document scellé en PDF, chaque étude émise en Excel, et un sommaire des numéros à vérifier.",
+        "Choisir ce qui part : le personnel (allégé, lignes vidées et empreinte gardée, ou supprimé quand aucune étude émise ne le cite), les brouillons, les études émises et leur rapport (sauf celles qu'un cahier des charges cite).",
+        "Confirmer en écrivant NETTOYER. Les sceaux et le journal restent : chaque numéro de document se vérifie toujours, pour la vie de l'entreprise." ] },
     ],
   },
   {

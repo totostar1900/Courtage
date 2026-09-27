@@ -1311,3 +1311,33 @@ describe("les fichiers du personnel", () => {
     confirmer.mockRestore();
   });
 });
+
+describe("nettoyer le dossier", () => {
+  const inventaire = { fichiers: { total: 2, actifs: 2, lignes: 46 }, brouillons: { etudes: 1, versions: 1 },
+    etudes_emises: { total: 2, supprimables: 1, citees_par_un_cahier: 1 }, documents: 3, confirmation: "NETTOYER" };
+
+  it("archive, choix, confirmation écrite ; puis ce qui est parti", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/nettoyage`]: inventaire,
+      [`POST /organisations/${ORG}/nettoyage`]: { etudes_brouillon: 1, versions_brouillon: 1, etudes_emises: 0,
+        fichiers_alleges: 2, fichiers_supprimes: 0 } });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    await userEvent.click(await screen.findByRole("button", { name: "Nettoyer le dossier…" }));
+    expect(await screen.findByText(/1 citée\(s\) par un cahier des charges restent/)).toBeInTheDocument();
+    const nettoyer = screen.getByRole("button", { name: "Nettoyer" });
+    expect(nettoyer).toBeDisabled();
+    await userEvent.type(screen.getByLabelText("Confirmation"), "nettoyer");
+    expect(nettoyer).toBeEnabled();
+    await userEvent.click(nettoyer);
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string)).toEqual(
+      { fichiers: "alleger", brouillons: true, etudes_emises: false, confirmation: "nettoyer" });
+    expect(await screen.findByText("2 fichier(s) du personnel allégé(s)")).toBeInTheDocument();
+  });
+
+  it("la lecture seule ne nettoie pas", async () => {
+    simulerApi(dossier("lecteur_client"));
+    ouvrir(`/dossier/${ORG}/equipe`);
+    await screen.findByRole("heading", { name: "Équipe du dossier" });
+    expect(screen.queryByRole("button", { name: "Nettoyer le dossier…" })).toBeNull();
+  });
+});
