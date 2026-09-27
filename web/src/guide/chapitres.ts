@@ -119,6 +119,7 @@ export const CHAPITRES: Chapitre[] = [
         "Le tableau « Du passif à la cotisation » montre chaque ligne au franc près : les quatre cartes se réconcilient toujours." ] },
       { titre: "L'émission", texte: [
         "Le conseiller émet l'étude quand elle est complète. Elle est alors figée, et son rapport PDF est scellé et numéroté (RL-…).",
+        "Le rapport s'ouvre sur une synthèse : les chiffres en phrases (ce que l'entreprise doit, ce que coûte l'année, ce qu'il faudrait verser, quand l'argent sort), puis la décision à prendre. Suivent la courbe du régime face à la convention, la pyramide des âges et des anciennetés, chaque hypothèse avec son rôle et son effet, l'échéancier en graphiques face au fonds constitué, les sensibilités et le lien vers la note de méthode.",
         "« Exporter en Excel » donne l'étude en classeur : la synthèse et les hypothèses, l'échéancier (cumuls et parts en formules), les catégories, les sensibilités, et le calcul salarié par salarié, par matricule." ] },
     ],
     termes: ["dette", "charge", "fonds", "cotisation_nette", "frais_cotisation", "cotisation", "emission"],
