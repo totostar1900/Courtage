@@ -464,3 +464,16 @@ details.hypotheses[open] > summary .chevron { transform: rotate(45deg); }
 button.danger { background: var(--surface); border-color: var(--grave); color: var(--grave); }
 button.danger:hover { background: var(--grave-doux); }
 .bandeau-cycle { margin-bottom: 16px; }
+
+/* Les versions d'un régime : un seul badge d'état, toujours en haut à droite ; puis l'impact, la conformité, la décision. */
+.version-tete { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.version-tete .etat { flex: none; }
+.version-impact { margin: 6px 0 0; font-size: 13.5px; }
+.version-rubrique { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--discret); margin: 16px 0 6px; }
+.version-decision { border-top: 1px solid var(--trait); margin-top: 14px; }
+.version-abandonnee, .version-remplacee { background: var(--fond); }
+.reperes dl.definitions { display: grid; gap: 8px; margin: 0 0 10px; }
+.reperes dl.definitions > div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.reperes dd { margin: 0; font-size: 13.5px; }
+.reperes h3 { margin-top: 12px; }
+@media (max-width: 600px) { .reperes dl.definitions > div { grid-template-columns: 1fr; gap: 4px; } }

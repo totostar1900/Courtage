@@ -56,7 +56,7 @@ def test_un_regime_conforme(client, azito):
 def test_un_regime_sous_le_plancher_est_enregistre_tel_quel(client, azito):
     v = regime(client, azito, [categorie("*", AVARE)])
     [c] = v["constats"]
-    assert (c["niveau"], c["code"]) == ("bloque", "sous_le_plancher")
+    assert (c["niveau"], c["code"]) == ("avertit", "sous_le_plancher")
     assert c["details"]["anciennetes"][:2] == [1, 2]
     assert "1 à 50 ans" in c["message"]
 

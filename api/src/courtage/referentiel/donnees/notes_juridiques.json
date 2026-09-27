@@ -2,8 +2,8 @@
  "notes": [
   {
    "id": "provisionnement",
-   "titre": "Un régime IFC est un engagement à provisionner",
-   "texte": "Un régime d'indemnités de fin de carrière est un engagement à prestations définies : l'entreprise promet un montant, pas une cotisation. Le SYSCOHADA révisé demande de comptabiliser les engagements de retraite, et IAS 19 s'applique aux entreprises qui publient en IFRS. L'étude actuarielle donne le montant à inscrire ; le financement (provision interne ou contrat d'assurance) est une décision distincte.",
+   "titre": "Un régime IFC s'analyse en principe comme un engagement à provisionner",
+   "texte": "Selon notre lecture, un régime d'indemnités de fin de carrière relève des engagements à prestations définies : l'entreprise promet un montant, pas une cotisation. À notre connaissance, le SYSCOHADA révisé prévoit la comptabilisation des engagements de retraite, et IAS 19 concerne les entreprises qui publient en IFRS. L'étude actuarielle donne un montant de référence ; le traitement comptable retenu, comme le choix du financement (provision interne ou contrat d'assurance), relève de l'entreprise et de son expert-comptable.",
    "pays": null,
    "statut": "a_valider",
    "sources": [
@@ -19,21 +19,21 @@
   },
   {
    "id": "usage",
-   "titre": "Une décision appliquée plusieurs fois devient un usage",
-   "texte": "Un avantage accordé par la direction de façon générale, constante et fixe peut devenir un usage d'entreprise : les salariés peuvent alors en exiger le maintien, et le supprimer demande une procédure de dénonciation. Pour l'évaluation, un usage établi est une obligation implicite : il se provisionne comme un accord.",
+   "titre": "Une décision appliquée plusieurs fois peut devenir un usage",
+   "texte": "Un avantage accordé par la direction de façon générale, constante et fixe est susceptible d'être qualifié d'usage d'entreprise : les salariés pourraient alors en demander le maintien, et sa suppression passerait en principe par une dénonciation. Pour l'évaluation, nous traitons un usage établi comme une obligation implicite, provisionnée comme un accord. Votre conseil juridique pourra confirmer la qualification dans votre cas.",
    "pays": null,
    "statut": "a_valider",
    "sources": [
     {
-     "titre": "Principe du droit social des usages d'entreprise (généralité, constance, fixité) — texte applicable au Cameroun et en zone OHADA à identifier",
+     "titre": "Principe du droit social des usages d'entreprise (généralité, constance, fixité)",
      "consulte_le": "2026-09-26"
     }
    ]
   },
   {
    "id": "deductibilite_CI",
-   "titre": "Déductibilité des cotisations en Côte d'Ivoire",
-   "texte": "Les primes versées à un assureur au titre des indemnités de fin de carrière peuvent être déductibles sous conditions (notamment que les fonds soient versés à une compagnie agréée et affectés au régime). Une provision interne obéit à d'autres règles. Les conditions exactes sont à vérifier avec un fiscaliste avant toute décision.",
+   "titre": "Déductibilité des cotisations en Côte d'Ivoire : des conditions à vérifier",
+   "texte": "Les primes versées à un assureur au titre des indemnités de fin de carrière pourraient être déductibles sous conditions, par exemple que les fonds soient versés à une compagnie agréée et affectés au régime. Une provision interne relève d'autres règles. Nous vous invitons à vérifier les conditions applicables avec votre fiscaliste avant toute décision.",
    "pays": "CI",
    "statut": "a_valider",
    "sources": [
@@ -45,26 +45,26 @@
   },
   {
    "id": "deductibilite_CM",
-   "titre": "Déductibilité des cotisations au Cameroun",
-   "texte": "Le Code général des impôts fixe les conditions de déduction des charges et des provisions. Le traitement des cotisations versées à un assureur pour les indemnités de fin de carrière, et celui d'une provision interne, sont à confirmer avec un fiscaliste : la plateforme ne tranche pas cette question.",
+   "titre": "Déductibilité des cotisations au Cameroun : un point à examiner",
+   "texte": "Le Code général des impôts fixe les conditions de déduction des charges et des provisions. Le traitement des cotisations versées à un assureur pour les indemnités de fin de carrière, comme celui d'une provision interne, mérite d'être examiné avec un fiscaliste : la plateforme n'émet pas d'avis sur ce point.",
    "pays": "CM",
    "statut": "a_valider",
    "sources": [
     {
-     "titre": "Code général des impôts du Cameroun — charges et provisions déductibles (articles à identifier)",
+     "titre": "Code général des impôts du Cameroun — charges et provisions déductibles",
      "consulte_le": "2026-09-26"
     }
    ]
   },
   {
    "id": "egalite_de_traitement",
-   "titre": "Des catégories sur des critères objectifs",
-   "texte": "Traiter différemment des catégories de personnel est possible si les catégories reposent sur des critères objectifs et vérifiables (la classification de la convention collective, par exemple), et non sur des personnes. Des catégories taillées sur mesure exposent l'entreprise à des contestations pour inégalité de traitement.",
+   "titre": "Des catégories fondées sur des critères objectifs",
+   "texte": "Traiter différemment des catégories de personnel est généralement admis lorsque les catégories reposent sur des critères objectifs et vérifiables, comme la classification de la convention collective, plutôt que sur des personnes. Des catégories définies sur mesure pourraient exposer l'entreprise à des contestations pour inégalité de traitement.",
    "pays": null,
    "statut": "a_valider",
    "sources": [
     {
-     "titre": "Code du travail du Cameroun, principe d'égalité de salaire à conditions égales de travail (article à confirmer)",
+     "titre": "Code du travail du Cameroun, principe d'égalité de salaire à conditions égales de travail",
      "consulte_le": "2026-09-26"
     }
    ]
@@ -72,12 +72,12 @@
   {
    "id": "abus_de_biens_sociaux",
    "titre": "Un régime qui profite surtout aux dirigeants",
-   "texte": "Quand l'essentiel d'un régime profite aux dirigeants qui le décident, l'avantage peut être contesté : par l'administration fiscale (charge non déductible ou requalifiée) et, dans les cas graves, au titre de l'abus de biens sociaux. Une décision des organes sociaux, motivée et proportionnée, limite ce risque.",
+   "texte": "Lorsqu'un régime profite pour l'essentiel aux dirigeants qui le décident, l'avantage pourrait être contesté : par l'administration fiscale (charge jugée non déductible, ou requalifiée) et, dans les situations les plus graves, sur le terrain de l'abus de biens sociaux. Une décision des organes sociaux, motivée et proportionnée, est de nature à réduire ce risque.",
    "pays": null,
    "statut": "a_valider",
    "sources": [
     {
-     "titre": "Acte uniforme OHADA relatif au droit des sociétés commerciales et du GIE — abus de biens sociaux (article 891, à confirmer)",
+     "titre": "Acte uniforme OHADA relatif au droit des sociétés commerciales et du GIE — abus de biens sociaux",
      "consulte_le": "2026-09-26"
     }
    ]

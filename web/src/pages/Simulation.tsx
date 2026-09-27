@@ -6,6 +6,7 @@ import { Comparatif } from "../composants/Comparatif";
 import { Constats, Erreur, Volet } from "../composants/communs";
 import { EditeurCategories, CONVENTION_PAR_PAYS, categorieVide } from "../composants/EditeurCategories";
 import { millions, montant, pct } from "../format";
+import { etatVersion, libelleVersion, ordonner } from "../regimes";
 import type { Categorie, Constat, Totaux } from "../types";
 import { useDossier } from "./Dossier";
 
@@ -23,7 +24,8 @@ interface ResultatVariante {
 
 export default function Simulation() {
   const d = useDossier();
-  const versions = d.regimes.flatMap((r) => r.versions.map((v) => ({ ...v, nomRegime: r.nom })));
+  const versions = d.regimes.flatMap((r) => ordonner(r.versions).filter((v) => etatVersion(v) !== "abandonnee")
+    .map((v) => ({ ...v, nomRegime: r.nom })));
   const [fichier, setFichier] = useState(d.fichiers[0]?.id ?? "");
   const [date, setDate] = useState(d.fichiers[0]?.date_donnees ?? "");
   const [convention, setConvention] = useState(CONVENTION_PAR_PAYS[d.org.pays] ?? "");
@@ -73,7 +75,7 @@ export default function Simulation() {
               <label key={v.id} style={{ display: "flex", gap: 8, fontWeight: 400 }}>
                 <input type="checkbox" checked={choisies.includes(v.id)}
                        onChange={(e) => setChoisies(e.target.checked ? [...choisies, v.id] : choisies.filter((x) => x !== v.id))} />
-                {v.nomRegime}, version {v.numero} ({v.statut === "adoptee" ? "adoptée" : "en analyse"})
+                {libelleVersion(v, v.nomRegime)}
               </label>
             ))}
           </div>

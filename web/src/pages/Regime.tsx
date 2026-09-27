@@ -8,7 +8,8 @@ import CatalogueRegimes from "../composants/CatalogueRegimes";
 import ModelesTypes from "../composants/ModelesTypes";
 import PartageCatalogue from "../composants/PartageCatalogue";
 import { dateFr } from "../format";
-import type { Categorie, Constat, Version, VersionProposee } from "../types";
+import { ACTUELS, ETATS_VERSION, etatVersion, ordonner } from "../regimes";
+import type { Categorie, Constat, EtatVersion, Version, VersionProposee } from "../types";
 import { useDossier } from "./Dossier";
 
 const FONDEMENTS = {
@@ -25,13 +26,26 @@ export default function Regime() {
       <p>Ce que votre entreprise verse à ses salariés au départ en retraite. La convention collective en est le
         plancher : un régime moins favorable est enregistré tel quel et signalé, et vos salariés gardent droit à la
         convention. Sans régime propre, l'étude s'appuie sur la convention seule.</p>
-      {d.regimes.map((r) => (
-        <div key={r.id} className="section">
-          <h2>{r.nom}</h2>
-          {r.versions.map((v) => <CarteVersion key={v.id} version={v} />)}
-          {d.role !== "lecteur_client" && <NouvelleVersion regimeId={r.id} />}
-        </div>
-      ))}
+      {d.regimes.length > 0 && <Reperes />}
+      {d.regimes.map((r) => {
+        const versions = ordonner(r.versions);
+        const actuelles = versions.filter((v) => ACTUELS.includes(etatVersion(v)));
+        const anciennes = versions.filter((v) => !ACTUELS.includes(etatVersion(v)));
+        return (
+          <div key={r.id} className="section">
+            <h2>{r.nom}</h2>
+            {actuelles.map((v) => <CarteVersion key={v.id} version={v} />)}
+            {!actuelles.length && <p className="discret">Aucune version en vigueur ni en projet.</p>}
+            {anciennes.length > 0 && (
+              <details className="repli section">
+                <summary>Versions précédentes ({anciennes.length}) : remplacées ou abandonnées</summary>
+                {anciennes.map((v) => <CarteVersion key={v.id} version={v} />)}
+              </details>
+            )}
+            {d.role !== "lecteur_client" && <NouvelleVersion regimeId={r.id} />}
+          </div>
+        );
+      })}
       {d.role !== "lecteur_client" && (
         <div className="section">
           {nouveau ? <NouveauRegime onFini={() => setNouveau(false)} onFermer={() => setNouveau(false)} />
@@ -42,13 +56,53 @@ export default function Regime() {
   );
 }
 
+/** Ce que veulent dire les états d'une version et les niveaux de l'analyse : un seul lexique, ouvert à la demande. */
+function Reperes() {
+  return (
+    <details className="repli reperes section">
+      <summary>Que veulent dire ces repères ?</summary>
+      <h3>Les états d'une version</h3>
+      <dl className="definitions">
+        {(Object.keys(ETATS_VERSION) as EtatVersion[]).map((e) => (
+          <div key={e}>
+            <dt><span className={`etat ${ETATS_VERSION[e].classe}`}>{ETATS_VERSION[e].libelle}</span></dt>
+            <dd>{ETATS_VERSION[e].definition} {ETATS_VERSION[e].impact} <span className="discret">{ETATS_VERSION[e].suite}</span></dd>
+          </div>
+        ))}
+      </dl>
+      <p className="discret">Le parcours : Projet → Adoptée (à venir, puis en vigueur) → Remplacée par une version plus
+        récente. Un projet non retenu est abandonné, ou supprimé si aucune étude ne s'en est servie. Une version adoptée
+        ne se supprime jamais : des études et des rapports la citent.</p>
+      <h3>Les niveaux de l'analyse</h3>
+      <dl className="definitions">
+        <div><dt><span className="etat grave">Bloquant</span></dt><dd>Empêche d'adopter ou d'évaluer tant que ce n'est pas corrigé.</dd></div>
+        <div><dt><span className="etat attention">Attention</span></dt><dd>À regarder avant de décider. Un régime moins favorable que la convention s'adopte quand même, en le confirmant : les salariés gardent droit au plancher.</dd></div>
+        <div><dt><span className="etat neutre">Bon à savoir</span></dt><dd>Une information : un chiffre, ou un point juridique ou fiscal à examiner avec votre conseil.</dd></div>
+      </dl>
+    </details>
+  );
+}
+
+function periode(v: Version): string {
+  const e = etatVersion(v);
+  if (e === "projet") return `prévue à partir du ${dateFr(v.en_vigueur_du)}`;
+  if (e === "a_venir") return `en vigueur à partir du ${dateFr(v.en_vigueur_du)}`;
+  if (e === "en_vigueur") return `en vigueur depuis le ${dateFr(v.en_vigueur_du)}`;
+  if (e === "remplacee") return `appliquée à partir du ${dateFr(v.en_vigueur_du)}, remplacée par la version ${v.remplacee_par} le ${dateFr(v.jusqu_au)}`;
+  return `abandonnée le ${dateFr(v.abandonnee_le)}`;
+}
+
 function CarteVersion({ version: v }: { version: Version }) {
   const d = useDossier();
   const [analyse, setAnalyse] = useState<Constat[] | null>(null);
   const [fichier, setFichier] = useState(d.fichiers[0]?.id ?? "");
   const [accepte, setAccepte] = useState(false);
+  const [acte, setActe] = useState<"abandonner" | "supprimer" | null>(null);
   const [erreur, setErreur] = useState<unknown>(null);
+  const etat = etatVersion(v);
+  const E = ETATS_VERSION[etat];
   const nonConforme = v.constats.some((c) => c.code === "sous_le_plancher");
+  const redacteur = d.role !== "lecteur_client";
 
   async function analyser() {
     setErreur(null);
@@ -67,17 +121,17 @@ function CarteVersion({ version: v }: { version: Version }) {
   }
 
   return (
-    <div className="carte" style={{ marginBottom: 14 }}>
-      <div className="actions" style={{ marginTop: 0, justifyContent: "space-between" }}>
+    <div className={`carte version version-${etat}`} style={{ marginBottom: 14 }} data-etat={etat}>
+      <div className="version-tete">
         <div>
-          <strong>Version {v.numero}</strong> · en vigueur à partir du {dateFr(v.en_vigueur_du)}
+          <strong>Version {v.numero}</strong> · {periode(v)}
           <div className="discret">{FONDEMENTS[v.fondement as keyof typeof FONDEMENTS]} — {v.document_reference}</div>
         </div>
-        {v.statut === "adoptee"
-          ? <span className="etat bien">Adoptée{v.non_conformite_acceptee && ", non-conformité assumée"}</span>
-          : <span className="etat attention">En analyse</span>}
+        <span className={`etat ${E.classe}`} title={E.definition}>{E.libelle}</span>
       </div>
-      <div className="defile section" style={{ marginTop: 12 }}>
+      <p className="discret version-impact">{E.impact}
+        {etat === "abandonnee" && v.motif_abandon && <> Motif : « {v.motif_abandon} ».</>}</p>
+      <div className="defile" style={{ marginTop: 8 }}>
         <table>
           <thead><tr><th>Catégorie</th><th>Plancher</th><th>Barème</th><th>Conditions</th></tr></thead>
           <tbody>
@@ -97,38 +151,97 @@ function CarteVersion({ version: v }: { version: Version }) {
           </tbody>
         </table>
       </div>
+      <h4 className="version-rubrique">Conformité à la convention</h4>
       <Constats constats={v.constats} vide="Conforme à la convention collective." />
+      {v.non_conformite_acceptee && (
+        <p className="discret">À l'adoption, l'entreprise a confirmé avoir vu cette non-conformité.</p>
+      )}
 
-      <div className="actions">
-        <select value={fichier} onChange={(e) => setFichier(e.target.value)} aria-label="Personnel pour l'analyse">
-          <option value="">sans personnel (légalité seule)</option>
-          {d.fichiers.map((f) => <option key={f.id} value={f.id}>{f.nom_fichier} ({dateFr(f.date_donnees)})</option>)}
-        </select>
-        <button onClick={analyser}>Analyser : légalité, pièges, coûts</button>
-      </div>
+      {etat !== "abandonnee" && (
+        <div className="actions">
+          <select value={fichier} onChange={(e) => setFichier(e.target.value)} aria-label="Personnel pour l'analyse">
+            <option value="">sans personnel (légalité seule)</option>
+            {d.fichiers.map((f) => <option key={f.id} value={f.id}>{f.nom_fichier} ({dateFr(f.date_donnees)})</option>)}
+          </select>
+          <button onClick={analyser}>Analyser : légalité, pièges, coûts</button>
+        </div>
+      )}
       {analyse && (
         <Volet titre="Analyse" onFermer={() => setAnalyse(null)} className="section">
           <Constats constats={analyse} />
+          <p className="discret">Les points juridiques et fiscaux sont des repères pour décider, à examiner avec
+            votre conseil ; les chiffres sont calculés sur votre personnel.</p>
         </Volet>
       )}
 
-      {v.statut === "analyse" && d.role === "admin_client" && (
-        <div className="actions">
-          {nonConforme && (
+      {etat === "projet" && (
+        <div className="version-decision">
+          <h4 className="version-rubrique">La décision</h4>
+          <p className="discret">{E.suite}</p>
+          {d.role === "admin_client" && nonConforme && (
             <label style={{ display: "flex", gap: 8, fontWeight: 400 }}>
               <input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />
               J'ai vu que ce régime donne moins que la convention ; mes salariés gardent droit au plancher.
             </label>
           )}
-          <button className="principal" onClick={adopter} disabled={nonConforme && !accepte}>Adopter cette version</button>
+          <div className="actions">
+            {d.role === "admin_client" && (
+              <button className="principal" onClick={adopter} disabled={nonConforme && !accepte}>Adopter cette version</button>
+            )}
+            {redacteur && <button type="button" onClick={() => setActe("abandonner")}>Abandonner</button>}
+            {redacteur && !v.etudes && <button type="button" className="danger" onClick={() => setActe("supprimer")}>Supprimer</button>}
+          </div>
+          {d.role === "conseiller" && <p className="discret">L'adoption appartient à l'entreprise.</p>}
+          {!!v.etudes && redacteur && (
+            <p className="discret">{v.etudes} étude{v.etudes > 1 ? "s" : ""} s'appuie{v.etudes > 1 ? "nt" : ""} sur ce
+              projet : il s'abandonne, il ne se supprime pas.</p>
+          )}
         </div>
       )}
-      {v.statut === "adoptee" && <PartageCatalogue version={v} />}
-      {v.statut === "analyse" && d.role === "conseiller" && (
-        <p className="discret">L'adoption appartient à l'entreprise.</p>
-      )}
+      {acte && <ActeVersion version={v} acte={acte} onFermer={() => setActe(null)} />}
+      {(etat === "en_vigueur" || etat === "a_venir") && <PartageCatalogue version={v} />}
       <Erreur erreur={erreur} />
     </div>
+  );
+}
+
+function ActeVersion({ version: v, acte, onFermer }: { version: Version; acte: "abandonner" | "supprimer"; onFermer: () => void }) {
+  const d = useDossier();
+  const [erreur, setErreur] = useState<unknown>(null);
+  async function valider(ev: FormEvent<HTMLFormElement>) {
+    ev.preventDefault();
+    const f = new FormData(ev.currentTarget);
+    setErreur(null);
+    try {
+      if (acte === "abandonner")
+        await api.post(`/organisations/${d.org.id}/regimes/versions/${v.id}/abandon`, { motif: String(f.get("motif") ?? "").trim() });
+      else await api.del(`/organisations/${d.org.id}/regimes/versions/${v.id}`);
+      onFermer();
+      d.recharger();
+    } catch (e) { setErreur(e); }
+  }
+  return (
+    <Volet titre={acte === "abandonner" ? `Abandonner la version ${v.numero}` : `Supprimer la version ${v.numero}`}
+           onFermer={onFermer} className="section">
+      <form className="formulaire" onSubmit={valider}>
+        {acte === "abandonner" ? (
+          <>
+            <p>Le projet reste lisible, avec son motif, dans les versions précédentes. Il ne sert plus de base à une étude
+              et ne bouge plus.</p>
+            <label>Pourquoi ce projet n'est pas retenu<textarea name="motif" rows={2} maxLength={500} required /></label>
+          </>
+        ) : (
+          <p>Aucune étude ne s'est servie de ce projet : il disparaît. Le journal garde la trace de sa création et de sa
+            suppression.{" "}{d.regimes.find((r) => r.id === v.regime_id)?.versions.length === 1
+              && "C'est la seule version de ce régime : le régime disparaît avec elle."}</p>
+        )}
+        <div className="actions">
+          <button className={acte === "supprimer" ? "danger" : "principal"}>{acte === "abandonner" ? "Abandonner" : "Supprimer"}</button>
+          <button type="button" onClick={onFermer}>Annuler</button>
+        </div>
+        <Erreur erreur={erreur} />
+      </form>
+    </Volet>
   );
 }
 

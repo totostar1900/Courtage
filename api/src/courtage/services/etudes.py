@@ -198,6 +198,9 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
     constats_regime: list[dict] = []
     if saisie.regime_version_id is not None:
         version = regimes.obtenir_version(session, saisie.regime_version_id)
+        if version.statut == "abandonnee":
+            raise ErreurMetier("version_abandonnee", "Cette version a été abandonnée : elle ne sert plus de base à "
+                                                     "une étude.", 422)
         regles = regimes.regles(session, version, saisie.date_evaluation)
         regles_plancher = regimes.regles_plancher(session, version, saisie.date_evaluation)
         exiger_categories_connues(lecture, regles)

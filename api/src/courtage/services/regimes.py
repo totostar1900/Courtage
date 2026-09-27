@@ -4,17 +4,27 @@ La plateforme prend un régime TEL QUEL : un régime moins favorable que sa
 convention est enregistré et signalé, jamais refusé. L'entreprise l'adopte
 d'un seul acte ; si le régime n'est pas conforme, l'acte dit qu'elle l'a vu.
 Le moteur retient toujours le plus favorable du régime et du plancher.
+
+Le parcours d'une version (`etat_version`) :
+- **projet** : enregistrée, pas adoptée. Elle se simule et s'étudie en brouillon ; aucune étude ne s'émet dessus.
+  L'entreprise l'adopte ; ou on l'abandonne (motif) ; ou, si aucune étude ne s'en est servie, on la supprime.
+- **à venir** : adoptée, sa date d'effet n'est pas arrivée.
+- **en vigueur** : adoptée, la plus récente dont la date d'effet est passée. Les études s'appuient sur elle.
+- **remplacée** : adoptée, puis relayée par une version adoptée plus récente, entrée en vigueur. Elle reste
+  la base des études aux dates où elle s'appliquait.
+- **abandonnée** : un projet non retenu. Elle reste lisible, avec son motif, et ne bouge plus.
+Une version adoptée ne se supprime jamais : des études et des rapports scellés la citent.
 """
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 
 from pydantic import TypeAdapter, ValidationError
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from courtage.actuariat.ifc import Regles, mois_dus
-from courtage.db import CategorieRegime, Organisation, Regime, VersionRegime
+from courtage.db import CategorieRegime, Etude, Organisation, Regime, VersionRegime
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.referentiel import Bareme, Convention, referentiel_courant
 
@@ -81,6 +91,9 @@ def adopter(session: Session, version: VersionRegime, auteur: uuid.UUID, accepte
     """L'entreprise adopte, d'un seul acte. Une non-conformité doit avoir été vue."""
     if version.statut == "adoptee":
         raise ErreurMetier("version_deja_adoptee", "Cette version est déjà adoptée.", 409)
+    if version.statut == "abandonnee":
+        raise ErreurMetier("version_abandonnee", "Cette version a été abandonnée : enregistrer une nouvelle version "
+                                                 "pour la reprendre.", 409)
     releves = constats(session, version, version.en_vigueur_du)
     non_conforme = any(c["code"] == "sous_le_plancher" for c in releves)
     if non_conforme and not accepte_non_conformite:
@@ -119,6 +132,68 @@ def obtenir_version(session: Session, version_id: uuid.UUID) -> VersionRegime:
 def categories_de(session: Session, version: VersionRegime) -> list[CategorieRegime]:
     return list(session.scalars(select(CategorieRegime).where(CategorieRegime.version_id == version.id)
                                 .order_by(CategorieRegime.categorie)))
+
+
+def abandonner(session: Session, version: VersionRegime, auteur: uuid.UUID, motif: str) -> VersionRegime:
+    """Un projet que l'entreprise ne retient pas : il reste lisible, avec son motif, et ne bouge plus."""
+    if version.statut != "analyse":
+        raise ErreurMetier("version_non_projet", "Seul un projet s'abandonne : une version adoptée se remplace par "
+                                                 "une nouvelle version.", 409)
+    if not (motif or "").strip():
+        raise ErreurMetier("motif_requis", "Dire pourquoi ce projet n'est pas retenu.", 422)
+    version.statut = "abandonnee"
+    version.abandonnee_par = auteur
+    version.abandonnee_le = datetime.now(timezone.utc)
+    version.motif_abandon = motif.strip()
+    session.flush()
+    journaliser(session, version.organisation_id, auteur, "regime.version_abandonnee", version.id,
+                {"motif": version.motif_abandon})
+    return version
+
+
+def etudes_de(session: Session, version: VersionRegime) -> int:
+    return session.scalar(select(func.count()).select_from(Etude).where(Etude.regime_version_id == version.id)) or 0
+
+
+def supprimer(session: Session, version: VersionRegime, auteur: uuid.UUID) -> bool:
+    """Un projet dont aucune étude ne s'est servie disparaît ; son régime aussi s'il reste sans version.
+    Rend vrai si le régime a été supprimé avec."""
+    if version.statut != "analyse":
+        raise ErreurMetier("version_non_projet", "Seul un projet se supprime. Une version adoptée est citée par des "
+                                                 "études et des rapports : elle se remplace, elle ne disparaît pas.", 409)
+    if n := etudes_de(session, version):
+        raise ErreurMetier("version_utilisee", f"{n} étude{'s' if n > 1 else ''} s'appuie{'nt' if n > 1 else ''} sur "
+                                               "ce projet : l'abandonner plutôt que le supprimer.", 409)
+    regime_id, numero = version.regime_id, version.numero
+    session.execute(delete(CategorieRegime).where(CategorieRegime.version_id == version.id))
+    session.delete(version)
+    session.flush()
+    journaliser(session, version.organisation_id, auteur, "regime.version_supprimee", version.id,
+                {"regime_id": str(regime_id), "numero": numero})
+    reste = session.scalar(select(func.count()).select_from(VersionRegime).where(VersionRegime.regime_id == regime_id))
+    if not reste:
+        session.execute(delete(Regime).where(Regime.id == regime_id))
+        journaliser(session, version.organisation_id, auteur, "regime.supprime", regime_id, {})
+        return True
+    return False
+
+
+def etat_version(session: Session, version: VersionRegime, jour: date) -> dict:
+    """Où en est la version au jour dit : projet, à venir, en vigueur, remplacée, abandonnée."""
+    if version.statut == "abandonnee":
+        return {"etat": "abandonnee"}
+    if version.statut == "analyse":
+        return {"etat": "projet"}
+    if version.en_vigueur_du > jour:
+        return {"etat": "a_venir"}
+    relais = session.scalars(
+        select(VersionRegime)
+        .where(VersionRegime.regime_id == version.regime_id, VersionRegime.statut == "adoptee",
+               VersionRegime.en_vigueur_du > version.en_vigueur_du, VersionRegime.en_vigueur_du <= jour)
+        .order_by(VersionRegime.en_vigueur_du).limit(1)).first()
+    if relais is None:
+        return {"etat": "en_vigueur"}
+    return {"etat": "remplacee", "remplacee_par": relais.numero, "jusqu_au": relais.en_vigueur_du.isoformat()}
 
 
 def version_en_vigueur(session: Session, regime_id: uuid.UUID, jour: date) -> VersionRegime | None:
@@ -182,8 +257,9 @@ def constats_categories(categories, jour: date) -> list[dict]:
         regles_c = regles_de(c, convention)
         sous = [n for n in range(ANCIENNETE_MAX_CONTROLEE + 1) if mois_dus(regles_c, n)[1]]
         if sous:
+            # « Attention », pas « Bloquant » : le régime s'enregistre et s'adopte tel quel, en connaissance de cause.
             releves.append(_constat(
-                "bloque", "sous_le_plancher", c.categorie,
+                "avertit", "sous_le_plancher", c.categorie,
                 f"{_libelle(c.categorie)} : le régime donne moins que {convention.libelle} "
                 f"pour {_plages(sous)} d'ancienneté. Les salariés gardent droit au plancher.",
                 {"anciennetes": sous, "convention": convention.code}))
@@ -207,6 +283,10 @@ def en_clair(session: Session, version: VersionRegime, jour: date | None = None)
         "document_reference": version.document_reference, "note": version.note, "statut": version.statut,
         "adoptee_le": version.adoptee_le.isoformat() if version.adoptee_le else None,
         "non_conformite_acceptee": version.non_conformite_acceptee,
+        **etat_version(session, version, date.today()),
+        "abandonnee_le": version.abandonnee_le.isoformat() if version.abandonnee_le else None,
+        "motif_abandon": version.motif_abandon,
+        "etudes": etudes_de(session, version),
         "categories": [{
             "categorie": c.categorie, "convention_code": c.convention_code, "bareme": c.bareme,
             "anciennete_minimale": c.anciennete_minimale, "plafond_mois": c.plafond_mois, "arrondi": c.arrondi,

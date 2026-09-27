@@ -97,9 +97,10 @@ def _personnel(session: Session, aujourd_hui: date) -> list[dict]:
 
 
 def _regime(session: Session, aujourd_hui: date) -> list[dict]:
-    return [_alerte("info", "version_a_adopter", "Une version du régime attend l'adoption",
-                    f"La version {v.numero}, du {v.en_vigueur_du:%d/%m/%Y}, est en analyse depuis "
-                    f"{_jours(v.cree_le, aujourd_hui)} jours : l'entreprise l'adopte ou la laisse.", "regime", "entreprise")
+    return [_alerte("info", "version_a_adopter", "Un projet de version attend une décision",
+                    f"La version {v.numero}, du {v.en_vigueur_du:%d/%m/%Y}, est un projet depuis "
+                    f"{_jours(v.cree_le, aujourd_hui)} jours : l'entreprise l'adopte, ou l'abandonne s'il n'est pas "
+                    "retenu.", "regime", "entreprise")
             for v in session.scalars(select(VersionRegime).where(VersionRegime.statut == "analyse"))
             if _jours(v.cree_le, aujourd_hui) > ATTENTE_BROUILLON]
 

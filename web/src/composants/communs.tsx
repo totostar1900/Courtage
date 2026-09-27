@@ -46,7 +46,7 @@ export function Cle({ etiquette, valeur, sous, terme }:
 }
 
 const NIVEAUX: Record<string, { libelle: string; classe: string }> = {
-  bloque: { libelle: "Bloque", classe: "grave" },
+  bloque: { libelle: "Bloquant", classe: "grave" },
   bloquant: { libelle: "Bloquant", classe: "grave" },
   avertit: { libelle: "Attention", classe: "attention" },
   avertissement: { libelle: "Attention", classe: "attention" },
@@ -61,8 +61,7 @@ export function Constats({ constats, vide = "Rien à signaler." }: { constats: C
         <div key={`${c.code}-${i}`} className={`constat ${c.niveau}`} data-code={c.code}>
           <div className="titre">
             <span className={`etat ${NIVEAUX[c.niveau].classe}`}>{NIVEAUX[c.niveau].libelle}</span>
-            {c.titre ?? libelleMotif(c.code)}
-            {c.statut_contenu === "a_valider" && <span className="etat attention">À valider par un juriste</span>}
+            {majuscule(c.titre ?? libelleMotif(c.code))}
           </div>
           <p>{c.message}</p>
           {!!c.sources?.length && (
@@ -99,7 +98,7 @@ const MOTIFS: Record<string, string> = {
   dossier_cloture: "dossier clôturé : il ne se modifie plus",
   donnees_trop_anciennes: "données de plus de 12 mois",
   matricule_double: "matricule en double",
-  regime_non_adopte: "régime non adopté",
+  regime_non_adopte: "version du régime encore en projet : l'entreprise l'adopte d'abord",
   regime_hors_vigueur: "une autre version du régime est en vigueur",
   non_conformite: "régime sous la convention",
   sous_le_plancher: "sous la convention collective",
@@ -137,6 +136,8 @@ const MOTIFS: Record<string, string> = {
   rien_a_reprendre: "rien à reprendre",
   sans_categorie_generale: "pas de catégorie générale",
 };
+
+const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 export function libelleMotif(code: string): string {
   return MOTIFS[code] ?? code.replace(/_/g, " ");

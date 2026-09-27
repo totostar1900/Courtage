@@ -8,9 +8,10 @@ Deux sortes de constats :
 - les CALCULS (coût de la non-conformité, dette de passé, concentration) :
   des chiffres, que la plateforme garantit ;
 - les NOTES juridiques et fiscales (provisionnement, usage, déductibilité,
-  égalité de traitement, abus de biens sociaux) : sourcées, `a_valider` tant
-  qu'un juriste ne les a pas relues. La plateforme informe ; elle ne donne pas
-  d'avis juridique.
+  égalité de traitement, abus de biens sociaux) : sourcées, et rédigées comme
+  des repères (« selon notre lecture », « pourrait »), jamais comme un avis :
+  la plateforme informe, le conseil de l'entreprise tranche. `statut_contenu`
+  garde en interne qu'aucun juriste ne les a encore relues.
 
 Les constats de légalité d'une version (sous le plancher, base approchée,
 événements non évalués) viennent de `services.regimes.constats`.

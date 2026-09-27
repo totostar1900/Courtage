@@ -147,7 +147,7 @@ def analyse_api(client, a, version_id, **params):
 def test_analyse_d_un_regime_par_l_api(client, azito):
     v = regime(client, azito, [categorie("*", AVARE)])
     c = analyse_api(client, azito, v["id"])
-    assert c["sous_le_plancher"]["niveau"] == "bloque"
+    assert c["sous_le_plancher"]["niveau"] == "avertit"      # signalé, jamais bloquant : il s'adopte en le confirmant
     assert "provisionnement" in c and "cout_non_conformite" not in c       # sans fichier, pas de chiffres
     c = analyse_api(client, azito, v["id"], fichier_id=azito["fichier"], date_evaluation="2019-12-31")
     assert c["cout_non_conformite"]["chiffres"]["ecart"] > 0

@@ -544,6 +544,24 @@ def adopter_version(version_id: uuid.UUID, corps: Adoption, a: Acces = Depends(a
     return regimes.en_clair(a.session, v)
 
 
+class Abandon(_Corps):
+    motif: str = Field(min_length=1, max_length=500)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/abandon")
+def abandonner_version(version_id: uuid.UUID, corps: Abandon, a: Acces = Depends(acces(*CLIENT))):
+    """Un projet non retenu : il reste lisible, avec son motif."""
+    v = regimes.abandonner(a.session, regimes.obtenir_version(a.session, version_id), a.utilisateur.id, corps.motif)
+    return regimes.en_clair(a.session, v)
+
+
+@routeur.delete("/organisations/{organisation_id}/regimes/versions/{version_id}")
+def supprimer_version(version_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
+    """Un projet dont aucune étude ne s'est servie ; son régime aussi, s'il reste sans version."""
+    regime_supprime = regimes.supprimer(a.session, regimes.obtenir_version(a.session, version_id), a.utilisateur.id)
+    return {"supprimee": True, "regime_supprime": regime_supprime}
+
+
 # --- Le catalogue anonyme ------------------------------------------------------
 
 class Partage(_Corps):

@@ -83,7 +83,15 @@ export interface Version {
   en_vigueur_du: string;
   fondement: string;
   document_reference: string;
-  statut: "analyse" | "adoptee";
+  statut: "analyse" | "adoptee" | "abandonnee";
+  /** Où en est la version aujourd'hui (voir `regimes.ts`). Absent d'une réponse ancienne : se déduit du statut. */
+  etat?: EtatVersion;
+  remplacee_par?: number;
+  jusqu_au?: string;
+  adoptee_le?: string | null;
+  abandonnee_le?: string | null;
+  motif_abandon?: string | null;
+  etudes?: number;
   non_conformite_acceptee: boolean;
   categories: Categorie[];
   constats: Constat[];
@@ -377,3 +385,5 @@ export interface Cycle {
   historique: { etat: EtatCycle; libelle: string; action: string; motif_code: string | null; motif_libelle: string | null;
                 motif: string | null; par: string; le: string }[];
 }
+
+export type EtatVersion = "projet" | "a_venir" | "en_vigueur" | "remplacee" | "abandonnee";

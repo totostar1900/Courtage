@@ -49,7 +49,7 @@ export default function Dossier() {
     const versions = regimes.flatMap((r) => r.versions);
     const etat: EtatDossier = {
       fichiers: fichiers.length, versions: versions.length,
-      versionsAdoptees: versions.filter((v) => v.statut === "adoptee").length,
+      versionsAdoptees: versions.filter((v) => v.statut === "adoptee").length,     // en vigueur, à venir ou remplacée
       etudesEmises: etudes.filter((e) => e.statut === "emise").length,
       etudesBrouillon: etudes.filter((e) => e.statut === "brouillon").length,
       fiches: fiches.length,
