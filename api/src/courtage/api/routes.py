@@ -820,7 +820,8 @@ def lister_etudes(a: Acces = Depends(acces(*TOUS))):
     return [
         {"id": str(e.id), "statut": e.statut, "date_evaluation": e.date_evaluation.isoformat(),
          "convention_code": e.convention_code, "dette": e.resultats["totaux"]["dette"],
-         "emise_le": e.emise_le.isoformat() if e.emise_le else None}
+         "emise_le": e.emise_le.isoformat() if e.emise_le else None,
+         "raison_de_garder": etudes.raison_de_garder(a.session, e)}
         for e in etudes.lister(a.session)
     ]
 
@@ -852,8 +853,12 @@ def recalculer_etude(etude_id: uuid.UUID, corps: ParametresEtude, a: Acces = Dep
 
 
 @routeur.delete("/organisations/{organisation_id}/etudes/{etude_id}", status_code=204)
-def supprimer_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
-    etudes.supprimer(a.session, etudes.obtenir(a.session, etude_id), a.utilisateur.id)
+def supprimer_etude(etude_id: uuid.UUID, confirmation: str | None = None, a: Acces = Depends(acces(*CLIENT))):
+    """Un brouillon : l'équipe. Une étude émise : l'administrateur ou le conseiller, sur confirmation écrite."""
+    e = etudes.obtenir(a.session, etude_id)
+    if e.statut == "emise" and a.role not in ("admin_client", "conseiller"):
+        raise ErreurMetier("droit_insuffisant", "Seuls l'administrateur et le conseiller suppriment une étude émise.", 403)
+    etudes.supprimer(a.session, e, a.utilisateur.id, confirmation=confirmation)
     return Response(status_code=204)
 
 

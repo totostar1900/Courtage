@@ -42,7 +42,7 @@ def test_parcours_complet_du_depot_a_l_emission(client, azito, bases):
     assert client.put(url, json={"fichier_id": a["fichier"], "date_evaluation": "2019-12-31",
                                  "convention_code": "CI_CCI", "fonds_disponible": 0},
                       headers=en_tant_que(a["conseiller"])).json()["code"] == "etude_emise"
-    assert client.delete(url, headers=en_tant_que(a["conseiller"])).status_code == 409
+    assert client.delete(url, headers=en_tant_que(a["conseiller"])).json()["code"] == "confirmation_requise"
     assert client.post(f"{url}/emission", headers=en_tant_que(a["conseiller"])).status_code == 409
 
     # Relue, elle dit la même chose ; le journal a tout suivi.

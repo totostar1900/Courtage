@@ -7,6 +7,7 @@ import { Terme } from "../composants/Terme";
 import { dateFr } from "../format";
 import type { ContratsDossier } from "../types";
 import { MenuActions } from "../composants/MenuActions";
+import { useConfirmation } from "../composants/Confirmer";
 import { useDossier } from "./Dossier";
 
 const SERVICES = {
@@ -37,6 +38,7 @@ export default function Contrat() {
   const [params] = useSearchParams();
   const retenu = params.get("assureur");
   const [ouvert, setOuvert] = useState(Boolean(retenu));
+  const [demander, fenetre] = useConfirmation();
   if (erreur) return <Erreur erreur={erreur} />;
   if (!donnee) return <p className="discret">Chargement…</p>;
   const s = SERVICES[donnee.service];
@@ -44,6 +46,7 @@ export default function Contrat() {
 
   return (
     <>
+      {fenetre}
       <h1>Votre contrat</h1>
       <p>Deux services existent : le <Terme cle="courtage">courtage</Terme> et la <Terme cle="comparaison">comparaison</Terme>.
         Le vôtre décide qui s'occupe d'une prestation quand un salarié part en retraite.</p>
@@ -81,11 +84,11 @@ export default function Contrat() {
                 <td className="n">{d.role === "conseiller" && (
                   <MenuActions libelle={`Actions sur le contrat du ${dateFr(h.en_vigueur_du)}`} actions={[
                     { libelle: "Supprimer (saisi par erreur)", danger: true, raison: h.raison_de_garder ?? null,
-                      agir: async () => {
-                        if (!window.confirm("Supprimer ce contrat ? Le journal en garde la trace.")) return;
-                        try { await api.del(`/organisations/${d.org.id}/contrats/${h.id}`); recharger(); }
-                        catch (e) { window.alert(e instanceof Error ? e.message : String(e)); }
-                      } },
+                      agir: () => demander({
+                        titre: "Supprimer ce contrat", message: <p>Saisi par erreur ? Le journal garde la trace de la suppression.</p>,
+                        mot: "SUPPRIMER",
+                        action: async () => { await api.del(`/organisations/${d.org.id}/contrats/${h.id}`); recharger(); },
+                      }) },
                   ]} />)}</td></tr>
             ))}</tbody>
           </table></div>

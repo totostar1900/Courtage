@@ -64,3 +64,14 @@ def test_alleger_le_personnel_garde_les_etudes_emises(client, azito):
     assert r.json()["fichiers_alleges"] == 1 and r.json()["fichiers_supprimes"] == 0     # cité : allégé, pas supprimé
     [f] = client.get(f"{V1}/organisations/{org}/fichiers", headers=h).json()
     assert f["vide_le"] is not None and len(client.get(f"{V1}/organisations/{org}/etudes", headers=h).json()) == 1
+
+
+def test_supprimer_une_etude_emise_demande_la_confirmation_ecrite(client, azito):
+    org, e = azito["org"], emettre(client, azito)
+    url = f"{V1}/organisations/{org}/etudes/{e['id']}"
+    assert e["suppression"] == {"confirmation": "SUPPRIMER", "raison_de_garder": None}
+    assert client.delete(url, headers=en_tant_que(azito["drh"])).json()["code"] == "confirmation_requise"
+    r = client.delete(url, params={"confirmation": "supprimer"}, headers=en_tant_que(azito["drh"]))
+    assert r.status_code == 204, r.text
+    assert client.get(f"{V1}/organisations/{org}/etudes", headers=en_tant_que(azito["drh"])).json() == []
+    assert client.get(f"{V1}/verifier/{e['rapport']['numero']}").json()["authentique"] is True

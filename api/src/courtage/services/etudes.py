@@ -13,11 +13,11 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field, replace
 from datetime import date, datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from courtage.actuariat.ifc import VERSION_MOTEUR, Hypotheses, Regles, Resultat, comparer_baremes, evaluer
-from courtage.db import Document, Etude, Organisation
+from courtage.db import Document, Etude, FicheRegime, Organisation
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie, controler, controler_parametres, controler_resultat, salaries
 from courtage.referentiel import motifs_de_refus, referentiel_courant
@@ -61,8 +61,38 @@ def recalculer(session: Session, org: Organisation, etude: Etude, auteur: uuid.U
     return etude
 
 
-def supprimer(session: Session, etude: Etude, auteur: uuid.UUID) -> None:
-    _exiger_brouillon(etude)
+CONFIRMATION = "SUPPRIMER"
+
+
+def raison_de_garder(session: Session, etude: Etude) -> str | None:
+    """Ce qui retient une étude émise ; None : elle peut partir (son sceau reste)."""
+    if etude.statut != "emise":
+        return None
+    if session.scalar(select(func.count()).select_from(FicheRegime).where(FicheRegime.etude_id == etude.id)):
+        return "Un cahier des charges la cite : elle reste tant que le cahier existe."
+    if session.scalar(select(func.count()).select_from(Etude).where(Etude.remplace_etude_id == etude.id)):
+        return "Une étude plus récente la remplace et la cite."
+    return None
+
+
+def supprimer(session: Session, etude: Etude, auteur: uuid.UUID, *, confirmation: str | None = None) -> None:
+    """Un brouillon part sans cérémonie. Une étude émise part sur confirmation écrite (« SUPPRIMER »), si rien ne la
+    cite ; son rapport part avec elle, son sceau reste : le numéro se vérifie toujours."""
+    if etude.statut == "emise":
+        if (confirmation or "").strip().upper() != CONFIRMATION:
+            raise ErreurMetier("confirmation_requise", f"Écrire « {CONFIRMATION} » pour supprimer une étude émise.", 422)
+        raison = raison_de_garder(session, etude)
+        if raison:
+            raise ErreurMetier("etude_citee", raison, 409)
+        numero = _rapport(session, etude)
+        session.execute(text("SELECT set_config('app.nettoyage', 'oui', true)"))
+        session.execute(delete(Document).where(Document.etude_id == etude.id))
+        session.execute(delete(Etude).where(Etude.id == etude.id))
+        session.execute(text("SELECT set_config('app.nettoyage', '', true)"))
+        session.expunge(etude)
+        journaliser(session, etude.organisation_id, auteur, "etude.supprimee", etude.id,
+                    {"statut": "emise", "rapport": numero["numero"] if numero else None})
+        return
     journaliser(session, etude.organisation_id, auteur, "etude.supprimee", etude.id)
     session.delete(etude)
     session.flush()
@@ -164,6 +194,8 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
         "emise_par": str(etude.emise_par) if etude.emise_par else None,
         "remplace_etude_id": str(etude.remplace_etude_id) if etude.remplace_etude_id else None,
         "rapport": _rapport(session, etude),
+        "suppression": {"confirmation": CONFIRMATION if etude.statut == "emise" else None,
+                        "raison_de_garder": raison_de_garder(session, etude)},
     }
 
 

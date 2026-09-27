@@ -147,6 +147,7 @@ export interface Etude {
   honoraires_ht: number | null;
   emise_le: string | null;
   rapport: { numero: string } | null;
+  suppression?: { confirmation: string | null; raison_de_garder: string | null };
   experience?: Experience | null;
 }
 

@@ -508,3 +508,18 @@ fieldset.choix-nettoyage label, label.case { display: flex; gap: 8px; align-item
 .parcours a .icone { flex: none; color: var(--discret); }
 .parcours a.actif .icone, .parcours a:hover .icone { color: var(--indigo); }
 .parcours .point-suivant { width: 7px; height: 7px; border-radius: 50%; background: var(--attention); margin-left: auto; flex: none; }
+
+/* Confirmation écrite : une fenêtre au-dessus de la page, rien ne bouge derrière. */
+.voile { position: fixed; inset: 0; z-index: 100; background: rgb(20 22 30 / .45); display: grid; place-items: center; padding: 16px; }
+.fenetre { width: min(480px, 100%); max-height: calc(100vh - 32px); overflow: auto; margin: 0; box-shadow: 0 12px 40px rgb(0 0 0 / .25); }
+.fenetre h2 { margin-top: 0; }
+.fenetre label { display: grid; gap: 4px; margin-top: 12px; }
+.fenetre input { max-width: 240px; text-transform: uppercase; }
+
+/* Tiroir : fixé à droite, au-dessus de la page ; plein écran sur téléphone. */
+.tiroir { position: fixed; top: 0; right: 0; bottom: 0; z-index: 80; width: min(560px, 100vw); overflow-y: auto;
+  background: var(--surface); border-left: 1px solid var(--trait); box-shadow: -12px 0 32px rgb(0 0 0 / .12);
+  padding: 20px; overscroll-behavior: contain; }
+.tiroir .volet.dans-tiroir { margin: 0; }
+tr.choisie > td { background: var(--indigo-doux); }
+@media (max-width: 700px) { .tiroir { width: 100vw; border-left: 0; padding: 16px; } }

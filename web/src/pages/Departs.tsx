@@ -1,8 +1,8 @@
-import { Fragment, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "../api";
-import { Anomalies, Cle, Constats, Erreur, useCharge, Volet } from "../composants/communs";
+import { Anomalies, Cle, Constats, Erreur, Tiroir, useCharge, Volet } from "../composants/communs";
 import { Terme } from "../composants/Terme";
 import { dateFr, millions, montant } from "../format";
 import { ExpliquerCalcul } from "../composants/Calcul";
@@ -23,6 +23,7 @@ export default function Departs() {
   const [volet, setVolet] = useState<null | "declarer" | "importer" | { corriger: Prestation } | { demander: Prestation } | { orienter: Prestation }>(null);
   const [ouverte, setOuverte] = useState<string | null>(null);
   const peutEcrire = d.role !== "lecteur_client";
+  const detail = donnee?.prestations.find((p) => p.id === ouverte) ?? null;
   const fait = () => { setVolet(null); recharger(); };
 
   if (erreur) return <Erreur erreur={erreur} />;
@@ -51,22 +52,36 @@ export default function Departs() {
         <Cle etiquette="Payé par le fonds" valeur={millions(t.part_fonds_payee)} sous={montant(t.part_fonds_payee)} terme="fonds" />
       </div>
 
-      {peutEcrire && !volet && (
+      {peutEcrire && (
         <div className="actions section">
-          <button className="principal" onClick={() => setVolet("declarer")}>Déclarer un départ</button>
-          <button onClick={() => setVolet("importer")}>Reprendre l'historique (tableur)</button>
+          <button className="principal" onClick={() => { setOuverte(null); setVolet("declarer"); }}>Déclarer un départ</button>
+          <button onClick={() => { setOuverte(null); setVolet("importer"); }}>Reprendre l'historique (tableur)</button>
         </div>
       )}
-      {volet === "declarer" && <FormulaireDepart onFermer={() => setVolet(null)} onFait={fait} />}
-      {volet === "importer" && <ImportHistorique onFermer={() => setVolet(null)} onFait={fait} />}
-      {volet && typeof volet === "object" && "corriger" in volet && (
-        <FormulaireDepart onFermer={() => setVolet(null)} onFait={fait} corriger={volet.corriger} />
+      {volet && (
+        <Tiroir etiquette="Départs" onFermer={() => setVolet(null)}>
+          {volet === "declarer" && <FormulaireDepart onFermer={() => setVolet(null)} onFait={fait} />}
+          {volet === "importer" && <ImportHistorique onFermer={() => setVolet(null)} onFait={fait} />}
+          {typeof volet === "object" && "corriger" in volet && (
+            <FormulaireDepart onFermer={() => setVolet(null)} onFait={fait} corriger={volet.corriger} />
+          )}
+          {typeof volet === "object" && "demander" in volet && (
+            <DemandePriseEnCharge p={volet.demander} onFermer={() => setVolet(null)} />
+          )}
+          {typeof volet === "object" && "orienter" in volet && (
+            <OrientationAssureur p={volet.orienter} onFermer={() => setVolet(null)} onFait={fait} />
+          )}
+        </Tiroir>
       )}
-      {volet && typeof volet === "object" && "demander" in volet && (
-        <DemandePriseEnCharge p={volet.demander} onFermer={() => setVolet(null)} />
-      )}
-      {volet && typeof volet === "object" && "orienter" in volet && (
-        <OrientationAssureur p={volet.orienter} onFermer={() => setVolet(null)} onFait={fait} />
+      {detail && !volet && (
+        <Tiroir etiquette={`Départ du matricule ${detail.matricule}`} onFermer={() => setOuverte(null)}>
+          <Volet titre={`Départ du matricule ${detail.matricule}`} onFermer={() => setOuverte(null)}>
+            <Detail p={detail} />
+            <PriseEnCharge p={detail} role={d.role} onDemander={() => setVolet({ demander: detail })}
+              onOrienter={() => setVolet({ orienter: detail })} />
+            {peutEcrire && <Actions p={detail} onCorriger={() => setVolet({ corriger: detail })} onFait={recharger} />}
+          </Volet>
+        </Tiroir>
       )}
 
       <div className="section">
@@ -78,8 +93,7 @@ export default function Departs() {
                 <th className="n">Dû</th><th className="n">Versé</th><th className="n">Fonds</th><th>À regarder</th></tr></thead>
               <tbody>
                 {donnee.prestations.map((p) => (
-                  <Fragment key={p.id}>
-                    <tr className="cliquable" data-prestation={p.matricule} onClick={() => setOuverte(ouverte === p.id ? null : p.id)}>
+                  <tr key={p.id} className={`cliquable${ouverte === p.id ? " choisie" : ""}`} aria-selected={ouverte === p.id} data-prestation={p.matricule} onClick={() => { setVolet(null); setOuverte(ouverte === p.id ? null : p.id); }}>
                       <td>{dateFr(p.date_depart)}</td>
                       <td>{p.matricule}{p.categorie && <div className="discret">{p.categorie}</div>}</td>
                       <td>{MOTIFS[p.motif]}{p.soldee && <div className="discret">soldé</div>}</td>
@@ -89,17 +103,6 @@ export default function Departs() {
                       <td className="n">{montant(p.part_fonds_payee)}</td>
                       <td><Pastilles constats={p.constats} />{p.dossier && <div><EtatDossier statut={p.dossier.statut} /></div>}</td>
                     </tr>
-                    {ouverte === p.id && (
-                      <tr><td colSpan={8}>
-                        <div className="volet-tete"><strong>Départ du matricule {p.matricule}</strong>
-                          <button type="button" className="fermer-volet" onClick={() => setOuverte(null)} aria-label="Fermer" title="Fermer">×</button></div>
-                        <Detail p={p} />
-                        <PriseEnCharge p={p} role={d.role} onDemander={() => { setOuverte(null); setVolet({ demander: p }); }}
-                          onOrienter={() => { setOuverte(null); setVolet({ orienter: p }); }} />
-                        {peutEcrire && <Actions p={p} onCorriger={() => { setOuverte(null); setVolet({ corriger: p }); }} onFait={recharger} />}
-                      </td></tr>
-                    )}
-                  </Fragment>
                 ))}
               </tbody>
             </table>

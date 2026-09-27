@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { ErreurApi } from "../api";
 import type { Anomalie, Constat } from "../types";
@@ -145,12 +146,33 @@ export function libelleMotif(code: string): string {
 
 /** Un panneau qui s'ouvre sur la page (résultats, formulaire, détail) et se referme : une croix en haut,
  *  toujours au même endroit. À l'ouverture, la page vient à lui. */
+const DansTiroir = createContext(false);
+
+/** Un panneau fixé à droite (plein écran sur téléphone), au-dessus de la page : ce qui s'y ouvre ou s'y ferme ne
+ *  déplace rien derrière. Échap le ferme. Un `Volet` qu'il contient ne fait pas défiler la page. */
+export function Tiroir({ onFermer, children, etiquette }: { onFermer: () => void; children: ReactNode; etiquette: string }) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const echap = (e: KeyboardEvent) => { if (e.key === "Escape" && !document.querySelector(".voile")) onFermer(); };
+    document.addEventListener("keydown", echap);
+    return () => document.removeEventListener("keydown", echap);
+  }, [onFermer]);
+  useEffect(() => { ref.current?.scrollTo?.(0, 0); }, [children]);
+  return createPortal(
+    <aside ref={ref} className="tiroir" aria-label={etiquette}>
+      <DansTiroir.Provider value={true}>{children}</DansTiroir.Provider>
+    </aside>,
+    document.body,
+  );
+}
+
 export function Volet({ titre, onFermer, children, className = "" }:
   { titre: ReactNode; onFermer: () => void; children: ReactNode; className?: string }) {
   const ref = useRef<HTMLElement>(null);
-  useEffect(() => { ref.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }, []);
+  const tiroir = useContext(DansTiroir);
+  useEffect(() => { if (!tiroir) ref.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }, [tiroir]);
   return (
-    <section ref={ref} className={`carte volet ${className}`}>
+    <section ref={ref} className={tiroir ? "volet dans-tiroir" : `carte volet ${className}`}>
       <div className="volet-tete">
         <h2>{titre}</h2>
         <button type="button" className="fermer-volet" onClick={onFermer} aria-label="Fermer" title="Fermer">×</button>

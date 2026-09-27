@@ -5,6 +5,7 @@ import { Anomalies, Erreur } from "../composants/communs";
 import { MenuActions } from "../composants/MenuActions";
 import { dateFr } from "../format";
 import type { Fichier } from "../types";
+import { useConfirmation } from "../composants/Confirmer";
 import { useDossier } from "./Dossier";
 
 export default function Personnel() {
@@ -20,19 +21,24 @@ export default function Personnel() {
     try { await api.telecharger(chemin, nom); } catch (e) { setErreurTelechargement(e); }
   }
 
-  async function agir(f: Fichier, quoi: "supprimer" | "alleger") {
+  const [demander, fenetre] = useConfirmation();
+
+  function agir(f: Fichier, quoi: "supprimer" | "alleger") {
     const n = f.brouillons?.length ?? 0;
     const brouillons = n ? ` ${n} étude${n > 1 ? "s" : ""} en brouillon qui s'appuie${n > 1 ? "nt" : ""} dessus ${n > 1 ? "partiront" : "partira"} avec.` : "";
-    const message = quoi === "supprimer"
-      ? `Supprimer « ${f.nom_fichier} » ?${brouillons}`
-      : `Alléger « ${f.nom_fichier} » ? Ses lignes sont vidées ; son nom, sa date et son empreinte restent, et les études émises restent prouvées.${brouillons}`;
-    if (!window.confirm(message)) return;
-    setErreurTelechargement(null);
-    try {
-      if (quoi === "supprimer") await api.del(`/organisations/${d.org.id}/fichiers/${f.id}`);
-      else await api.post(`/organisations/${d.org.id}/fichiers/${f.id}/allegement`);
-      d.recharger();
-    } catch (e) { setErreurTelechargement(e); }
+    demander({
+      titre: quoi === "supprimer" ? `Supprimer « ${f.nom_fichier} »` : `Alléger « ${f.nom_fichier} »`,
+      message: <p>{quoi === "supprimer" ? "Le fichier quitte la plateforme."
+        : "Ses lignes sont vidées ; son nom, sa date et son empreinte restent, et les études émises restent prouvées."}
+        {brouillons}</p>,
+      mot: quoi === "supprimer" ? "SUPPRIMER" : "ALLEGER",
+      bouton: quoi === "supprimer" ? "Supprimer" : "Alléger",
+      action: async () => {
+        if (quoi === "supprimer") await api.del(`/organisations/${d.org.id}/fichiers/${f.id}`);
+        else await api.post(`/organisations/${d.org.id}/fichiers/${f.id}/allegement`);
+        d.recharger();
+      },
+    });
   }
 
   const actionsFichier = (f: Fichier) => [
@@ -59,6 +65,7 @@ export default function Personnel() {
 
   return (
     <>
+      {fenetre}
       <h1>Votre personnel</h1>
       <p>Un fichier Excel ou CSV : matricule, date de naissance, date d'embauche, salaire, et la catégorie si votre
         régime en distingue. <strong>Aucun nom n'est lu</strong> : une colonne de nom est ignorée sans être ouverte.</p>

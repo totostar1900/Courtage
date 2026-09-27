@@ -3,18 +3,21 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
+import { useConfirmation } from "../composants/Confirmer";
 import { MenuActions } from "../composants/MenuActions";
 import { CONVENTION_PAR_PAYS } from "../composants/EditeurCategories";
 import { aEnvoyer, Hypotheses, saisieParDefaut, type SaisieHypotheses } from "../composants/Hypotheses";
 import { dateFr, montant } from "../format";
 import { enCours, libelleVersion, ordonner } from "../regimes";
 import type { CatalogueHypotheses, Etude } from "../types";
+import { demandeSuppression, raisonDeNePasSupprimer } from "../suppressionEtude";
 import { useDossier } from "./Dossier";
 
 export default function Etudes() {
   const d = useDossier();
   const naviguer = useNavigate();
   const [erreur, setErreur] = useState<unknown>(null);
+  const [demander, fenetre] = useConfirmation();
   // Une hypothèse proposée par l'expérience réelle arrive ici, à confirmer : jamais appliquée sans décision.
   const [params] = useSearchParams();
   const proposee = params.get("turnover");
@@ -50,6 +53,7 @@ export default function Etudes() {
 
   return (
     <>
+      {fenetre}
       <h1>Évaluer votre engagement</h1>
       <p>La dette actuarielle, la charge de l'année, la cotisation à verser. Votre conseiller relit et émet le rapport,
         scellé et vérifiable.</p>
@@ -112,12 +116,10 @@ export default function Etudes() {
                         agir: () => api.ouvrir(`/organisations/${d.org.id}/etudes/${e.id}/rapport`) },
                       { libelle: "Exporter en Excel", agir: () => { setErreur(null);
                         api.telecharger(`/organisations/${d.org.id}/etudes/${e.id}/export`, `etude-ifc-${e.date_evaluation}.xlsx`).catch(setErreur); } },
-                      { libelle: "Supprimer ce brouillon", danger: true, cache: e.statut !== "brouillon" || d.role === "lecteur_client",
-                        agir: async () => {
-                          if (!window.confirm("Supprimer ce brouillon ? Il n'engage rien ; une étude émise, elle, reste.")) return;
-                          setErreur(null);
-                          try { await api.del(`/organisations/${d.org.id}/etudes/${e.id}`); d.recharger(); } catch (x) { setErreur(x); }
-                        } },
+                      { libelle: e.statut === "emise" ? "Supprimer l'étude" : "Supprimer ce brouillon", danger: true,
+                        raison: raisonDeNePasSupprimer(e, d.role) ?? undefined,
+                        cache: d.role === "lecteur_client",
+                        agir: () => demander(demandeSuppression(d.org.id, e, d.recharger)) },
                     ]} />
                   </td>
                 </tr>

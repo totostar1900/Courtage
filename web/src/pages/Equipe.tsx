@@ -7,6 +7,7 @@ import { EtatDuDossier } from "../composants/CycleDossier";
 import { MenuActions } from "../composants/MenuActions";
 import { NettoyerDossier } from "../composants/Nettoyage";
 import type { Equipe as DonneesEquipe, Membre, Role } from "../types";
+import { useConfirmation } from "../composants/Confirmer";
 import { useDossier } from "./Dossier";
 
 export const LIBELLES_ROLES: Record<Role, string> = {
@@ -27,8 +28,8 @@ export default function Equipe() {
   const { donnee: e, erreur, recharger } = useCharge(() => api.get<DonneesEquipe>(`/organisations/${d.org.id}/equipe`), [d.org.id]);
   const [inscrireDemande, setInscrire] = useState<boolean | null>(null);
   const [modifier, setModifier] = useState<Membre | null>(null);
-  const [erreurAction, setErreurAction] = useState<unknown>(null);
   const aller = useNavigate();
+  const [demander, fenetre] = useConfirmation();
   if (erreur) return <Erreur erreur={erreur} />;
   if (!e) return <p className="discret">Chargement…</p>;
   const conseil = d.role === "conseiller";
@@ -39,18 +40,21 @@ export default function Equipe() {
   const inscrire = inscrireDemande ?? (conseil && ouvert && !e.membres.some((m) => m.role !== "conseiller"));
   const rafraichir = () => { recharger(); d.recharger(); };
 
-  async function retirer(m: Membre) {
-    if (!window.confirm(m.moi ? "Vous retirer de ce dossier ? Vous n'y aurez plus accès." :
-      `Retirer ${m.nom} du dossier ? Ce qu'il ou elle y a fait reste au journal, sous son nom.`)) return;
-    setErreurAction(null);
-    try {
-      await api.del(`/organisations/${d.org.id}/membres/${m.id}`);
-      if (m.moi) aller("/"); else rafraichir();
-    } catch (x) { setErreurAction(x); }
+  function retirer(m: Membre) {
+    demander({
+      titre: m.moi ? "Vous retirer de ce dossier" : `Retirer ${m.nom} du dossier`,
+      message: <p>{m.moi ? "Vous n'y aurez plus accès." : "Ce qu'il ou elle y a fait reste au journal, sous son nom."}</p>,
+      mot: "RETIRER", bouton: "Retirer",
+      action: async () => {
+        await api.del(`/organisations/${d.org.id}/membres/${m.id}`);
+        if (m.moi) aller("/"); else rafraichir();
+      },
+    });
   }
 
   return (
     <>
+      {fenetre}
       <h1>Équipe du dossier</h1>
       <p>Chaque personne se connecte avec son numéro de téléphone, par un code reçu par message. Aucun mot de passe.
         Les <b>droits</b> disent ce qu'elle peut faire ; la <b>fonction</b> dit qui elle est.</p>
@@ -92,7 +96,6 @@ export default function Equipe() {
                                      onFait={() => { setInscrire(false); rafraichir(); }} />}
       {modifier && <FormulaireMembre equipe={e} membre={modifier} onFermer={() => setModifier(null)}
                                      onFait={() => { setModifier(null); rafraichir(); }} />}
-      <Erreur erreur={erreurAction} />
       <EtatDuDossier orgId={d.org.id} conseiller={conseil} onChange={d.recharger} />
       {(conseil || d.role === "admin_client") && ouvert && <NettoyerDossier orgId={d.org.id} onFait={rafraichir} />}
     </>

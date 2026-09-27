@@ -230,6 +230,10 @@ describe("les départs", () => {
     expect(screen.getAllByText("3 625 000 F").length).toBeGreaterThan(0);
     expect(screen.getByText(/directement à votre assureur/)).toBeInTheDocument();
     await userEvent.click(ligne);
+    // Le détail s'ouvre dans le tiroir, à côté du tableau : la liste ne bouge pas.
+    const tiroir = screen.getByRole("complementary", { name: "Départ du matricule A-017" });
+    expect(tiroir.closest("table")).toBeNull();
+    expect(ligne.closest("tr")).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText(/ans d'ancienneté ouvrent droit à/)).toHaveTextContent("7,25 × 500 000 F = 3 625 000 F");
     expect(screen.getByText("Versé 3 000 000 F, dû 3 625 000 F.")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Fermer" }));
@@ -1299,16 +1303,48 @@ describe("les fichiers du personnel", () => {
       { id: "f1", nom_fichier: "p.xlsx", depose_le: "2026-09-26T10:00:00", date_donnees: "2019-12-31", periodicite: "annuel",
         effectif: 23, anomalies: [], vide_le: null, etudes_emises: 1, brouillons: ["e2"] }] }),
       [`POST /organisations/${ORG}/fichiers/f1/allegement`]: { allege: true, brouillons: 1 } });
-    const confirmer = vi.spyOn(window, "confirm").mockReturnValue(true);
     ouvrir(`/dossier/${ORG}/personnel`);
     await userEvent.click(await screen.findByRole("button", { name: "Actions sur p.xlsx" }));
     const sup = screen.getByRole("menuitem", { name: /Supprimer/ });
     expect(sup).toHaveAttribute("aria-disabled", "true");
     expect(sup).toHaveTextContent("1 étude émise le cite : l'alléger plutôt.");
     await userEvent.click(screen.getByRole("menuitem", { name: /Alléger/ }));
-    expect(confirmer.mock.calls[0][0]).toMatch(/1 étude en brouillon qui s'appuie dessus partira avec/);
+    const fenetre = await screen.findByRole("dialog", { name: /Alléger « p.xlsx »/ });
+    expect(fenetre).toHaveTextContent(/1 étude en brouillon qui s'appuie dessus partira avec/);
+    const valider = within(fenetre).getByRole("button", { name: "Alléger" });
+    expect(valider).toBeDisabled();                                   // il faut écrire le mot
+    await userEvent.type(within(fenetre).getByLabelText("Confirmation"), "alleger");
+    await userEvent.click(valider);
     await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/allegement"))).toBe(true));
-    confirmer.mockRestore();
+  });
+});
+
+describe("supprimer une étude émise", () => {
+  it("demande d'écrire SUPPRIMER, puis envoie la confirmation", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"),
+      [`/organisations/${ORG}/etudes/e1`]: { ...etude({ possible: false, motifs: [] }, "emise"),
+        rapport: { numero: "RL-1" }, suppression: { confirmation: "SUPPRIMER", raison_de_garder: null } },
+      [`DELETE /organisations/${ORG}/etudes/e1`]: {} });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    await userEvent.click(await screen.findByRole("button", { name: "Supprimer l'étude" }));
+    const fenetre = await screen.findByRole("dialog", { name: /Supprimer l'étude émise/ });
+    expect(fenetre).toHaveTextContent(/Le sceau reste/);
+    const valider = within(fenetre).getByRole("button", { name: "Supprimer" });
+    await userEvent.type(within(fenetre).getByLabelText("Confirmation"), "supprime");
+    expect(valider).toBeDisabled();
+    await userEvent.type(within(fenetre).getByLabelText("Confirmation"), "r");
+    await userEvent.click(valider);
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "DELETE")).toBe(true));
+  });
+
+  it("citée par un cahier : le bouton est grisé et dit pourquoi", async () => {
+    simulerApi({ ...dossier("conseiller"),
+      [`/organisations/${ORG}/etudes/e1`]: { ...etude({ possible: false, motifs: [] }, "emise"),
+        suppression: { confirmation: "SUPPRIMER", raison_de_garder: "Un cahier des charges la cite." } } });
+    ouvrir(`/dossier/${ORG}/etudes/e1`);
+    const b = await screen.findByRole("button", { name: "Supprimer l'étude" });
+    expect(b).toBeDisabled();
+    expect(b).toHaveAttribute("title", "Un cahier des charges la cite.");
   });
 });
 
