@@ -2,7 +2,7 @@
 
 Un mandat type, inspiré des lettres de mission des grands courtiers internationaux (« terms of business », « broker
 of record ») et adapté au Code des assurances CIMA : l'objet, la mission, le devoir de conseil, les obligations de
-chacun, la rémunération (dans son principe, sans chiffre : la plateforme ne la porte pas), l'indépendance, la
+chacun, la rémunération (gratuit pour le client : seul l'assureur rémunère le courtier), l'indépendance, la
 confidentialité, la durée et la résiliation, la responsabilité, les litiges.
 
 Le texte se construit ici, une fois, pour l'écran comme pour le PDF : le client signe exactement ce qu'il a lu, et
@@ -38,7 +38,7 @@ PERIMETRE = {
 }
 MOIS = ("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre",
         "décembre")
-VERSION_TEXTE = "mandat-courtage-1"
+VERSION_TEXTE = "mandat-courtage-2"
 
 
 def courtier() -> dict:
@@ -89,9 +89,11 @@ def texte(org: Organisation, m: MandatCourtage, conseiller: str) -> dict:
             "déclaration inexacte peut réduire ou supprimer la garantie.",
             "Le Client règle les primes directement à l'assureur, sauf accord écrit contraire."]),
         ("Rémunération", [
-            "Le Courtier est rémunéré par la commission d'usage versée par l'assureur retenu et, le cas échéant, par "
-            "des honoraires convenus par écrit avec le Client avant toute prestation. Il communique au Client, sur "
-            "simple demande, la nature et le montant de toute rémunération perçue au titre de ce mandat."]),
+            "Le mandat est gratuit pour le Client : le Courtier ne lui facture ni honoraires, ni frais, au titre de "
+            "ce mandat ou des études qu'il réalise pour lui.",
+            "Le Courtier est rémunéré exclusivement par la commission versée par l'assureur retenu, dans les limites "
+            "fixées par la réglementation applicable. Il communique au Client, sur simple demande, le taux et le "
+            "montant de cette commission."]),
         ("Indépendance et conflits d'intérêts", [
             "Le Courtier déclare au Client tout lien, capitalistique ou contractuel, avec un assureur consulté. Il "
             "l'informe de toute situation de conflit d'intérêts et de la manière dont il la traite."]),

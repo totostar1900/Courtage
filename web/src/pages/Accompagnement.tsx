@@ -141,8 +141,8 @@ function Demande({ orgId, besoins, onFait }: { orgId: string; besoins: Mandats["
       </fieldset>
       <label>{t("Précisions (facultatif)", "Details (optional)")}
         <textarea name="message" rows={3} maxLength={2000} placeholder={t("Échéance de votre contrat actuel, contraintes, questions…", "End date of your current contract, constraints, questions…")} /></label>
-      <p className="discret">{t("Votre conseiller vous propose ensuite un mandat de courtage, à lire et signer sur cette page. Rien ne vous engage avant la signature.",
-        "Your adviser then proposes a brokerage mandate, to read and sign on this page. Nothing binds you before you sign.")}</p>
+      <p className="discret">{t("Votre conseiller vous propose ensuite un mandat de courtage, à lire et signer sur cette page. Rien ne vous engage avant la signature, et l'accompagnement ne vous coûte rien : le courtier est rémunéré par l'assureur retenu.",
+        "Your adviser then proposes a brokerage mandate, to read and sign on this page. Nothing binds you before you sign, and the support costs you nothing: the broker is paid by the chosen insurer.")}</p>
       <div className="actions"><button className="principal">{t("Envoyer la demande", "Send the request")}</button></div>
       <Erreur erreur={erreur} />
     </form>
