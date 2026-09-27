@@ -37,6 +37,16 @@
   .note { font-size: 8pt; color: #55607a; }
   .alerte { border-left: 1mm solid #8f6400; padding: 1mm 3mm; margin: 1.5mm 0; background: #f6edd6; }
   .annexe { page-break-before: always; }
+  .constat { margin: 0 0 2.5mm; }
+  .constat b { color: #1f2d6b; }
+  .decision { border: 0.3mm solid #1f2d6b; padding: 3mm 4mm; margin: 4mm 0; }
+  .decision h3 { margin: 0 0 2mm; color: #1f2d6b; }
+  .decision ol { margin: 0; padding-left: 5mm; }
+  .decision li { margin-bottom: 1.2mm; }
+  .figure { margin: 3mm 0; page-break-inside: avoid; }
+  .deux { display: flex; gap: 6mm; }
+  .deux > div { flex: 1; }
+  .legende { font-size: 8pt; color: #55607a; margin-top: 1mm; }
   .detail td, .detail th { font-size: 7.5pt; padding: 0.8mm 1.5mm; }
 </style>
 </head>
@@ -64,6 +74,13 @@ L'évaluation retient, ancienneté par ancienneté, le plus favorable du régime
   <div class="chiffre"><div class="l">Charge de l'exercice</div><div class="v">{{ e.totaux.charge | montant }}</div></div>
   <div class="chiffre"><div class="l">Engagement total (VAPF)</div><div class="v">{{ e.totaux.vapf | montant }}</div></div>
 </div>
+{% for titre, texte in synthese.constats %}<p class="constat"><b>{{ titre }}.</b> {{ texte }}</p>{% endfor %}
+<div class="decision">
+  <h3>La décision à prendre</h3>
+  <ol>{% for d in synthese.decisions %}<li>{{ d }}</li>{% endfor %}</ol>
+</div>
+
+<h3>Du chiffre à la cotisation</h3>
 <table>
   <tr><td>Dette actuarielle + charge de l'exercice</td><td class="n">{{ (e.totaux.dette + e.totaux.charge) | montant }}</td></tr>
   <tr><td>Fonds disponible déclaré</td><td class="n">{{ e.fonds_disponible | montant }}</td></tr>
@@ -76,19 +93,28 @@ L'évaluation retient, ancienneté par ancienneté, le plus favorable du régime
 en vigueur depuis le {{ e.regime.en_vigueur_du | date_fr }} ({{ e.regime.document_reference }}). À la seule convention
 collective, la dette serait de {{ e.totaux_convention.dette | montant }} : le régime représente
 {{ (e.totaux.dette - e.totaux_convention.dette) | montant }} de dette au-delà de la convention.</p>
-{% if e.par_categorie %}
-<table>
-  <tr><th>Catégorie</th><th class="n">Effectif</th><th class="n">Dette</th><th class="n">Charge</th></tr>
-  {% for nom, c in e.par_categorie | dictsort %}
-  <tr><td>{{ "Autres" if nom == "*" else nom }}</td><td class="n">{{ c.effectif }}</td><td class="n">{{ c.dette | montant }}</td><td class="n">{{ c.charge | montant }}</td></tr>
-  {% endfor %}
-</table>
-{% endif %}
 {% elif e.bareme_entreprise %}
 <p><strong>Barème de l'entreprise.</strong> L'étude applique « {{ e.bareme_entreprise.libelle }} »
 ({{ e.bareme_entreprise.document_reference }}), qui améliore la convention. Au barème de la seule convention,
 la dette serait de {{ e.totaux_convention.dette | montant }} : l'accord représente
 {{ (e.totaux.dette - e.totaux_convention.dette) | montant }} de dette au-delà de la convention.</p>
+{% endif %}
+
+{% if courbes.comparaison %}
+<div class="figure">{{ courbes.svg | safe }}
+<p class="legende">Ce qu'un salarié reçoit à son départ, en mois de salaire, selon son ancienneté ; la convention en
+tirets gris. {% if courbes.au_dessus_des is not none %}Le régime verse davantage que la convention dès {{ courbes.au_dessus_des }} an{{ "s" if courbes.au_dessus_des > 1 else "" }} d'ancienneté.{% else %}Le régime ne verse, à aucune ancienneté, plus que la convention.{% endif %}
+{% if courbes.confondues %}{{ courbes.confondues | join(", ") }} : la même courbe que la convention, qu'elle recouvre. {% endif %}À 20 ans d'ancienneté : {% for nom, m in courbes.a_20_ans %}{{ nom }} {{ "%.1f" | format(m) | replace(".", ",") }} mois{% if not loop.last %}, {% endif %}{% endfor %}.</p></div>
+{% endif %}
+{% if e.par_categorie and e.par_categorie | length > 1 %}
+<h3>Par catégorie</h3>
+<table>
+  <tr><th>Catégorie</th><th class="n">Effectif</th><th class="n">Dette</th><th class="n">Part de la dette</th><th class="n">Charge</th></tr>
+  {% for nom, c in e.par_categorie | dictsort %}
+  <tr><td>{{ "Autres" if nom == "*" else nom }}</td><td class="n">{{ c.effectif }}</td><td class="n">{{ c.dette | montant }}</td><td class="n">{{ (c.dette / e.totaux.dette) | pct if e.totaux.dette else "—" }}</td><td class="n">{{ c.charge | montant }}</td></tr>
+  {% endfor %}
+  <tr class="total"><td>Total</td><td class="n">{{ e.totaux.effectif }}</td><td class="n">{{ e.totaux.dette | montant }}</td><td class="n">100,0 %</td><td class="n">{{ e.totaux.charge | montant }}</td></tr>
+</table>
 {% endif %}
 
 <h2>Population</h2>
@@ -99,6 +125,7 @@ la dette serait de {{ e.totaux_convention.dette | montant }} : l'accord représe
   <tr><td>Ancienneté moyenne</td><td class="n">{{ anciennete_moyenne | annees }}</td></tr>
   <tr><td>Données transmises par l'entreprise, arrêtées au</td><td class="n">{{ fichier.date_donnees | date_fr }}</td></tr>
 </table>
+<div class="figure deux"><div>{{ pyramide.svg_ages | safe }}</div><div>{{ pyramide.svg_anciennetes | safe }}</div></div>
 <p class="note">Aucun nom de salarié n'a été transmis ni utilisé : l'évaluation repose sur les matricules, les dates de naissance et d'embauche et les salaires.</p>
 
 <h2>Convention et barème</h2>
@@ -136,13 +163,20 @@ Sources : {% for s in convention.sources %}{{ s.titre }}{% if not loop.last %} ;
 <p class="note">Méthode prospective, salarié par salarié : l'indemnité prévue au départ en retraite est calculée sur le salaire
 projeté et l'ancienneté totale, pondérée par la probabilité d'être en vie et toujours salarié à cet âge, puis actualisée.
 La dette actuarielle en retient la part acquise, au prorata de l'ancienneté à la date d'évaluation ; la charge de
-l'exercice en est l'acquisition d'une année. Moteur {{ e.version_moteur }}, référentiel {{ e.referentiel_version }}.</p>
+l'exercice en est l'acquisition d'une année. Moteur {{ e.version_moteur }}, référentiel {{ e.referentiel_version }}.
+La note de méthode complète, formules comprises : {{ url_methode }}</p>
 
 <h2>Échéancier des départs</h2>
+<p>Ce que l'entreprise versera probablement, année après année : l'indemnité de chaque départ, pondérée par la chance
+que le salarié soit en vie et encore dans l'entreprise ce jour-là.</p>
+<div class="figure">{{ couverture.svg_annuel | safe }}</div>
+<div class="figure">{{ couverture.svg_cumul | safe }}
+<p class="legende">{% if not e.fonds_disponible %}Aucun fonds n'est déclaré : chaque versement sera à la charge de l'exercice où il tombe.{% elif couverture.epuisement is none %}Le fonds constitué couvre tous les départs prévus.{% elif couverture.epuisement == e.date_evaluation[:4] | int %}Dès {{ couverture.epuisement }}, les versements dépassent le fonds constitué.{% else %}Le fonds constitué couvre les départs jusqu'en {{ couverture.epuisement - 1 }} ; au-delà, les versements le dépassent.{% endif %}
+Graphiques sur 30 ans ; le tableau donne toutes les années.</p></div>
 <table>
-  <tr><th>Année</th><th class="n">Départs</th><th class="n">Indemnités prévues</th><th class="n">Valeur actuelle probable</th></tr>
+  <tr><th>Année</th><th class="n">Départs</th><th class="n">Si tous partent</th><th class="n">Prestations probables</th><th class="n">Valeur actuelle</th></tr>
   {% for a in e.echeancier %}
-  <tr><td>{{ a.annee }}</td><td class="n">{{ a.effectif }}</td><td class="n">{{ a.ifc | montant }}</td><td class="n">{{ a.vapf | montant }}</td></tr>
+  <tr><td>{{ a.annee }}</td><td class="n">{{ a.effectif }}</td><td class="n">{{ a.ifc | montant }}</td><td class="n">{{ (a.prestations_probables if a.prestations_probables is defined else a.ifc) | montant }}</td><td class="n">{{ a.vapf | montant }}</td></tr>
   {% endfor %}
 </table>
 
@@ -151,7 +185,7 @@ l'exercice en est l'acquisition d'une année. Moteur {{ e.version_moteur }}, ré
 <p>Les départs enregistrés sur la plateforme, lus à la date d'évaluation{% if x.etude_precedente %}, face à l'étude du {{ x.etude_precedente.date_evaluation | date_fr }}{% endif %}.</p>
 {% if x.attendu_contre_reel %}
 <table>
-  <tr><th>Année</th><th class="n">Retraites prévues</th><th class="n">Prestations prévues</th><th class="n">Retraites réelles</th><th class="n">Dû</th><th class="n">Versé</th></tr>
+  <tr><th>Année</th><th class="n">Retraites<br>prévues</th><th class="n">Prestations<br>prévues</th><th class="n">Retraites<br>réelles</th><th class="n">Dû</th><th class="n">Versé</th></tr>
   {% for l in x.attendu_contre_reel %}<tr><td>{{ l.annee }}</td>
     <td class="n">{{ "—" if l.attendu_retraites is none else l.attendu_retraites }}</td>
     <td class="n">{{ "—" if l.attendu_prestations is none else (l.attendu_prestations | montant) }}</td>
