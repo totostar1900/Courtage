@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { CHAPITRES, type Chapitre } from "../guide/chapitres";
 import { GLOSSAIRE, type CleTerme } from "../guide/glossaire";
 import { lancerVisite } from "./Visite";
+import { t } from "../i18n";
 
 // Les chapitres d'une page : ceux qui déclarent son écran, et quelques renvois utiles au-delà.
 const EN_PLUS: Record<string, string[]> = {
@@ -48,17 +49,17 @@ export function AidePage({ base }: { base: string }) {
     <>
       <button ref={bouton} type="button" className="bouton-aide" aria-expanded={ouverte} aria-controls="aide-page"
               onClick={() => setOuverte(!ouverte)}>
-        <span aria-hidden="true" className="rond">?</span> Aide sur cette page
+        <span aria-hidden="true" className="rond">?</span> {t("Aide sur cette page", "Help on this page")}
       </button>
       {ouverte && (
         <div className="aide-fond" onMouseDown={(e) => e.target === e.currentTarget && fermer()}>
           <aside id="aide-page" ref={panneau} tabIndex={-1} className="aide-panneau" role="dialog" aria-modal="true"
-                 aria-label="Aide sur cette page">
+                 aria-label={t("Aide sur cette page", "Help on this page")}>
             <div className="aide-tete">
-              <span className="discret">Aide sur cette page</span>
-              <button type="button" className="fermer-volet" onClick={fermer} aria-label="Fermer l'aide" title="Fermer">×</button>
+              <span className="discret">{t("Aide sur cette page", "Help on this page")}</span>
+              <button type="button" className="fermer-volet" onClick={fermer} aria-label={t("Fermer l'aide", "Close help")} title={t("Fermer", "Close")}>×</button>
             </div>
-            {chapitres.length === 0 && <p>Pas d'aide propre à cette page : le guide complet répond au reste.</p>}
+            {chapitres.length === 0 && <p>{t("Pas d'aide propre à cette page : le guide complet répond au reste.", "No help specific to this page: the full guide covers the rest.")}</p>}
             {chapitres.map((c, i) => (
               <section key={c.id} className="aide-chapitre">
                 <h2>{c.titre}</h2>
@@ -66,24 +67,24 @@ export function AidePage({ base }: { base: string }) {
                 {c.sections.map((s, j) => (
                   <details key={s.titre} open={i === 0 && j === 0}>
                     <summary>{s.titre}</summary>
-                    {s.texte.map((t) => <p key={t}>{t}</p>)}
+                    {s.texte.map((x) => <p key={x}>{x}</p>)}
                   </details>
                 ))}
-                <Link to={`/guide/${c.id}`} className="aide-lien">Lire le chapitre dans le guide →</Link>
+                <Link to={`/guide/${c.id}`} className="aide-lien">{t("Lire le chapitre dans le guide →", "Read the chapter in the guide →")}</Link>
               </section>
             ))}
             {termes.length > 0 && (
               <section className="aide-chapitre">
-                <h2>Les mots de cette page</h2>
+                <h2>{t("Les mots de cette page", "Terms on this page")}</h2>
                 <dl className="aide-mots">
-                  {termes.map((t) => <div key={t}><dt>{GLOSSAIRE[t].terme}</dt><dd>{GLOSSAIRE[t].definition}</dd></div>)}
+                  {termes.map((k) => <div key={k}><dt>{GLOSSAIRE[k].terme}</dt><dd>{GLOSSAIRE[k].definition}</dd></div>)}
                 </dl>
               </section>
             )}
             <div className="aide-pied">
-              <button type="button" className="lien" onClick={() => { fermer(); lancerVisite(); }}>Visite guidée</button>
-              <Link to="/guide">Tout le guide</Link>
-              <span className="discret"><kbd>?</kbd> ouvre cette aide · <kbd>Échap</kbd> la ferme</span>
+              <button type="button" className="lien" onClick={() => { fermer(); lancerVisite(); }}>{t("Visite guidée", "Guided tour")}</button>
+              <Link to="/guide">{t("Tout le guide", "The full guide")}</Link>
+              <span className="discret"><kbd>?</kbd> {t("ouvre cette aide", "opens this help")} · <kbd>{t("Échap", "Esc")}</kbd> {t("la ferme", "closes it")}</span>
             </div>
           </aside>
         </div>

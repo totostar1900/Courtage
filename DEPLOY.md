@@ -42,6 +42,7 @@ répond 503 dès que la base ne porte pas la révision attendue par le code.
 | `COURTAGE_CLE_SCEAU` | clé des sceaux ; **ne jamais la changer** : les rapports déjà émis ne se vérifieraient plus |
 | `COURTAGE_CLE_AUTH` | clé des codes de connexion (la changer invalide seulement les codes en cours) |
 | `COURTAGE_URL_PUBLIQUE` | `https://…`, imprimée sur les rapports pour la vérification |
+| `COURTAGE_COURTIER_NOM`, `COURTAGE_COURTIER_AGREMENT`, `COURTAGE_COURTIER_ADRESSE` | l'identité du cabinet imprimée sur le mandat de courtage (raison sociale, n° d'agrément, siège). Sans elles, le mandat porte des crochets à compléter : les renseigner avant la première signature réelle — un mandat signé ne se modifie plus |
 | `TWILIO_COMPTE`, `TWILIO_JETON`, `TWILIO_EMETTEUR`, `TWILIO_CANAL` | envoi des codes (`whatsapp` ou `sms`) |
 | `COURTAGE_DEMO` | `1` : sème au premier démarrage la Société Démo SA (fictive), suivie par les administrateurs. Refusée en production. `1` dans `render.essai.yaml` |
 | `COURTAGE_ADMIN_TELEPHONE`, `COURTAGE_ADMIN_NOM` | le premier administrateur, créé au démarrage s'il ne l'est pas déjà (§4c). Facultatives |

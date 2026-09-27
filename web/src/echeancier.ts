@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import type { Annee } from "./types";
 
 /** L'échéancier mis en forme pour le graphique : une colonne par année, une série par catégorie (ou une
@@ -10,12 +11,13 @@ export type Decoupage = "ensemble" | "categorie";
 export type Horizon = number | "tout";
 export const HORIZON_MAX = 30;
 
-export const MESURES: Record<Mesure, { libelle: string; court: string; montant: boolean }> = {
-  prestations_probables: { libelle: "Prestations probables", court: "Probables", montant: true },
-  ifc: { libelle: "Si tous partent", court: "Si tous partent", montant: true },
-  vapf: { libelle: "Valeur actuelle", court: "Valeur actuelle", montant: true },
-  effectif: { libelle: "Départs à la retraite", court: "Départs", montant: false },
-};
+/** Une fonction, pas une constante : les libellés suivent la langue choisie. */
+export const mesures = (): Record<Mesure, { libelle: string; court: string; montant: boolean }> => ({
+  prestations_probables: { libelle: t("Prestations probables", "Probable benefits"), court: t("Probables", "Probable"), montant: true },
+  ifc: { libelle: t("Si tous partent", "If everyone leaves"), court: t("Si tous partent", "If everyone leaves"), montant: true },
+  vapf: { libelle: t("Valeur actuelle", "Present value"), court: t("Valeur actuelle", "Present value"), montant: true },
+  effectif: { libelle: t("Départs à la retraite", "Retirements"), court: t("Départs", "Departures"), montant: false },
+});
 
 // La palette catégorielle validée (ordre fixe, jamais recyclé) ; au-delà, « Autres catégories ».
 export const COULEURS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
@@ -39,17 +41,17 @@ export function categories(annees: Annee[]): Serie[] {
   }
   const ordre = [...poids.entries()].sort((x, y) => y[1] - x[1]).map(([c]) => c);
   const seule = ordre.length === 1;
-  const libelle = (c: string) => (c === "*" ? (seule ? "Tout le personnel" : "Autres salariés") : c);
+  const libelle = (c: string) => (c === "*" ? (seule ? t("Tout le personnel", "All staff") : t("Autres salariés", "Other employees")) : c);
   if (ordre.length <= MAX_SERIES) return ordre.map((c, i) => ({ cle: c, libelle: libelle(c), couleur: COULEURS[i] }));
   return [...ordre.slice(0, MAX_SERIES - 1).map((c, i) => ({ cle: c, libelle: libelle(c), couleur: COULEURS[i] })),
-          { cle: AUTRES, libelle: "Autres catégories", couleur: COULEURS[MAX_SERIES - 1] }];
+          { cle: AUTRES, libelle: t("Autres catégories", "Other categories"), couleur: COULEURS[MAX_SERIES - 1] }];
 }
 
 export function construire(annees: Annee[], mesure: Mesure, lecture: Lecture, decoupage: Decoupage, horizon: Horizon): Vue {
   if (!annees.length) return { series: [], colonnes: [], max: 1, decoupageDisponible: false };
   const decoupageDisponible = annees.every((a) => a.par_categorie && Object.keys(a.par_categorie).length > 0);
   const parCategorie = decoupage === "categorie" && decoupageDisponible;
-  const series: Serie[] = parCategorie ? categories(annees) : [{ cle: "total", libelle: MESURES[mesure].libelle, couleur: ENSEMBLE }];
+  const series: Serie[] = parCategorie ? categories(annees) : [{ cle: "total", libelle: mesures()[mesure].libelle, couleur: ENSEMBLE }];
   const gardees = new Set(series.map((s) => s.cle));
 
   // Une colonne par année, départs ou non : l'axe du temps ne se comprime pas.

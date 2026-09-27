@@ -146,8 +146,6 @@ def test_un_nom_d_organisation_accentue_ne_casse_pas_le_telechargement(client, p
     for qui, role in (("conseiller", "conseiller"), ("drh", "admin_client")):
         client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": str(personnes[qui]), "role": role},
                     headers=en_tant_que(personnes["admin"]))
-    client.post(f"{V1}/organisations/{org}/remuneration", headers=en_tant_que(personnes["conseiller"]),
-                json={"en_vigueur_du": "2019-01-01", "mode": "honoraires", "honoraires_etude_ifc": 1})
     f = deposer(client, org, personnes["drh"], fichier_azito())
     a = {"org": org, "fichier": f["id"], **personnes}
     e = emettre(client, a)

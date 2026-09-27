@@ -36,11 +36,11 @@ def test_le_conseiller_enregistre_un_courtage(client, azito, bases):
                                                      {"o": azito["org"]}).scalars())
 
 
-def test_pas_de_courtage_sans_mandat_ni_assureur(client, azito):
-    for manque in ("mandat_reference", "assureur"):
-        corps = {**COURTAGE, manque: None}
-        r = client.post(url(azito), json=corps, headers=en_tant_que(azito["conseiller"]))
-        assert r.status_code == 422 and r.json()["code"] == "mandat_requis", manque
+def test_pas_de_courtage_sans_mandat(client, azito):
+    r = client.post(url(azito), json={**COURTAGE, "mandat_reference": None}, headers=en_tant_que(azito["conseiller"]))
+    assert r.status_code == 422 and r.json()["code"] == "mandat_requis"
+    r = client.post(url(azito), json={**COURTAGE, "assureur": None}, headers=en_tant_que(azito["conseiller"]))
+    assert r.status_code == 201, r.text                                  # l'assureur vient une fois le contrat placé
 
 
 def test_une_comparaison_peut_n_avoir_aucun_assureur(client, azito):
@@ -70,15 +70,6 @@ def test_deux_contrats_le_meme_jour(client, azito):
     client.post(url(azito), json=COURTAGE, headers=en_tant_que(azito["conseiller"]))
     r = client.post(url(azito), json={**COURTAGE, "service": "comparaison"}, headers=en_tant_que(azito["conseiller"]))
     assert r.status_code == 409 and r.json()["code"] == "contrat_deja_enregistre"
-
-
-def test_une_commission_sans_mandat_est_signalee(client, azito):
-    # AZITO rémunère son conseiller en mixte (10 % de commission) : sans courtage, une commission n'a pas de mandat.
-    constats = client.get(url(azito), headers=en_tant_que(azito["conseiller"])).json()["constats"]
-    assert [c["code"] for c in constats] == ["commission_sans_mandat"] and constats[0]["niveau"] == "avertit"
-    client.post(url(azito), json=COURTAGE, headers=en_tant_que(azito["conseiller"]))
-    lu = client.get(url(azito), headers=en_tant_que(azito["conseiller"])).json()
-    assert lu["constats"] == []
 
 
 def test_un_contrat_ne_se_modifie_pas(client, azito, bases):

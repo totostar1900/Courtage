@@ -5,30 +5,41 @@ import { api } from "../api";
 import { Constats, Erreur, useCharge, Volet } from "../composants/communs";
 import { Terme } from "../composants/Terme";
 import { dateFr } from "../format";
+import { langue, t } from "../i18n";
 import type { ContratsDossier } from "../types";
 import { MenuActions } from "../composants/MenuActions";
+import { useConfirmation } from "../composants/Confirmer";
 import { useDossier } from "./Dossier";
 
-const SERVICES = {
+// Lu au rendu (la langue peut changer) : une fonction, pas une constante figée à l'import.
+const services = () => ({
   courtage: {
-    titre: "Courtage",
-    phrase: "Nous sommes votre courtier : mandatés par vous, entre vous et l'assureur.",
+    titre: t("Courtage", "Brokerage"),
+    phrase: t("Nous sommes votre courtier : mandatés par vous, entre vous et l'assureur.",
+      "We are your broker: appointed by you, between you and the insurer."),
     depart: [
-      "Vous nous déclarez le départ ; nous montons le dossier de prise en charge et le transmettons à l'assureur.",
-      "Nous suivons le paiement et vous alertons si l'assureur dépasse le délai prévu.",
-      "Pour ce dossier seulement, nous recueillons l'identité du bénéficiaire ; elle n'entre dans aucun rapport.",
+      t("Vous nous déclarez le départ ; nous montons le dossier de prise en charge et le transmettons à l'assureur.",
+        "You report the departure to us; we prepare the claim file and send it to the insurer."),
+      t("Nous suivons le paiement et vous alertons si l'assureur dépasse le délai prévu.",
+        "We follow the payment and alert you if the insurer goes past the agreed deadline."),
+      t("Pour ce dossier seulement, nous recueillons l'identité du bénéficiaire ; elle n'entre dans aucun rapport.",
+        "For this claim file only, we collect the beneficiary's identity; it never appears in any report."),
     ],
   },
   comparaison: {
-    titre: "Comparaison",
-    phrase: "Nous avons éclairé votre choix ; vous avez contracté directement avec l'assureur.",
+    titre: t("Comparaison", "Comparison"),
+    phrase: t("Nous avons éclairé votre choix ; vous avez contracté directement avec l'assureur.",
+      "We informed your choice; you signed the contract directly with the insurer."),
     depart: [
-      "Vous vous adressez directement à votre assureur pour la prise en charge.",
-      "Nous vous indiquons à qui, avec quelles pièces, et le montant dû que nous avons calculé.",
-      "Nous ne vous demandons jamais l'identité d'un salarié. Vous pouvez nous déclarer ce que l'assureur a payé, sans nom, pour vos rapports.",
+      t("Vous vous adressez directement à votre assureur pour la prise en charge.",
+        "You contact your insurer directly for the benefit payment."),
+      t("Nous vous indiquons à qui, avec quelles pièces, et le montant dû que nous avons calculé.",
+        "We tell you whom to contact, with which documents, and the amount due that we calculated."),
+      t("Nous ne vous demandons jamais l'identité d'un salarié. Vous pouvez nous déclarer ce que l'assureur a payé, sans nom, pour vos rapports.",
+        "We never ask you for an employee's identity. You can report to us what the insurer paid, without names, for your reports."),
     ],
   },
-} as const;
+});
 
 /** Le service que nous vous rendons, et ce qu'il change le jour où un salarié part. */
 export default function Contrat() {
@@ -37,55 +48,64 @@ export default function Contrat() {
   const [params] = useSearchParams();
   const retenu = params.get("assureur");
   const [ouvert, setOuvert] = useState(Boolean(retenu));
+  const [demander, fenetre] = useConfirmation();
   if (erreur) return <Erreur erreur={erreur} />;
-  if (!donnee) return <p className="discret">Chargement…</p>;
+  if (!donnee) return <p className="discret">{t("Chargement…", "Loading…")}</p>;
+  const SERVICES = services();
   const s = SERVICES[donnee.service];
   const c = donnee.en_vigueur;
 
   return (
     <>
-      <h1>Votre contrat</h1>
-      <p>Deux services existent : le <Terme cle="courtage">courtage</Terme> et la <Terme cle="comparaison">comparaison</Terme>.
-        Le vôtre décide qui s'occupe d'une prestation quand un salarié part en retraite.</p>
+      {fenetre}
+      <h1>{t("Votre contrat", "Your contract")}</h1>
+      {langue() === "fr"
+        ? <p>Deux services existent : le <Terme cle="courtage">courtage</Terme> et la <Terme cle="comparaison">comparaison</Terme>.
+            Le vôtre décide qui s'occupe d'une prestation quand un salarié part en retraite.</p>
+        : <p>There are two services: <Terme cle="courtage">brokerage</Terme> and <Terme cle="comparaison">comparison</Terme>.
+            Yours decides who handles a benefit payment when an employee retires.</p>}
 
       <div className="carte section" data-service={donnee.service}>
         <div className="actions" style={{ marginTop: 0, justifyContent: "space-between" }}>
           <h2 style={{ margin: 0 }}>{s.titre}</h2>
           <span className={`etat ${donnee.service === "courtage" ? "bien" : "neutre"}`}>
-            {c ? `depuis le ${dateFr(c.en_vigueur_du)}` : "par défaut : aucun contrat enregistré"}</span>
+            {c ? t(`depuis le ${dateFr(c.en_vigueur_du)}`, `since ${dateFr(c.en_vigueur_du)}`) : t("par défaut : aucun contrat enregistré", "default: no contract recorded")}</span>
         </div>
         <p style={{ marginTop: 8 }}>{s.phrase}</p>
         {c && (
           <div className="lignes-offre">
-            {c.assureur && <div><span>Assureur</span><strong>{c.assureur}</strong></div>}
-            {c.numero_police && <div><span>Police</span><span>{c.numero_police}{c.date_effet_police && ` · effet le ${dateFr(c.date_effet_police)}`}</span></div>}
-            {c.mandat_reference && <div><span>Mandat</span><span>{c.mandat_reference}</span></div>}
-            {c.note && <div><span>Note</span><span>{c.note}</span></div>}
+            {c.assureur && <div><span>{t("Assureur", "Insurer")}</span><strong>{c.assureur}</strong></div>}
+            {c.numero_police && <div><span>{t("Police", "Policy")}</span><span>{c.numero_police}{c.date_effet_police && t(` · effet le ${dateFr(c.date_effet_police)}`, ` · effective ${dateFr(c.date_effet_police)}`)}</span></div>}
+            {c.mandat_reference && <div><span>{t("Mandat", "Mandate")}</span><span>{c.mandat_reference}</span></div>}
+            {c.note && <div><span>{t("Note", "Note")}</span><span>{c.note}</span></div>}
           </div>
         )}
-        <h3 className="section">Quand un salarié part</h3>
-        <ul>{s.depart.map((t) => <li key={t}>{t}</li>)}</ul>
-        <Link to="/guide/contrat">Courtage ou comparaison : le guide</Link>
+        <h3 className="section">{t("Quand un salarié part", "When an employee leaves")}</h3>
+        <ul>{s.depart.map((x) => <li key={x}>{x}</li>)}</ul>
+        <div className="actions">
+          <Link to="/guide/contrat">{t("Courtage ou comparaison : le guide", "Brokerage or comparison: the guide")}</Link>
+          {donnee.service !== "courtage" && <Link to="../accompagnement">{t("Demander un accompagnement en courtage →", "Request brokerage support →")}</Link>}
+        </div>
       </div>
 
       {donnee.constats.length > 0 && <div className="section"><Constats constats={donnee.constats} /></div>}
 
       {donnee.historique.length > 0 && (
         <div className="section">
-          <h2>Historique</h2>
+          <h2>{t("Historique", "History")}</h2>
           <div className="defile"><table>
-            <thead><tr><th>Depuis le</th><th>Service</th><th>Assureur</th><th>Police</th><th aria-label="Actions" /></tr></thead>
+            <thead><tr><th>{t("Depuis le", "Since")}</th><th>{t("Service", "Service")}</th><th>{t("Assureur", "Insurer")}</th><th>{t("Police", "Policy")}</th><th aria-label={t("Actions", "Actions")} /></tr></thead>
             <tbody>{donnee.historique.map((h) => (
               <tr key={h.id}><td>{dateFr(h.en_vigueur_du)}</td><td>{SERVICES[h.service].titre}</td>
                 <td>{h.assureur ?? "—"}</td><td>{h.numero_police ?? "—"}</td>
                 <td className="n">{d.role === "conseiller" && (
-                  <MenuActions libelle={`Actions sur le contrat du ${dateFr(h.en_vigueur_du)}`} actions={[
-                    { libelle: "Supprimer (saisi par erreur)", danger: true, raison: h.raison_de_garder ?? null,
-                      agir: async () => {
-                        if (!window.confirm("Supprimer ce contrat ? Le journal en garde la trace.")) return;
-                        try { await api.del(`/organisations/${d.org.id}/contrats/${h.id}`); recharger(); }
-                        catch (e) { window.alert(e instanceof Error ? e.message : String(e)); }
-                      } },
+                  <MenuActions libelle={t(`Actions sur le contrat du ${dateFr(h.en_vigueur_du)}`, `Actions on the contract of ${dateFr(h.en_vigueur_du)}`)} actions={[
+                    { libelle: t("Supprimer (saisi par erreur)", "Delete (entered by mistake)"), danger: true, raison: h.raison_de_garder ?? null,
+                      agir: () => demander({
+                        titre: t("Supprimer ce contrat", "Delete this contract"), message: <p>{t("Saisi par erreur ? Le journal garde la trace de la suppression.", "Entered by mistake? The log keeps a record of the deletion.")}</p>,
+                        mot: t("SUPPRIMER", "DELETE"),
+                        action: async () => { await api.del(`/organisations/${d.org.id}/contrats/${h.id}`); recharger(); },
+                      }) },
                   ]} />)}</td></tr>
             ))}</tbody>
           </table></div>
@@ -96,7 +116,7 @@ export default function Contrat() {
         <div className="section">
           {ouvert
             ? <NouveauContrat assureur={retenu} onFermer={() => setOuvert(false)} onFait={() => { setOuvert(false); recharger(); }} />
-            : <button className="principal" onClick={() => setOuvert(true)}>Enregistrer un contrat</button>}
+            : <button className="principal" onClick={() => setOuvert(true)}>{t("Enregistrer un contrat", "Record a contract")}</button>}
         </div>
       )}
     </>
@@ -121,24 +141,25 @@ function NouveauContrat({ assureur, onFermer, onFait }: { assureur?: string | nu
     } catch (e) { setErreur(e); }
   }
   return (
-    <Volet titre="Enregistrer un contrat" onFermer={onFermer}>
+    <Volet titre={t("Enregistrer un contrat", "Record a contract")} onFermer={onFermer}>
       <form className="formulaire" onSubmit={enregistrer}>
-        <p className="discret">Un contrat ne se modifie pas : un nouveau prend effet à sa date, l'ancien reste dans l'historique. Saisi par erreur, il se supprime depuis son menu ⋮, tant qu'aucun dossier ni aucun départ ne s'appuie dessus.</p>
+        <p className="discret">{t("Un contrat ne se modifie pas : un nouveau prend effet à sa date, l'ancien reste dans l'historique. Saisi par erreur, il se supprime depuis son menu ⋮, tant qu'aucun dossier ni aucun départ ne s'appuie dessus.",
+          "A contract is never edited: a new one takes effect on its date and the old one stays in the history. If entered by mistake, it can be deleted from its ⋮ menu, as long as no claim file or departure relies on it.")}</p>
         <div className="grille g3">
-          <label>Service
+          <label>{t("Service", "Service")}
             <select value={service} onChange={(e) => setService(e.target.value as "courtage" | "comparaison")}>
-              <option value="courtage">Courtage (mandat)</option>
-              <option value="comparaison">Comparaison</option>
+              <option value="courtage">{t("Courtage (mandat)", "Brokerage (mandate)")}</option>
+              <option value="comparaison">{t("Comparaison", "Comparison")}</option>
             </select>
           </label>
-          <label>À partir du<input name="en_vigueur_du" type="date" required /></label>
-          <label>Assureur<input name="assureur" required={service === "courtage"} defaultValue={assureur ?? ""} /></label>
-          <label>Numéro de police<input name="numero_police" /></label>
-          <label>Effet de la police<input name="date_effet_police" type="date" /></label>
-          {service === "courtage" && <label>Référence du mandat<input name="mandat_reference" required placeholder="Mandat du 15/12/2025" /></label>}
+          <label>{t("À partir du", "Effective from")}<input name="en_vigueur_du" type="date" required /></label>
+          <label>{t("Assureur", "Insurer")}<input name="assureur" required={service === "courtage"} defaultValue={assureur ?? ""} /></label>
+          <label>{t("Numéro de police", "Policy number")}<input name="numero_police" /></label>
+          <label>{t("Effet de la police", "Policy effective date")}<input name="date_effet_police" type="date" /></label>
+          {service === "courtage" && <label>{t("Référence du mandat", "Mandate reference")}<input name="mandat_reference" required placeholder={t("Mandat du 15/12/2025", "Mandate of 15/12/2025")} /></label>}
         </div>
-        <label>Note<input name="note" /></label>
-        <div className="actions"><button className="principal">Enregistrer</button></div>
+        <label>{t("Note", "Note")}<input name="note" /></label>
+        <div className="actions"><button className="principal">{t("Enregistrer", "Save")}</button></div>
         <Erreur erreur={erreur} />
       </form>
     </Volet>

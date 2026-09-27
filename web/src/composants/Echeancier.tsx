@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 
-import { construire, epuisement, graduations, HORIZON_MAX, MESURES, reperesAnnees, type Decoupage, type Horizon, type Lecture,
+import { construire, epuisement, graduations, HORIZON_MAX, mesures, reperesAnnees, type Decoupage, type Horizon, type Lecture,
   type Mesure } from "../echeancier";
 import { montant, pct } from "../format";
+import { langue, t } from "../i18n";
 import type { Annee } from "../types";
 
 const HAUTEUR = 180;           // px : la zone des barres
 const LARGEUR_BULLE = 270;
 
 function compact(v: number, enMontant: boolean): string {
-  if (!enMontant) return v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
-  if (v >= 1e9) return `${(v / 1e9).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Md`;
-  if (v >= 1e6) return `${(v / 1e6).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} M`;
-  if (v >= 1e3) return `${(v / 1e3).toLocaleString("fr-FR", { maximumFractionDigits: 0 })} k`;
+  const loc = langue() === "en" ? "en-GB" : "fr-FR";
+  if (!enMontant) return v.toLocaleString(loc, { maximumFractionDigits: 1 });
+  if (v >= 1e9) return `${(v / 1e9).toLocaleString(loc, { maximumFractionDigits: 1 })} ${t("Md", "bn")}`;
+  if (v >= 1e6) return `${(v / 1e6).toLocaleString(loc, { maximumFractionDigits: 1 })} M`;
+  if (v >= 1e3) return `${(v / 1e3).toLocaleString(loc, { maximumFractionDigits: 0 })} k`;
   return String(Math.round(v));
 }
 
@@ -47,6 +49,7 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
   useEffect(() => { if (actif !== null && graphique.current) setLargeur(graphique.current.clientWidth); }, [actif]);
   if (!annees.length) return null;
 
+  const MESURES = mesures();
   const enMontant = MESURES[mesure].montant;
   const nbAnnees = annees.length ? annees[annees.length - 1].annee - annees[0].annee + 1 : 0;
   const plafond = Math.min(HORIZON_MAX, nbAnnees);
@@ -60,7 +63,9 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
   const cumuls = construire(annees, mesure, "cumulee", "ensemble", "tout").colonnes;
   const plusieurs = vue.series.length > 1;
   const valeur = (v: number) => (enMontant ? montant(v) : `${v}`);
-  const departs = (n: number) => `${n} départ${n > 1 ? "s" : ""}${lecture === "cumulee" ? " cumulés" : " à la retraite"}`;
+  const departs = (n: number) => t(`${n} départ${n > 1 ? "s" : ""}${lecture === "cumulee" ? " cumulés" : " à la retraite"}`,
+    lecture === "cumulee" ? `${n} cumulative departure${n > 1 ? "s" : ""}` : `${n} retirement${n > 1 ? "s" : ""}`);
+  const departsCourt = (n: number) => t(`${n} départ${n > 1 ? "s" : ""}`, `${n} departure${n > 1 ? "s" : ""}`);
 
   const c = actif === null ? null : vue.colonnes[actif];
   const centre = actif === null ? 0 : ((actif + 0.5) / vue.colonnes.length) * largeur;
@@ -70,25 +75,28 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
   return (
     <div className="echeancier">
       <div className="reglages">
-        <Segments nom="Mesure" valeur={mesure} onChange={setMesure}
+        <Segments nom={t("Mesure", "Measure")} valeur={mesure} onChange={setMesure}
                   options={(Object.keys(MESURES) as Mesure[]).map((m) => [m, MESURES[m].court])} />
-        <Segments nom="Lecture" valeur={lecture} onChange={setLecture} options={[["annuelle", "Par année"], ["cumulee", "Cumulée"]]} />
-        <Segments nom="Découpage" valeur={decoupage} onChange={setDecoupage}
-                  options={[["ensemble", "Ensemble"], ["categorie", "Par catégorie"]]}
+        <Segments nom={t("Lecture", "View")} valeur={lecture} onChange={setLecture}
+                  options={[["annuelle", t("Par année", "Per year")], ["cumulee", t("Cumulée", "Cumulative")]]} />
+        <Segments nom={t("Découpage", "Breakdown")} valeur={decoupage} onChange={setDecoupage}
+                  options={[["ensemble", t("Ensemble", "All")], ["categorie", t("Par catégorie", "By category")]]}
                   desactive={(v) => (v === "categorie" && !vue.decoupageDisponible
-                    ? "Cette étude a été calculée avant le découpage par catégorie." : null)} />
+                    ? t("Cette étude a été calculée avant le découpage par catégorie.",
+                         "This study was calculated before the breakdown by category was available.") : null)} />
         <label className="segments curseur-horizon">
-          <span className="segments-nom">Horizon</span>
-          <input type="range" min={1} max={plafond} value={horizon} aria-label="Horizon en années"
+          <span className="segments-nom">{t("Horizon", "Horizon")}</span>
+          <input type="range" min={1} max={plafond} value={horizon} aria-label={t("Horizon en années", "Horizon in years")}
                  onChange={(e) => setHorizon(Number(e.target.value))} />
-          <output>{horizon} an{horizon > 1 ? "s" : ""}</output>
+          <output>{t(`${horizon} an${horizon > 1 ? "s" : ""}`, `${horizon} year${horizon > 1 ? "s" : ""}`)}</output>
         </label>
       </div>
 
-      <p className="sous-titre">{MESURES[mesure].libelle}{lecture === "cumulee" ? ", cumulées depuis " + annees[0].annee : ", par année"}
-        {plusieurs ? ", par catégorie" : ""}{horizon < nbAnnees ? ` · les ${horizon} premières années` : ""}</p>
+      <p className="sous-titre">{MESURES[mesure].libelle}{lecture === "cumulee" ? t(", cumulées depuis ", ", cumulative since ") + annees[0].annee : t(", par année", ", per year")}
+        {plusieurs ? t(", par catégorie", ", by category") : ""}
+        {horizon < nbAnnees ? t(` · les ${horizon} premières années`, ` · first ${horizon} years`) : ""}</p>
       {plusieurs && (
-        <ul className="legende" aria-label="Légende">
+        <ul className="legende" aria-label={t("Légende", "Legend")}>
           {vue.series.map((s) => <li key={s.cle}><span className="cle" style={{ background: s.couleur }} />{s.libelle}</li>)}
         </ul>
       )}
@@ -96,8 +104,8 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
       {tableau ? (
         <div className="defile">
           <table>
-            <thead><tr><th>Année</th>{vue.series.map((s) => <th key={s.cle} className="n">{s.libelle}</th>)}
-              {plusieurs && <th className="n">Total</th>}</tr></thead>
+            <thead><tr><th>{t("Année", "Year")}</th>{vue.series.map((s) => <th key={s.cle} className="n">{s.libelle}</th>)}
+              {plusieurs && <th className="n">{t("Total", "Total")}</th>}</tr></thead>
             <tbody>{vue.colonnes.filter((col) => col.total > 0).map((col) => (
               <tr key={col.annee}><td>{col.annee}</td>
                 {vue.series.map((s) => <td key={s.cle} className="n">{valeur(col.valeurs[s.cle])}</td>)}
@@ -115,16 +123,16 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
             ))}
             {repere && (
               <div className="repere" style={{ bottom: (repere / haut) * HAUTEUR }}>
-                <span>Fonds constitué {compact(repere, true)}</span>
+                <span>{t("Fonds constitué", "Accumulated fund")} {compact(repere, true)}</span>
               </div>
             )}
           </div>
           <div className="barres" ref={graphique} style={{ height: HAUTEUR }}
-               aria-label={`${MESURES[mesure].libelle} ${lecture === "cumulee" ? "cumulées" : "par année"}`}>
+               aria-label={`${MESURES[mesure].libelle} ${lecture === "cumulee" ? t("cumulées", "cumulative") : t("par année", "per year")}`}>
             {vue.colonnes.map((col, i) => (
               <button key={col.annee} type="button" className={`barre${i === actif ? " active" : ""}`}
                       style={{ height: `${(col.total / haut) * 100}%` }}
-                      aria-label={`${col.annee} : ${col.effectif ? departs(col.effectif).replace(/ à la retraite| cumulés/, "") : "aucun départ"}, ${valeur(col.total)}`}
+                      aria-label={`${col.annee} : ${col.effectif ? departsCourt(col.effectif) : t("aucun départ", "no departures")}, ${valeur(col.total)}`}
                       aria-describedby={i === actif ? "echeancier-bulle" : undefined}
                       onMouseEnter={() => setActif(i)} onFocus={() => setActif(i)} onBlur={() => setActif(null)}
                       onClick={() => setActif(i)} onKeyDown={(e) => e.key === "Escape" && setActif(null)}>
@@ -139,7 +147,7 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
                  style={{ left: gauche + 44, bottom: (c.total / haut) * HAUTEUR + 30,
                           ["--fleche" as string]: `${Math.min(Math.max(centre - gauche, 14), LARGEUR_BULLE - 14)}px` }}>
               <strong>{c.annee}</strong>
-              {c.effectif === 0 && c.total === 0 ? <div>Aucun départ à la retraite prévu</div> : (
+              {c.effectif === 0 && c.total === 0 ? <div>{t("Aucun départ à la retraite prévu", "No retirements expected")}</div> : (
                 <>
                   <div>{departs(c.effectif)}</div>
                   {plusieurs && (
@@ -152,22 +160,24 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
                   )}
                   {lecture === "annuelle" && ensembleOriginal ? (
                     <dl>
-                      <dt>Prestations probables</dt><dd>{montant(ensembleOriginal.prestations_probables ?? ensembleOriginal.ifc)}</dd>
-                      <dt>Si tous partent</dt><dd>{montant(ensembleOriginal.ifc)}</dd>
-                      <dt>Valeur actuelle</dt><dd>{montant(ensembleOriginal.vapf)}</dd>
-                      <dt>Part du total</dt><dd>{pct((mesure === "effectif" ? ensembleOriginal.effectif : c.total) / totalGeneral)}</dd>
-                      <dt>Cumul depuis {annees[0].annee}</dt>
+                      <dt>{t("Prestations probables", "Probable benefits")}</dt><dd>{montant(ensembleOriginal.prestations_probables ?? ensembleOriginal.ifc)}</dd>
+                      <dt>{t("Si tous partent", "If everyone leaves")}</dt><dd>{montant(ensembleOriginal.ifc)}</dd>
+                      <dt>{t("Valeur actuelle", "Present value")}</dt><dd>{montant(ensembleOriginal.vapf)}</dd>
+                      <dt>{t("Part du total", "Share of total")}</dt><dd>{pct((mesure === "effectif" ? ensembleOriginal.effectif : c.total) / totalGeneral)}</dd>
+                      <dt>{t("Cumul depuis", "Cumulative since")} {annees[0].annee}</dt>
                       <dd>{valeur(cumuls.find((x) => x.annee === c.annee)?.total ?? 0)}</dd>
                     </dl>
                   ) : (
                     <dl>
-                      <dt>{MESURES[mesure].libelle}{lecture === "cumulee" ? ", cumul" : ""}</dt><dd>{valeur(c.total)}</dd>
-                      {repere && <><dt>Fonds constitué</dt><dd>{montant(repere)}</dd>
-                        <dt>{c.total > repere ? "Au-delà du fonds" : "Reste du fonds"}</dt><dd>{montant(Math.abs(repere - c.total))}</dd></>}
+                      <dt>{MESURES[mesure].libelle}{lecture === "cumulee" ? t(", cumul", ", cumulative") : ""}</dt><dd>{valeur(c.total)}</dd>
+                      {repere && <><dt>{t("Fonds constitué", "Accumulated fund")}</dt><dd>{montant(repere)}</dd>
+                        <dt>{c.total > repere ? t("Au-delà du fonds", "Beyond the fund") : t("Reste du fonds", "Remaining in the fund")}</dt><dd>{montant(Math.abs(repere - c.total))}</dd></>}
                     </dl>
                   )}
-                  <p className="discret">Probables : l'indemnité pondérée par la chance d'être en vie et encore dans
-                    l'entreprise ce jour-là. Valeur actuelle : ce que ce versement futur vaut aujourd'hui.</p>
+                  <p className="discret">{t("Probables : l'indemnité pondérée par la chance d'être en vie et encore dans l'entreprise ce jour-là. "
+                    + "Valeur actuelle : ce que ce versement futur vaut aujourd'hui.",
+                    "Probable: the benefit weighted by the chance of being alive and still with the company on that day. "
+                    + "Present value: what this future payment is worth today.")}</p>
                 </>
               )}
             </div>
@@ -181,12 +191,15 @@ export function Echeancier({ annees, fonds }: { annees: Annee[]; fonds?: number 
 
       <div className="actions echeancier-pied">
         {repere && (
-          <span className="discret">{epuise === null ? "Le fonds constitué couvre tous les départs affichés."
-            : epuise === vue.colonnes[0].annee ? <>Dès <b>{epuise}</b>, les versements dépassent le fonds constitué.</>
+          <span className="discret">{epuise === null ? t("Le fonds constitué couvre tous les départs affichés.", "The accumulated fund covers all the departures shown.")
+            : epuise === vue.colonnes[0].annee
+              ? (langue() === "en" ? <>From <b>{epuise}</b>, payments exceed the accumulated fund.</>
+                 : <>Dès <b>{epuise}</b>, les versements dépassent le fonds constitué.</>)
+            : langue() === "en" ? <>The accumulated fund covers departures until <b>{epuise - 1}</b>; beyond that, payments exceed it.</>
             : <>Le fonds constitué couvre les départs jusqu'en <b>{epuise - 1}</b> ; au-delà, les versements le dépassent.</>}</span>
         )}
         <button type="button" className="lien" onClick={() => { setTableau(!tableau); setActif(null); }}>
-          {tableau ? "Voir le graphique" : "Voir le tableau"}</button>
+          {tableau ? t("Voir le graphique", "Show the chart") : t("Voir le tableau", "Show the table")}</button>
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 // Le client de l'API. L'identité passe par l'en-tête X-Utilisateur tant que
 // l'authentification (tâche 8) n'existe pas : c'est un outil de développement.
 
+import { t } from "./i18n";
+
 export class ErreurApi extends Error {
   constructor(
     public statut: number,
@@ -53,7 +55,7 @@ async function appel<T>(chemin: string, init: RequestInit = {}): Promise<T> {
   if (!r.ok) {
     if (corps && typeof corps.code === "string") throw new ErreurApi(r.status, corps.code, corps.message, corps.details);
     const detail = corps?.detail?.[0]?.msg ?? r.statusText;
-    throw new ErreurApi(r.status, "requete_invalide", `Requête refusée : ${detail}`);
+    throw new ErreurApi(r.status, "requete_invalide", t(`Requête refusée : ${detail}`, `Request refused: ${detail}`));
   }
   return corps as T;
 }
@@ -69,13 +71,14 @@ export const api = {
   async telecharger(chemin: string, nom: string) {
     if (DEMO) {
       throw new ErreurApi(0, "demonstration",
-        "La démonstration ne télécharge pas de fichier : sur le site, ce bouton enregistre le classeur.");
+        t("La démonstration ne télécharge pas de fichier : sur le site, ce bouton enregistre le classeur.",
+          "The demo does not download files: on the live site, this button saves the workbook."));
     }
     const entetes = new Headers({ "X-Courtage": "1" });
     const moi = utilisateurCourant();
     if (moi) entetes.set("X-Utilisateur", moi);
     const r = await fetch(`/api/v1${chemin}`, { headers: entetes });
-    if (!r.ok) throw new ErreurApi(r.status, "telechargement_impossible", "Le fichier n'a pas pu être téléchargé.");
+    if (!r.ok) throw new ErreurApi(r.status, "telechargement_impossible", t("Le fichier n'a pas pu être téléchargé.", "The file could not be downloaded."));
     const url = URL.createObjectURL(await r.blob());
     const lien = document.createElement("a");
     lien.href = url;
@@ -94,7 +97,7 @@ export const api = {
     }
     const moi = utilisateurCourant();
     const r = await fetch(`/api/v1${chemin}`, { headers: moi ? { "X-Utilisateur": moi } : {} });
-    if (!r.ok) throw new ErreurApi(r.status, "document_indisponible", "Document indisponible.");
+    if (!r.ok) throw new ErreurApi(r.status, "document_indisponible", t("Document indisponible.", "Document unavailable."));
     const url = URL.createObjectURL(await r.blob());
     window.open(url, "_blank");
   },

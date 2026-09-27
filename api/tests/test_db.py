@@ -47,14 +47,10 @@ def deux_organisations(proprio):
 
 
 def emettre(conn, etude_id, utilisateur_id):
-    conditions = conn.execute(text("""
-        INSERT INTO conditions_remuneration (organisation_id, en_vigueur_du, mode, honoraires_etude_ifc, cree_par)
-        SELECT organisation_id, current_date, 'honoraires', 500000, :u FROM etudes WHERE id = :e
-        RETURNING id"""), {"e": etude_id, "u": utilisateur_id}).scalar_one()
     conn.execute(text("""
         UPDATE etudes SET statut = 'emise', resultats = '{"dette": 1}', empreinte = repeat('b', 64),
-                          emise_par = :u, emise_le = now(), conditions_remuneration_id = :c, honoraires_ht = 500000
-        WHERE id = :e"""), {"e": etude_id, "u": utilisateur_id, "c": conditions})
+                          emise_par = :u, emise_le = now()
+        WHERE id = :e"""), {"e": etude_id, "u": utilisateur_id})
 
 
 # --- Schéma -------------------------------------------------------------------
@@ -79,7 +75,7 @@ def test_rls_active_sur_les_tables_des_clients(proprio):
     with proprio.connect() as c:
         actives = set(c.execute(text(
             "SELECT relname FROM pg_class WHERE relrowsecurity AND relnamespace = 'public'::regnamespace")).scalars())
-    assert {"fichiers_personnel", "etudes", "journal", "conditions_remuneration"} <= actives
+    assert {"fichiers_personnel", "etudes", "journal", "contrats"} <= actives
 
 
 # --- Isolation ----------------------------------------------------------------
@@ -174,7 +170,6 @@ def test_une_etude_emise_porte_son_emetteur_son_empreinte_et_ses_resultats(app, 
         with app.begin() as c:
             contexte(c, a["org"])
             c.execute(text("UPDATE etudes SET statut = 'emise' WHERE id = :e"), {"e": a["etude"]})
-    assert "conditions_remuneration" in {t.name for t in Base.metadata.sorted_tables}
 
 
 def test_une_correction_cite_l_etude_qu_elle_remplace(app, deux_organisations):
@@ -214,48 +209,3 @@ def test_sceaux_hors_rls_en_ajout_seul(app):
     with pytest.raises(ProgrammingError, match="permission denied"):
         with app.begin() as c:
             c.execute(text("DELETE FROM sceaux"))
-
-
-# --- Rémunération -------------------------------------------------------------
-
-@pytest.mark.parametrize("mode,forfait,commission,valide", [
-    ("honoraires", 500000, 0, True),
-    ("honoraires", 0, 0, False),          # des honoraires à zéro ne sont pas un mode honoraires
-    ("honoraires", 500000, 1000, False),  # une commission cachée dans un mode honoraires
-    ("commission", 0, 1500, True),
-    ("commission", 500000, 1500, False),
-    ("mixte", 250000, 800, True),
-    ("mixte", 250000, 0, False),
-])
-def test_le_mode_de_remuneration_est_coherent_avec_les_montants(app, deux_organisations, mode, forfait, commission, valide):
-    a = deux_organisations["A"]
-    def inserer():
-        with app.begin() as c:
-            contexte(c, a["org"])
-            c.execute(text("""INSERT INTO conditions_remuneration
-                (organisation_id, en_vigueur_du, mode, honoraires_etude_ifc, commission_bps, cree_par)
-                VALUES (:o, '2026-01-01', :m, :f, :b, :u)"""),
-                {"o": a["org"], "m": mode, "f": forfait, "b": commission, "u": a["utilisateur"]})
-    if valide:
-        inserer()
-    else:
-        with pytest.raises(IntegrityError, match="mode_coherent"):
-            inserer()
-
-
-def test_des_conditions_ne_se_modifient_pas(app, deux_organisations):
-    a = deux_organisations["A"]
-    with pytest.raises(ProgrammingError, match="permission denied"):
-        with app.begin() as c:
-            contexte(c, a["org"])
-            c.execute(text("UPDATE conditions_remuneration SET honoraires_etude_ifc = 0"))
-
-
-def test_une_etude_emise_porte_ses_honoraires(app, deux_organisations):
-    a = deux_organisations["A"]
-    with pytest.raises(IntegrityError, match="etude_emise_complete"):
-        with app.begin() as c:
-            contexte(c, a["org"])
-            c.execute(text("""UPDATE etudes SET statut = 'emise', resultats = '{}', empreinte = repeat('b', 64),
-                              emise_par = :u, emise_le = now() WHERE id = :e"""),
-                      {"e": a["etude"], "u": a["utilisateur"]})

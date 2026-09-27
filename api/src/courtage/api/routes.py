@@ -12,10 +12,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from courtage.auth.telephone import normaliser
-from courtage.db import Adhesion, ConditionsRemuneration, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
+from courtage.db import Adhesion, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.financement import Offre, Scenario
-from courtage.services import alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, mandats, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -223,43 +223,6 @@ def retirer_membre(utilisateur_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     return equipe.lister(a.session, a.organisation, a.utilisateur, a.role)
 
 
-# --- Rémunération -------------------------------------------------------------
-
-class NouvellesConditions(_Corps):
-    en_vigueur_du: date
-    mode: Literal["honoraires", "commission", "mixte"]
-    honoraires_etude_ifc: int = Field(default=0, ge=0)
-    honoraires_par_salarie: int = Field(default=0, ge=0)
-    commission_bps: int = Field(default=0, ge=0, le=10000)
-    note: str | None = None
-
-
-@routeur.post("/organisations/{organisation_id}/remuneration", status_code=201)
-def fixer_remuneration(corps: NouvellesConditions, a: Acces = Depends(acces(*CONSEIL))):
-    c = remuneration.fixer(a.session, a.organisation.id, a.utilisateur.id, **corps.model_dump())
-    return remuneration.en_clair(c)
-
-
-@routeur.get("/organisations/{organisation_id}/remuneration")
-def lire_remuneration(a: Acces = Depends(acces(*TOUS))):
-    courantes = remuneration.en_vigueur(a.session, date.today())
-    return {
-        "en_vigueur": remuneration.en_clair(courantes) if courantes else None,
-        "historique": [{**remuneration.en_clair(c), "raison_de_garder": remuneration.raison_de_garder(a.session, c)}
-                       for c in remuneration.historique(a.session)],
-    }
-
-
-@routeur.delete("/organisations/{organisation_id}/remuneration/{conditions_id}")
-def supprimer_remuneration(conditions_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))):
-    """Des conditions saisies par erreur, dont aucune étude n'a tiré ses honoraires."""
-    c = a.session.get(ConditionsRemuneration, conditions_id)
-    if c is None:
-        raise Introuvable("Conditions")
-    remuneration.supprimer(a.session, c, a.utilisateur.id)
-    return {"supprimees": True}
-
-
 # --- Contrats : courtage ou comparaison --------------------------------------------
 
 class NouveauContrat(_Corps):
@@ -285,6 +248,86 @@ def supprimer_contrat(contrat_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))
         raise Introuvable("Contrat")
     contrats.supprimer(a.session, c, a.utilisateur.id)
     return {"supprime": True}
+
+
+# --- Accompagnement : la demande, le mandat proposé, signé ------------------------
+
+class DemandeAccompagnement(_Corps):
+    besoins: list[str] = Field(min_length=1, max_length=10)
+    message: str | None = Field(default=None, max_length=2000)
+
+
+class PropositionMandat(_Corps):
+    perimetre: list[str] = Field(min_length=1, max_length=10)
+    date_effet: date
+    duree_mois: int = Field(ge=1, le=60)
+    preavis_mois: int = Field(ge=1, le=12)
+    exclusif: bool = True
+    conditions: str | None = Field(default=None, max_length=3000)
+
+
+class SignatureMandat(_Corps):
+    nom: str = Field(min_length=1, max_length=200)
+    fonction: str | None = Field(default=None, max_length=100)
+    empreinte: str = Field(min_length=64, max_length=64)
+    accepte: bool
+
+
+class Motif(_Corps):
+    motif: str | None = Field(default=None, max_length=1000)
+
+
+@routeur.get("/organisations/{organisation_id}/mandats")
+def lire_mandats(a: Acces = Depends(acces(*TOUS))):
+    return mandats.tableau(a.session, a.organisation, date.today())
+
+
+@routeur.post("/organisations/{organisation_id}/mandats", status_code=201)
+def demander_accompagnement(corps: DemandeAccompagnement, a: Acces = Depends(acces("admin_client", "contributeur_client"))):
+    m = mandats.demander(a.session, a.organisation, a.utilisateur.id, corps.besoins, corps.message, date.today())
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.put("/organisations/{organisation_id}/mandats/{mandat_id}/proposition")
+def proposer_mandat(mandat_id: uuid.UUID, corps: PropositionMandat, a: Acces = Depends(acces(*CONSEIL))):
+    m = mandats.proposer(a.session, a.organisation, mandats.obtenir(a.session, mandat_id), a.utilisateur.id,
+                         **corps.model_dump(), aujourd_hui=date.today())
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.post("/organisations/{organisation_id}/mandats/{mandat_id}/signature")
+def signer_mandat(mandat_id: uuid.UUID, corps: SignatureMandat, request: Request,
+                  a: Acces = Depends(acces(*ENTREPRISE))):
+    """L'administrateur de l'entreprise signe le texte qu'il a lu (son empreinte) : le mandat est scellé, le
+    contrat « courtage » prend effet à sa date."""
+    if not corps.accepte:
+        raise ErreurMetier("acceptation_requise", "Cocher « J'ai lu et j'accepte ce mandat ».", 422)
+    m = mandats.obtenir(a.session, mandat_id)
+    mandats.signer(a.session, a.organisation, m, a.utilisateur.id, nom=corps.nom, fonction=corps.fonction,
+                   empreinte_lue=corps.empreinte, config=request.app.state.sceau, aujourd_hui=date.today())
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.post("/organisations/{organisation_id}/mandats/{mandat_id}/refus")
+def refuser_mandat(mandat_id: uuid.UUID, corps: Motif, a: Acces = Depends(acces(*ENTREPRISE))):
+    m = mandats.obtenir(a.session, mandat_id)
+    mandats.clore(a.session, m, a.utilisateur.id, "refuse", corps.motif)
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.post("/organisations/{organisation_id}/mandats/{mandat_id}/retrait")
+def retirer_mandat(mandat_id: uuid.UUID, corps: Motif, a: Acces = Depends(acces(*CLIENT))):
+    m = mandats.obtenir(a.session, mandat_id)
+    mandats.clore(a.session, m, a.utilisateur.id, "retire", corps.motif)
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.get("/organisations/{organisation_id}/mandats/{mandat_id}/pdf")
+def telecharger_mandat(mandat_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    d = mandats.document_de(a.session, mandats.obtenir(a.session, mandat_id))
+    if d is None:
+        raise ErreurMetier("mandat_non_signe", "Le mandat scellé existe une fois signé.", 404)
+    return Response(d.contenu, media_type=d.type_contenu, headers=_piece_jointe(f"mandat-courtage-{a.organisation.nom}-{d.numero}.pdf"))
 
 
 @routeur.get("/organisations/{organisation_id}/contrats")
@@ -820,7 +863,8 @@ def lister_etudes(a: Acces = Depends(acces(*TOUS))):
     return [
         {"id": str(e.id), "statut": e.statut, "date_evaluation": e.date_evaluation.isoformat(),
          "convention_code": e.convention_code, "dette": e.resultats["totaux"]["dette"],
-         "emise_le": e.emise_le.isoformat() if e.emise_le else None}
+         "emise_le": e.emise_le.isoformat() if e.emise_le else None,
+         "raison_de_garder": etudes.raison_de_garder(a.session, e)}
         for e in etudes.lister(a.session)
     ]
 
@@ -852,8 +896,12 @@ def recalculer_etude(etude_id: uuid.UUID, corps: ParametresEtude, a: Acces = Dep
 
 
 @routeur.delete("/organisations/{organisation_id}/etudes/{etude_id}", status_code=204)
-def supprimer_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
-    etudes.supprimer(a.session, etudes.obtenir(a.session, etude_id), a.utilisateur.id)
+def supprimer_etude(etude_id: uuid.UUID, confirmation: str | None = None, a: Acces = Depends(acces(*CLIENT))):
+    """Un brouillon : l'équipe. Une étude émise : l'administrateur ou le conseiller, sur confirmation écrite."""
+    e = etudes.obtenir(a.session, etude_id)
+    if e.statut == "emise" and a.role not in ("admin_client", "conseiller"):
+        raise ErreurMetier("droit_insuffisant", "Seuls l'administrateur et le conseiller suppriment une étude émise.", 403)
+    etudes.supprimer(a.session, e, a.utilisateur.id, confirmation=confirmation)
     return Response(status_code=204)
 
 

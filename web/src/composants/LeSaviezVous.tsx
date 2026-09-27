@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { ASTUCES, astuceDuJour } from "../guide/astuces";
+import { t } from "../i18n";
 
 const CLE = "courtage:astuce-fermee";
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
@@ -14,16 +15,16 @@ export default function LeSaviezVous() {
   const a = ASTUCES[n];
   const fermer = () => { try { localStorage.setItem(CLE, aujourdhui()); } catch { /* rien */ } setFermee(true); };
   return (
-    <aside className="carte astuce section" aria-label="Le saviez-vous ?">
+    <aside className="carte astuce section" aria-label={t("Le saviez-vous ?", "Did you know?")}>
       <div className="volet-tete">
-        <strong>💡 Le saviez-vous ?</strong>
-        <button type="button" className="fermer-volet" onClick={fermer} aria-label="Fermer l'astuce" title="Fermer jusqu'à demain">×</button>
+        <strong>💡 {t("Le saviez-vous ?", "Did you know?")}</strong>
+        <button type="button" className="fermer-volet" onClick={fermer} aria-label={t("Fermer l'astuce", "Close the tip")} title={t("Fermer jusqu'à demain", "Close until tomorrow")}>×</button>
       </div>
       <p style={{ margin: "6px 0" }}>{a.texte}</p>
       <div className="actions" style={{ marginTop: 4 }}>
-        {a.chapitre && <Link to={`/guide/${a.chapitre}`}>En savoir plus</Link>}
-        {a.lecon && <Link to={`/guide/lecons/${a.lecon}`}>La leçon (2 min)</Link>}
-        <button type="button" className="lien" onClick={() => setN((n + 1) % ASTUCES.length)}>Une autre astuce</button>
+        {a.chapitre && <Link to={`/guide/${a.chapitre}`}>{t("En savoir plus", "Learn more")}</Link>}
+        {a.lecon && <Link to={`/guide/lecons/${a.lecon}`}>{t("La leçon (2 min)", "The lesson (2 min)")}</Link>}
+        <button type="button" className="lien" onClick={() => setN((n + 1) % ASTUCES.length)}>{t("Une autre astuce", "Another tip")}</button>
       </div>
     </aside>
   );

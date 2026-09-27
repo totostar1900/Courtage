@@ -34,7 +34,7 @@ def test_parcours_complet_du_depot_a_l_emission(client, azito, bases):
     assert r.status_code == 200, r.text
     emise = r.json()
     assert emise["statut"] == "emise"
-    assert emise["honoraires_ht"] == 750_000 + 23 * 2_000
+    assert "honoraires_ht" not in emise
     assert len(emise["empreinte"]) == 64
 
     # Émise : ni modifiée, ni supprimée, ni réémise.
@@ -42,7 +42,7 @@ def test_parcours_complet_du_depot_a_l_emission(client, azito, bases):
     assert client.put(url, json={"fichier_id": a["fichier"], "date_evaluation": "2019-12-31",
                                  "convention_code": "CI_CCI", "fonds_disponible": 0},
                       headers=en_tant_que(a["conseiller"])).json()["code"] == "etude_emise"
-    assert client.delete(url, headers=en_tant_que(a["conseiller"])).status_code == 409
+    assert client.delete(url, headers=en_tant_que(a["conseiller"])).json()["code"] == "confirmation_requise"
     assert client.post(f"{url}/emission", headers=en_tant_que(a["conseiller"])).status_code == 409
 
     # Relue, elle dit la même chose ; le journal a tout suivi.
@@ -50,7 +50,7 @@ def test_parcours_complet_du_depot_a_l_emission(client, azito, bases):
     assert relue["empreinte"] == emise["empreinte"] and relue["statut"] == "emise"
     with bases[0].connect() as c:
         actions = set(c.execute(text("SELECT action FROM journal WHERE organisation_id = :o"), {"o": a["org"]}).scalars())
-    assert {"remuneration.fixee", "fichier.depose", "etude.creee", "etude.emise"} <= actions
+    assert {"fichier.depose", "etude.creee", "etude.emise"} <= actions
 
 
 def test_le_fichier_depose_ne_garde_aucun_nom(client, azito, bases):
@@ -98,16 +98,6 @@ def test_une_anomalie_bloquante_du_fichier_empeche_l_emission(client, azito):
     assert "matricule_double" in e["emission"]["motifs"]
 
 
-def test_sans_conditions_de_remuneration_pas_d_emission(client, personnes):
-    org = client.post(f"{V1}/organisations", json={"nom": "Sans contrat", "pays": "CI"},
-                      headers=en_tant_que(personnes["admin"])).json()["id"]
-    client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": str(personnes["conseiller"]),
-                                                             "role": "conseiller"}, headers=en_tant_que(personnes["admin"]))
-    f = deposer(client, org, personnes["conseiller"], fichier_azito())
-    e = etude(client, {"org": org, "fichier": f["id"], **personnes}, qui="conseiller").json()
-    assert "remuneration_absente" in e["emission"]["motifs"]
-
-
 def test_ecart_avec_l_etude_precedente(client, azito):
     e = etude(client, azito).json()
     client.post(f"{V1}/organisations/{azito['org']}/etudes/{e['id']}/emission", headers=en_tant_que(azito["conseiller"]))
@@ -127,37 +117,6 @@ def test_une_hypothese_hors_referentiel_demande_une_justification(client, azito)
     [ecart] = r.json()["hypotheses"]["ecarts"]
     assert ecart == {"champ": "taux_actualisation", "referentiel": 0.035, "retenu": 0.045,
                      "justification": "Courbe OAT CEMAC 10 ans"}
-
-
-# --- Rémunération -------------------------------------------------------------
-
-def test_conditions_de_remuneration_lues_par_le_client(client, azito):
-    """La commission est publiée au client : il lit ses conditions."""
-    r = client.get(f"{V1}/organisations/{azito['org']}/remuneration", headers=en_tant_que(azito["drh"]))
-    assert r.status_code == 200
-    assert r.json()["en_vigueur"]["commission_bps"] == 1000
-
-
-def test_seul_le_conseiller_fixe_la_remuneration(client, azito):
-    r = client.post(f"{V1}/organisations/{azito['org']}/remuneration", headers=en_tant_que(azito["drh"]),
-                    json={"en_vigueur_du": "2026-01-01", "mode": "honoraires", "honoraires_etude_ifc": 1})
-    assert r.status_code == 403
-
-
-def test_remuneration_incoherente_refusee(client, azito):
-    r = client.post(f"{V1}/organisations/{azito['org']}/remuneration", headers=en_tant_que(azito["conseiller"]),
-                    json={"en_vigueur_du": "2026-01-01", "mode": "commission", "honoraires_etude_ifc": 500_000,
-                          "commission_bps": 1000})
-    assert r.status_code == 422
-    assert r.json()["code"] == "remuneration_incoherente"
-
-
-def test_de_nouvelles_conditions_s_appliquent_a_partir_de_leur_date(client, azito):
-    client.post(f"{V1}/organisations/{azito['org']}/remuneration", headers=en_tant_que(azito["conseiller"]),
-                json={"en_vigueur_du": "2019-06-01", "mode": "honoraires", "honoraires_etude_ifc": 1_000_000})
-    r = client.get(f"{V1}/organisations/{azito['org']}/remuneration", headers=en_tant_que(azito["drh"])).json()
-    assert r["en_vigueur"]["honoraires_etude_ifc"] == 1_000_000
-    assert len(r["historique"]) == 2
 
 
 # --- Accès --------------------------------------------------------------------

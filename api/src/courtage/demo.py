@@ -57,9 +57,6 @@ def semer(proprio: Engine, moteur_app: Engine | None = None) -> dict:
     for qui, role in (("conseiller", "conseiller"), ("drh", "admin_client")):
         client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": str(ids[qui]), "role": role},
                     headers=h("admin"))
-    client.post(f"{V1}/organisations/{org}/remuneration", headers=h("conseiller"), json={
-        "en_vigueur_du": "2019-01-01", "mode": "mixte", "honoraires_etude_ifc": 750_000,
-        "honoraires_par_salarie": 2_000, "commission_bps": 1000})
     r = client.post(f"{V1}/organisations/{org}/fichiers", headers=h("drh"),
                     files={"fichier": ("azito-personnel-2019.xlsx", _fichier())} if reel
                     else {"fichier": ("personnel-2025.xlsx", personnel_fictif())},
@@ -88,9 +85,6 @@ def societe_demo(client, h) -> dict:
     for qui, role in (("conseiller", "conseiller"), ("drh", "admin_client")):
         ok(client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": ids[qui], "role": role},
                        headers=h("admin")))
-    ok(client.post(f"{V1}/organisations/{org}/remuneration", headers=h("conseiller"), json={
-        "en_vigueur_du": "2025-01-01", "mode": "mixte", "honoraires_etude_ifc": 900_000,
-        "honoraires_par_salarie": 2_500, "commission_bps": 800}))
     # Avant le mandat, l'entreprise traitait seule avec son assureur : les départs d'avant 2025 relèvent de la comparaison.
     ok(client.post(f"{V1}/organisations/{org}/contrats", headers=h("conseiller"), json={
         "en_vigueur_du": "2020-01-01", "service": "comparaison", "assureur": "Assureur B (fictif)",

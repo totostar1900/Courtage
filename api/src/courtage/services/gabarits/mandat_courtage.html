@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Mandat de courtage — {{ c.client.nom }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 20mm 26mm 20mm;
+    @bottom-left {
+      content: "N° {{ numero }} · empreinte {{ empreinte[:16] }}… · sceau {{ sceau[:16] }}…{% if not probant %} · NON PROBANT{% endif %}\A Vérifier : {{ url_verification }}";
+      white-space: pre; font: 7pt "DejaVu Sans", sans-serif; color: #55607a;
+    }
+    @bottom-right { content: "Page " counter(page) " / " counter(pages); font: 7pt "DejaVu Sans", sans-serif; color: #55607a; }
+  }
+  body { font: 9.5pt/1.5 "DejaVu Sans", sans-serif; color: #1b2240; }
+  h1 { font-size: 17pt; margin: 0 0 2mm; color: #fff; }
+  .bandeau { background: #1f2d6b; color: #fff; padding: 6mm; margin-bottom: 6mm; }
+  .bandeau .sous { color: #c9cfee; }
+  .non-probant { border: 0.5mm solid #a93a2c; color: #a93a2c; padding: 2mm 3mm; margin-bottom: 4mm; font-weight: bold; }
+  h2 { font-size: 10.5pt; margin: 5mm 0 1.5mm; color: #1f2d6b; break-after: avoid; }
+  p { margin: 0 0 2mm; text-align: justify; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 8.5pt; }
+  th, td { padding: 1.3mm 2mm; border-bottom: 0.2mm solid #dfe2ee; text-align: left; vertical-align: top; }
+  th { width: 35%; background: #f6f7fb; color: #3d4566; font-weight: normal; }
+  .signatures { margin-top: 8mm; break-inside: avoid; }
+  .signatures td { width: 50%; border: 0.2mm solid #dfe2ee; padding: 3mm; height: 26mm; }
+  .note { font-size: 8pt; color: #55607a; }
+</style>
+</head>
+<body>
+<div class="bandeau">
+  <div class="sous">Mandat de courtage · Indemnités de fin de carrière</div>
+  <h1>{{ c.client.nom }}</h1>
+  <div class="sous">Courtier : {{ c.courtier.nom }} · prise d'effet le {{ c.date_effet | date_fr }} · document N° {{ numero }}</div>
+</div>
+{% if not probant %}<div class="non-probant">Sceau de développement : ce document n'est pas probant.</div>{% endif %}
+
+<table>
+  <tr><th>Durée</th><td>{{ c.duree_mois }} mois, puis reconduction tacite par périodes de 12 mois</td></tr>
+  <tr><th>Préavis de résiliation</th><td>{{ c.preavis_mois }} mois</td></tr>
+  <tr><th>Exclusivité</th><td>{% if c.exclusif %}Mandat exclusif{% else %}Mandat non exclusif{% endif %}</td></tr>
+</table>
+
+{% for a in c.articles %}
+<h2>Article {{ a.numero }} — {{ a.titre }}</h2>
+{% for p in a.paragraphes %}<p>{{ p }}</p>{% endfor %}
+{% endfor %}
+
+<table class="signatures">
+  <tr>
+    <td><strong>Pour le Courtier</strong><br>{{ c.courtier.nom }}<br>{{ c.conseiller }}, conseiller<br>
+      <span class="note">Proposé sur la plateforme</span></td>
+    <td><strong>Pour le Client</strong><br>{{ c.client.nom }}<br>{{ signature.nom }}{% if signature.fonction %}, {{ signature.fonction }}{% endif %}<br>
+      <span class="note">Signé électroniquement le {{ signature.le[:10] | date_fr }}</span></td>
+  </tr>
+</table>
+<p class="note" style="text-align: left; word-break: break-all">Document N° {{ numero }}. Empreinte du texte signé : {{ empreinte }}. Sceau : {{ sceau }}.
+Vérifier l'authenticité de ce document : {{ url_verification }}</p>
+</body>
+</html>

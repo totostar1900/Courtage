@@ -77,9 +77,5 @@ def azito(client, personnes):
         r = client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": str(personnes[qui]), "role": role},
                         headers=en_tant_que(personnes["admin"]))
         assert r.status_code == 201, r.text
-    r = client.post(f"{V1}/organisations/{org}/remuneration", headers=en_tant_que(personnes["conseiller"]), json={
-        "en_vigueur_du": "2019-01-01", "mode": "mixte",
-        "honoraires_etude_ifc": 750_000, "honoraires_par_salarie": 2_000, "commission_bps": 1000})
-    assert r.status_code == 201, r.text
     fichier = deposer(client, org, personnes["drh"], fichier_azito())
     return {"org": org, "fichier": fichier["id"], **personnes}

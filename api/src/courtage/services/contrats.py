@@ -7,7 +7,7 @@ seul avec son assureur et aucune identité n'est jamais demandée.
 
 Un contrat ne se modifie pas : un nouveau s'ajoute avec sa date d'effet. Sans
 contrat, le client est en comparaison — la plateforme ne suppose jamais un
-mandat qu'elle n'a pas. Le service se lit ICI, jamais sur la rémunération.
+mandat qu'elle n'a pas.
 """
 import uuid
 from dataclasses import dataclass
@@ -18,10 +18,10 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from courtage.db import Contrat, DossierPriseEnCharge, Prestation
+from courtage.db import Contrat, DossierPriseEnCharge, MandatCourtage, Prestation
 from courtage.erreurs import ErreurMetier
 
-from . import journaliser, remuneration
+from . import journaliser
 
 Service = Literal["courtage", "comparaison"]
 
@@ -38,9 +38,9 @@ def enregistrer(session: Session, organisation_id: uuid.UUID, auteur: uuid.UUID,
                 note: str | None = None) -> Contrat:
     assureur = (assureur or "").strip() or None
     mandat_reference = (mandat_reference or "").strip() or None
-    if service == "courtage" and not (assureur and mandat_reference):
-        raise ErreurMetier("mandat_requis", "Un courtage suppose un assureur et un mandat signé par le client : "
-                           "indiquez l'un et la référence de l'autre.", 422)
+    if service == "courtage" and not mandat_reference:
+        raise ErreurMetier("mandat_requis", "Un courtage suppose un mandat signé par le client : indiquez sa "
+                           "référence. L'assureur peut venir ensuite, une fois le contrat placé.", 422)
     contrat = Contrat(organisation_id=organisation_id, en_vigueur_du=en_vigueur_du, service=service, assureur=assureur,
                       numero_police=(numero_police or "").strip() or None, date_effet_police=date_effet_police,
                       mandat_reference=mandat_reference, note=note, cree_par=auteur)
@@ -68,14 +68,7 @@ def service_a_la_date(session: Session, jour: date) -> ServiceEnVigueur:
 
 
 def constats(session: Session, jour: date) -> list[dict]:
-    """Ce que le conseiller doit voir : une rémunération qui ne va pas avec le service."""
-    service = service_a_la_date(session, jour).service
-    conditions = remuneration.en_vigueur(session, jour)
-    if conditions and conditions.commission_bps > 0 and service != "courtage":
-        return [{"niveau": "avertit", "code": "commission_sans_mandat",
-                 "message": "La rémunération prévoit une commission, mais aucun mandat de courtage n'est enregistré : "
-                            "une commission se perçoit sur un contrat placé. Enregistrez le mandat, ou revoyez la "
-                            "rémunération."}]
+    """Ce que le conseiller doit voir sur le contrat ; rien pour l'instant."""
     return []
 
 
@@ -91,6 +84,8 @@ def raison_de_garder(session: Session, c: Contrat) -> str | None:
     sous quel service ce départ a été traité. Sinon, saisi par erreur, il se supprime."""
     if session.scalar(select(func.count()).select_from(DossierPriseEnCharge).where(DossierPriseEnCharge.contrat_id == c.id)):
         return "Un dossier de prise en charge s'appuie sur ce contrat : il reste."
+    if session.scalar(select(func.count()).select_from(MandatCourtage).where(MandatCourtage.contrat_id == c.id)):
+        return "Il découle d'un mandat signé sur la plateforme : il reste."
     suivant = session.scalar(select(func.min(Contrat.en_vigueur_du)).where(Contrat.en_vigueur_du > c.en_vigueur_du))
     requete = select(func.count()).select_from(Prestation).where(Prestation.date_depart >= c.en_vigueur_du)
     if suivant is not None:

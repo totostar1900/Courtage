@@ -23,7 +23,7 @@ from courtage.db.migrations import migrer, revision_attendue
 
 ROLE_APP = "courtage_app"
 IMMUABLES = ("etudes_immuables", "baremes_immuables", "regimes_versions_immuables", "regimes_categories_immuables",
-             "fichiers_personnel_vidage")
+             "fichiers_personnel_vidage", "mandats_courtage_immuables")
 SANS_MODIFICATION = ("journal", "sceaux", "catalogue_regimes", "catalogue_retraits", "etats_dossier")      # insertion et lecture seulement, pour le rôle applicatif
 # Porte une organisation mais se lit AVANT qu'une organisation soit connue (qui est membre de quoi) :
 # hors RLS par construction. Toute autre table qui en porte une doit avoir la RLS.

@@ -3,8 +3,8 @@
 Un brouillon garde tout ce qu'il faut pour être refait à l'identique : la
 version du référentiel, la convention et la date d'effet de son barème, les
 hypothèses retenues et leurs écarts justifiés, le fichier tel que lu. À
-l'émission s'ajoutent l'empreinte, l'émetteur et les honoraires dus selon les
-conditions du jour ; la base interdit ensuite toute modification.
+l'émission s'ajoutent l'empreinte et l'émetteur ; la base interdit ensuite
+toute modification.
 """
 import hashlib
 import json
@@ -13,16 +13,16 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field, replace
 from datetime import date, datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from courtage.actuariat.ifc import VERSION_MOTEUR, Hypotheses, Regles, Resultat, comparer_baremes, evaluer
-from courtage.db import Document, Etude, Organisation
+from courtage.db import Document, Etude, FicheRegime, Organisation
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie, controler, controler_parametres, controler_resultat, salaries
 from courtage.referentiel import motifs_de_refus, referentiel_courant
 
-from . import baremes, experience, fichiers, hypotheses, journaliser, regimes, remuneration
+from . import baremes, experience, fichiers, hypotheses, journaliser, regimes
 
 ECART_MAX_ETUDE_PRECEDENTE = 0.25
 AGE_PREMIER_EMPLOI = hypotheses.AGE_PREMIER_EMPLOI
@@ -61,8 +61,38 @@ def recalculer(session: Session, org: Organisation, etude: Etude, auteur: uuid.U
     return etude
 
 
-def supprimer(session: Session, etude: Etude, auteur: uuid.UUID) -> None:
-    _exiger_brouillon(etude)
+CONFIRMATION = "SUPPRIMER"
+
+
+def raison_de_garder(session: Session, etude: Etude) -> str | None:
+    """Ce qui retient une étude émise ; None : elle peut partir (son sceau reste)."""
+    if etude.statut != "emise":
+        return None
+    if session.scalar(select(func.count()).select_from(FicheRegime).where(FicheRegime.etude_id == etude.id)):
+        return "Un cahier des charges la cite : elle reste tant que le cahier existe."
+    if session.scalar(select(func.count()).select_from(Etude).where(Etude.remplace_etude_id == etude.id)):
+        return "Une étude plus récente la remplace et la cite."
+    return None
+
+
+def supprimer(session: Session, etude: Etude, auteur: uuid.UUID, *, confirmation: str | None = None) -> None:
+    """Un brouillon part sans cérémonie. Une étude émise part sur confirmation écrite (« SUPPRIMER »), si rien ne la
+    cite ; son rapport part avec elle, son sceau reste : le numéro se vérifie toujours."""
+    if etude.statut == "emise":
+        if (confirmation or "").strip().upper() != CONFIRMATION:
+            raise ErreurMetier("confirmation_requise", f"Écrire « {CONFIRMATION} » pour supprimer une étude émise.", 422)
+        raison = raison_de_garder(session, etude)
+        if raison:
+            raise ErreurMetier("etude_citee", raison, 409)
+        numero = _rapport(session, etude)
+        session.execute(text("SELECT set_config('app.nettoyage', 'oui', true)"))
+        session.execute(delete(Document).where(Document.etude_id == etude.id))
+        session.execute(delete(Etude).where(Etude.id == etude.id))
+        session.execute(text("SELECT set_config('app.nettoyage', '', true)"))
+        session.expunge(etude)
+        journaliser(session, etude.organisation_id, auteur, "etude.supprimee", etude.id,
+                    {"statut": "emise", "rapport": numero["numero"] if numero else None})
+        return
     journaliser(session, etude.organisation_id, auteur, "etude.supprimee", etude.id)
     session.delete(etude)
     session.flush()
@@ -74,16 +104,13 @@ def emettre(session: Session, org: Organisation, etude: Etude, auteur: uuid.UUID
     if motifs:
         raise ErreurMetier("emission_refusee", "L'étude ne peut pas être émise : " + ", ".join(motifs) + ".", 409,
                            {"motifs": motifs})
-    conditions = remuneration.en_vigueur(session, aujourd_hui)
     etude.statut = "emise"
     etude.emise_par = auteur
     etude.emise_le = datetime.now(timezone.utc)
-    etude.conditions_remuneration_id = conditions.id
-    etude.honoraires_ht = remuneration.honoraires_etude(conditions, etude.resultats["totaux"]["effectif"])
     etude.empreinte = empreinte(etude)
     session.flush()
     journaliser(session, org.id, auteur, "etude.emise", etude.id,
-                {"empreinte": etude.empreinte, "honoraires_ht": etude.honoraires_ht})
+                {"empreinte": etude.empreinte})
     return etude
 
 
@@ -127,8 +154,6 @@ def motifs_emission(session: Session, org: Organisation, etude: Etude, aujourd_h
             motifs.append("bareme_entreprise_hors_vigueur")
         if comparer_baremes(baremes.type_de(b.bareme), convention.bareme):
             motifs.append("bareme_inferieur_convention")
-    if remuneration.en_vigueur(session, aujourd_hui) is None:
-        motifs.append("remuneration_absente")
     if org.etat in ("suspendu", "cloture"):
         motifs.append(f"dossier_{org.etat}")
     return motifs
@@ -159,11 +184,13 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
         "totaux": r["totaux"], "echeancier": r["echeancier"], "sensibilites": r["sensibilites"],
         "lignes": r["lignes"], "anomalies": r["anomalies"], "emission": emission,
         "experience": r.get("experience"),
-        "empreinte": etude.empreinte, "honoraires_ht": etude.honoraires_ht,
+        "empreinte": etude.empreinte,
         "emise_le": etude.emise_le.isoformat() if etude.emise_le else None,
         "emise_par": str(etude.emise_par) if etude.emise_par else None,
         "remplace_etude_id": str(etude.remplace_etude_id) if etude.remplace_etude_id else None,
         "rapport": _rapport(session, etude),
+        "suppression": {"confirmation": CONFIRMATION if etude.statut == "emise" else None,
+                        "raison_de_garder": raison_de_garder(session, etude)},
     }
 
 

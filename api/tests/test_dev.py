@@ -24,8 +24,6 @@ def test_le_jeu_de_demonstration(bases):
     assert (org["nom"], org["role"]) == ("AZITO (démonstration)", "admin_client")
     fichiers = client.get(f"{V1}/organisations/{org['id']}/fichiers", headers=en_tant_que(ids["drh"])).json()
     assert fichiers[0]["effectif"] == 23
-    r = client.get(f"{V1}/organisations/{org['id']}/remuneration", headers=en_tant_que(ids["drh"])).json()
-    assert r["en_vigueur"] is not None
     with bases[0].connect() as c:
         assert c.execute(text("SELECT nom_affiche FROM utilisateurs WHERE id = :u"), {"u": ids["conseiller"]}).scalar_one()
 

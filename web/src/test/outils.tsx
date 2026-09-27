@@ -5,6 +5,7 @@ import { vi } from "vitest";
 import { seConnecter } from "../api";
 import App from "../App";
 import CATALOGUE from "./catalogue-hypotheses.json";
+import { relireLangue } from "../i18n";
 
 /** Une API simulée : chemin (sans /api/v1) → réponse JSON. Une fonction reçoit la requête. */
 export function simulerApi(reponses: Record<string, unknown | ((init?: RequestInit) => unknown)>) {
@@ -28,6 +29,7 @@ export function simulerApi(reponses: Record<string, unknown | ((init?: RequestIn
 export function ouvrir(chemin: string, utilisateur: string | null = "u-drh",
                        { premiereVisite = false, stockage = {} as Record<string, string> } = {}) {
   localStorage.clear();
+  relireLangue();
   if (!premiereVisite) localStorage.setItem("courtage:visite-faite", "1");
   for (const [k, v] of Object.entries(stockage)) localStorage.setItem(k, v);
   seConnecter(utilisateur);
@@ -37,7 +39,7 @@ export function ouvrir(chemin: string, utilisateur: string | null = "u-drh",
 export const ORG = "o1";
 
 /** Un dossier minimal, pour un rôle donné. */
-export function dossier(role: "admin_client" | "conseiller" | "lecteur_client", extra: Record<string, unknown> = {}) {
+export function dossier(role: "admin_client" | "contributeur_client" | "conseiller" | "lecteur_client", extra: Record<string, unknown> = {}) {
   return {
     "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [{ id: ORG, nom: "AZITO", pays: "CI", role }] },
     [`/organisations/${ORG}/fichiers`]: [{ id: "f1", nom_fichier: "p.xlsx", depose_le: "2026-09-26T10:00:00", date_donnees: "2019-12-31", periodicite: "annuel", effectif: 23, anomalies: [] }],
@@ -60,7 +62,7 @@ export function etude(emission: { possible: boolean; motifs: string[] }, statut 
     totaux_convention: null, par_categorie: null,
     echeancier: [{ annee: 2021, effectif: 1, ifc: 3000000, prestations_probables: 2900000, vapf: 2800000 }],
     sensibilites: { taux_actualisation_moins_1pt: { dette: 66000000, charge: 1 } },
-    anomalies: [], emission, empreinte: null, honoraires_ht: null, emise_le: null,
+    anomalies: [], emission, empreinte: null, emise_le: null,
     rapport: statut === "emise" ? { numero: "RL-AAAA-BBBB" } : null,
   };
 }

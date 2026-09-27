@@ -2,6 +2,8 @@
  *  navigateur. On ne garde que l'identifiant du dossier, le chemin et le libellé des pages ; le nom du
  *  dossier est relu à l'affichage, et un dossier auquel on n'a plus accès ne se propose pas. */
 
+import { langue, t } from "./i18n";
+
 export interface Reprise { org: string; chemin: string; pages: string[]; quand: number }
 
 const cle = (utilisateur: string) => `courtage:reprise:${utilisateur}`;
@@ -23,12 +25,13 @@ export function lireReprise(utilisateur: string): Reprise | null {
 /** « à l'instant », « il y a 12 min », « il y a 3 h », « hier », « il y a 4 jours », puis la date. */
 export function ilYa(quand: number, maintenant = Date.now()): string {
   const minutes = Math.floor((maintenant - quand) / 60_000);
-  if (minutes < 1) return "à l'instant";
-  if (minutes < 60) return `il y a ${minutes} min`;
+  if (minutes < 1) return t("à l'instant", "just now");
+  if (minutes < 60) return t(`il y a ${minutes} min`, `${minutes} min ago`);
   const heures = Math.floor(minutes / 60);
-  if (heures < 24) return `il y a ${heures} h`;
+  if (heures < 24) return t(`il y a ${heures} h`, `${heures} h ago`);
   const jours = Math.floor(heures / 24);
-  if (jours === 1) return "hier";
-  if (jours < 7) return `il y a ${jours} jours`;
-  return `le ${new Date(quand).toLocaleDateString("fr-FR")}`;
+  if (jours === 1) return t("hier", "yesterday");
+  if (jours < 7) return t(`il y a ${jours} jours`, `${jours} days ago`);
+  return langue() === "en" ? `on ${new Date(quand).toLocaleDateString("en-GB")}`
+    : `le ${new Date(quand).toLocaleDateString("fr-FR")}`;
 }
