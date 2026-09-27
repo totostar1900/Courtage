@@ -9,13 +9,15 @@ export const ETATS_VERSION: Record<EtatVersion, {
     libelle: "Projet", classe: "attention",
     definition: "Enregistrée, pas encore adoptée par l'entreprise.",
     impact: "Elle se simule et s'étudie en brouillon ; aucune étude ne s'émet sur elle.",
-    suite: "L'entreprise l'adopte ; sinon on l'abandonne, ou on la supprime si aucune étude ne s'en est servie.",
+    suite: "Elle se corrige sur place jusqu'à son adoption. L'entreprise l'adopte ; sinon on l'abandonne, ou on la "
+      + "supprime si rien ne la cite.",
   },
   a_venir: {
     libelle: "Adoptée, à venir", classe: "neutre",
     definition: "Adoptée, sa date d'effet n'est pas encore arrivée.",
     impact: "Elle s'appliquera aux études datées de son entrée en vigueur ou après.",
-    suite: "Elle entre en vigueur d'elle-même à sa date.",
+    suite: "Elle entre en vigueur d'elle-même à sa date. D'ici là, la DRH peut annuler cette adoption (la supprimer), "
+      + "avec un motif, si rien ne la cite.",
   },
   en_vigueur: {
     libelle: "En vigueur", classe: "bien",
@@ -33,7 +35,7 @@ export const ETATS_VERSION: Record<EtatVersion, {
     libelle: "Abandonnée", classe: "neutre",
     definition: "Un projet que l'entreprise n'a pas retenu.",
     impact: "Elle ne sert plus de base à une étude ; elle reste lisible, avec son motif.",
-    suite: "Elle ne bouge plus.",
+    suite: "Elle ne bouge plus ; elle se supprime si rien ne la cite.",
   },
 };
 
@@ -44,7 +46,13 @@ export function etatVersion(v: Pick<Version, "statut" | "etat">): EtatVersion {
 
 /** L'ordre de lecture : ce qui s'applique, ce qui vient, ce qui attend une décision ; puis l'historique. */
 const RANG: Record<EtatVersion, number> = { en_vigueur: 0, a_venir: 1, projet: 2, remplacee: 3, abandonnee: 4 };
-export const ACTUELS: EtatVersion[] = ["en_vigueur", "a_venir", "projet"];
+
+/** La page Régime en trois zones : ce qui s'applique, ce qui se discute, ce qui a servi (replié). */
+export const ZONES: { cle: string; titre: string; etats: EtatVersion[]; repliee?: boolean }[] = [
+  { cle: "application", titre: "En application", etats: ["en_vigueur", "a_venir"] },
+  { cle: "discussion", titre: "En discussion", etats: ["projet"] },
+  { cle: "historique", titre: "Historique", etats: ["remplacee", "abandonnee"], repliee: true },
+];
 
 export function ordonner(versions: Version[]): Version[] {
   return [...versions].sort((a, b) => RANG[etatVersion(a)] - RANG[etatVersion(b)] || b.numero - a.numero);

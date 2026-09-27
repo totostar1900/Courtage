@@ -92,6 +92,9 @@ export interface Version {
   abandonnee_le?: string | null;
   motif_abandon?: string | null;
   etudes?: number;
+  /** Ce qui cite la version et la retient ; et si elle peut partir (sinon pourquoi). */
+  citations?: { etudes_emises: number; brouillons: { id: string; date_evaluation: string }[]; cahiers: number; partages: number };
+  suppression?: { possible: boolean; reservee_entreprise: boolean; bloquee_par_brouillons: boolean; raison: string | null };
   non_conformite_acceptee: boolean;
   categories: Categorie[];
   constats: Constat[];
@@ -387,3 +390,9 @@ export interface Cycle {
 }
 
 export type EtatVersion = "projet" | "a_venir" | "en_vigueur" | "remplacee" | "abandonnee";
+
+/** Une ligne du ménage : une version qui peut partir, pourquoi, et ce que la plateforme coche. */
+export interface CandidatMenage {
+  version_id: string; regime: string; numero: number; etat: EtatVersion; raison: string; coche: boolean;
+  brouillons: { id: string; date_evaluation: string }[]; motif_requis: boolean;
+}

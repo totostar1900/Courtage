@@ -556,10 +556,41 @@ def abandonner_version(version_id: uuid.UUID, corps: Abandon, a: Acces = Depends
 
 
 @routeur.delete("/organisations/{organisation_id}/regimes/versions/{version_id}")
-def supprimer_version(version_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
-    """Un projet dont aucune étude ne s'est servie ; son régime aussi, s'il reste sans version."""
-    regime_supprime = regimes.supprimer(a.session, regimes.obtenir_version(a.session, version_id), a.utilisateur.id)
+def supprimer_version(version_id: uuid.UUID, motif: str | None = None, a: Acces = Depends(acces(*CLIENT))):
+    """Une version jamais appliquée que rien ne cite ; son régime aussi, s'il reste sans version. Une adoption à venir :
+    la DRH seule, avec un motif."""
+    regime_supprime = regimes.supprimer(a.session, regimes.obtenir_version(a.session, version_id), a.utilisateur.id,
+                                        a.role, motif)
     return {"supprimee": True, "regime_supprime": regime_supprime}
+
+
+@routeur.put("/organisations/{organisation_id}/regimes/versions/{version_id}")
+def modifier_version(version_id: uuid.UUID, corps: NouvelleVersion, a: Acces = Depends(acces(*CLIENT))):
+    """Un projet se corrige sur place, jusqu'à son adoption."""
+    v = regimes.modifier_projet(
+        a.session, a.organisation, regimes.obtenir_version(a.session, version_id), a.utilisateur.id,
+        en_vigueur_du=corps.en_vigueur_du, fondement=corps.fondement, document_reference=corps.document_reference,
+        note=corps.note, categories=[regimes.SaisieCategorie(**{**c.model_dump(), "evenements": tuple(c.evenements)})
+                                     for c in corps.categories])
+    return regimes.en_clair(a.session, v)
+
+
+@routeur.get("/organisations/{organisation_id}/regimes/menage")
+def lire_menage(a: Acces = Depends(acces(*CLIENT))):
+    """Ce qui peut partir, avec sa raison et ce que coche la plateforme."""
+    return {"jours_sans_decision": regimes.JOURS_SANS_DECISION,
+            "candidats": regimes.menage(a.session, date.today(), a.role)}
+
+
+class Menage(_Corps):
+    versions: list[uuid.UUID] = Field(min_length=1)
+    motif: str | None = Field(default=None, max_length=500)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/menage")
+def faire_le_menage(corps: Menage, a: Acces = Depends(acces(*CLIENT))):
+    """Supprimer d'un coup les versions choisies, et les études en brouillon qui les retiennent."""
+    return regimes.faire_le_menage(a.session, a.utilisateur.id, a.role, corps.versions, corps.motif)
 
 
 # --- Le catalogue anonyme ------------------------------------------------------

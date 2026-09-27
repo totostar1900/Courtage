@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from courtage.db import EtatDossier, Etude, FicheRegime, FichierPersonnel, Organisation, VersionRegime
 from courtage.fichier.controles import FRAICHEUR_MOIS
 
-from . import cycle, dossiers, reponses
+from . import cycle, dossiers, regimes, reponses
 
 ORDRE = {"grave": 0, "attention": 1, "info": 2}
 ATTENTE_BROUILLON = 30        # jours avant qu'un brouillon d'étude ou une version de régime en attente le soit trop
@@ -97,12 +97,20 @@ def _personnel(session: Session, aujourd_hui: date) -> list[dict]:
 
 
 def _regime(session: Session, aujourd_hui: date) -> list[dict]:
-    return [_alerte("info", "version_a_adopter", "Un projet de version attend une décision",
-                    f"La version {v.numero}, du {v.en_vigueur_du:%d/%m/%Y}, est un projet depuis "
-                    f"{_jours(v.cree_le, aujourd_hui)} jours : l'entreprise l'adopte, ou l'abandonne s'il n'est pas "
-                    "retenu.", "regime", "entreprise")
-            for v in session.scalars(select(VersionRegime).where(VersionRegime.statut == "analyse"))
-            if _jours(v.cree_le, aujourd_hui) > ATTENTE_BROUILLON]
+    """Un projet sans décision : un rappel à 30 jours ; à 90, une invitation au ménage (il encombre la page)."""
+    alertes = []
+    for v in session.scalars(select(VersionRegime).where(VersionRegime.statut == "analyse")):
+        age = _jours(v.cree_le, aujourd_hui)
+        if age >= regimes.JOURS_SANS_DECISION:
+            alertes.append(_alerte("attention", "projet_a_trancher", "Un projet de version à trancher",
+                                   f"La version {v.numero} est un projet depuis {age} jours : l'adopter, l'abandonner, "
+                                   "ou la supprimer (« Faire le ménage » sur la page Régime).", "regime", "entreprise"))
+        elif age > ATTENTE_BROUILLON:
+            alertes.append(_alerte("info", "version_a_adopter", "Un projet de version attend une décision",
+                                   f"La version {v.numero}, du {v.en_vigueur_du:%d/%m/%Y}, est un projet depuis {age} "
+                                   "jours : l'entreprise l'adopte, ou l'abandonne s'il n'est pas retenu.", "regime",
+                                   "entreprise"))
+    return alertes
 
 
 def _prises_en_charge(session: Session, aujourd_hui: date) -> list[dict]:

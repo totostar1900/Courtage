@@ -477,3 +477,8 @@ button.danger:hover { background: var(--grave-doux); }
 .reperes dd { margin: 0; font-size: 13.5px; }
 .reperes h3 { margin-top: 12px; }
 @media (max-width: 600px) { .reperes dl.definitions > div { grid-template-columns: 1fr; gap: 4px; } }
+.zone-titre { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--discret); margin: 14px 0 8px; }
+ul.menage { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 8px; }
+ul.menage label { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
+ul.menage .etat { margin-left: 6px; }
+.menage-raison { display: block; font-size: 13px; margin-top: 2px; }

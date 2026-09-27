@@ -77,11 +77,13 @@ export const CHAPITRES: Chapitre[] = [
         "Non : sans régime, l'étude s'appuie sur la convention collective de votre branche. Décrivez un régime si vous versez plus (accord d'entreprise, usage, contrats).",
         "Un régime a des versions : une nouvelle version s'ajoute, l'ancienne reste, et une étude dit toujours sur quelle version elle repose." ] },
       { titre: "Les états d'une version", texte: [
-        "Chaque version porte un seul badge, en haut à droite de sa carte : Projet, Adoptée à venir, En vigueur, Remplacée ou Abandonnée. « Que veulent dire ces repères ? », en haut de la page, les définit tous.",
-        "Projet : enregistrée, pas encore adoptée. Elle se simule et s'étudie en brouillon, mais aucune étude ne s'émet sur elle. L'entreprise l'adopte ; sinon on l'abandonne, avec un motif, ou on la supprime si aucune étude ne s'en est servie.",
+        "Chaque version porte un seul badge, en haut à droite de sa carte : Projet, Adoptée à venir, En vigueur, Remplacée ou Abandonnée. La page les range en trois zones : en application, en discussion, et l'historique, replié.",
+        "Projet : enregistrée, pas encore adoptée. Elle se corrige sur place (« Modifier ») jusqu'à son adoption, se simule et s'étudie en brouillon, mais aucune étude ne s'émet sur elle. L'entreprise l'adopte ; sinon on l'abandonne, avec un motif.",
         "Adoptée, une version est à venir tant que sa date d'effet n'est pas arrivée, puis en vigueur : c'est la base des études. Quand une version plus récente entre en vigueur, elle devient Remplacée, et reste la base des études datées de sa période.",
-        "Une version adoptée ne se supprime jamais : des études et des rapports scellés la citent. Pour la changer, on enregistre une nouvelle version, que l'entreprise adopte. Les versions remplacées et abandonnées sont repliées sous « Versions précédentes ».",
+        "Une version qui ne s'est jamais appliquée (projet, abandonnée, adoptée à venir) se supprime si rien ne la cite : ni étude, ni cahier, ni partage. Supprimer une adoption à venir revient à annuler la décision de l'entreprise : la DRH seule le peut, avec un motif. Une version en vigueur ou remplacée reste toujours.",
+        "« Faire le ménage » liste tout ce qui peut partir, avec sa raison, et le supprime en une fois ; les études en brouillon qui retiennent une version partent avec. Un projet sans décision depuis 90 jours est signalé. Pour essayer un barème sans l'enregistrer, passez par Simuler.",
         "L'analyse range ses constats en trois niveaux : Bloquant (empêche d'adopter ou d'évaluer), Attention (à regarder avant de décider ; un régime moins favorable que la convention s'adopte en le confirmant) et Bon à savoir. Ses points juridiques et fiscaux sont des repères, à examiner avec votre conseil." ] },
+
       { titre: "Partir d'un modèle type", texte: [
         "Pas encore de régime écrit ? « Partir d'un modèle type » propose quatre barèmes calculés depuis votre convention : le minimum conventionnel, la convention majorée de 25 %, les cadres favorisés (une fois et demie la convention), et un barème unique, un seul taux par année.",
         "Chaque modèle est construit pour ne jamais passer sous la convention, à aucune ancienneté, et il ne vient d'aucune entreprise : c'est un point de départ, pas le régime d'un autre.",
