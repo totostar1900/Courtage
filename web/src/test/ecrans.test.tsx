@@ -90,19 +90,25 @@ describe("l'adoption d'un régime", () => {
 
   it("un régime sous la convention s'adopte seulement en en prenant acte", async () => {
     simulerApi({ ...dossier("admin_client", { [`/organisations/${ORG}/regimes`]: [{ id: "r1", nom: "Accord", versions: [version([
-      { niveau: "bloque", code: "sous_le_plancher", message: "Sous la CCI de 1 à 50 ans." }])] }] }) });
+      { niveau: "avertit", code: "sous_le_plancher", message: "Sous la CCI de 1 à 50 ans." }])] }] }) });
     ouvrir(`/dossier/${ORG}/regime`);
-    const adopter = await screen.findByRole("button", { name: "Adopter cette version" });
+    await userEvent.click(await screen.findByRole("button", { name: "Actions sur la version 1" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Adopter…" }));
+    const adopter = screen.getByRole("button", { name: "Adopter cette version" });
     expect(adopter).toBeDisabled();
+    expect(screen.getByText(/Adopter, c'est communiquer/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("checkbox", { name: /donne moins que la convention/ }));
     expect(adopter).toBeEnabled();
   });
 
-  it("le conseiller n'adopte pas", async () => {
+  it("le conseiller n'adopte pas : l'action est là, grisée, avec sa raison", async () => {
     simulerApi({ ...dossier("conseiller", { [`/organisations/${ORG}/regimes`]: [{ id: "r1", nom: "Accord", versions: [version([])] }] }) });
     ouvrir(`/dossier/${ORG}/regime`);
     expect(await screen.findByText("L'adoption appartient à l'entreprise.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Adopter cette version" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Actions sur la version 1" }));
+    const item = screen.getByRole("menuitem", { name: /Adopter…/ });
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    expect(item).toHaveTextContent("L'adoption appartient à l'administrateur de l'entreprise.");
   });
 });
 
@@ -777,7 +783,7 @@ describe("le catalogue anonyme", () => {
   it("le conseiller ne partage pas pour l'entreprise", async () => {
     simulerApi(camerounais("conseiller", { [`/organisations/${ORG}/regimes/partages`]: [] }));
     ouvrir(`/dossier/${ORG}/regime`);
-    expect(await screen.findByText("En vigueur", { selector: ".version-tete .etat" })).toBeInTheDocument();
+    expect(await screen.findByText("Adoptée", { selector: ".version-tete .etat" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Partager anonymement" })).not.toBeInTheDocument();
   });
 
@@ -1140,93 +1146,101 @@ describe("les versions du régime", () => {
   const categorie = { categorie: "*", convention_code: "CM_COMMERCE", bareme: { forme: "tranches_cumulatives", tranches: [
     { jusqu_a: null, mois_par_annee: 0.5 }] }, anciennete_minimale: 0, plafond_mois: null, arrondi: "annees",
     base_salaire: "dernier", avec_primes: false, evenements: ["retraite"] };
-  const libre = { possible: true, reservee_entreprise: false, bloquee_par_brouillons: false, raison: null };
-  const garde = { possible: false, reservee_entreprise: false, bloquee_par_brouillons: false, raison: "Elle s'est appliquée." };
-  const version = (id: string, numero: number, statut: string, etat: string, extra: object = {}) => ({
+  const libre = { possible: true, reservee_entreprise: false, brouillons: 0, raison: null };
+  const version = (id: string, numero: number, statut: "analyse" | "adoptee", extra: object = {}) => ({
     id, regime_id: "r1", nom: "Accord", numero, en_vigueur_du: "2024-02-01", fondement: "accord_entreprise",
-    document_reference: `Accord, avenant ${numero}`, statut, etat, non_conformite_acceptee: false, categories: [categorie],
-    constats: [], etudes: 0, suppression: libre, ...extra });
+    document_reference: `Accord, avenant ${numero}`, statut, non_conformite_acceptee: false, categories: [categorie],
+    constats: [], etudes: 0, suppression: statut === "adoptee" ? { ...libre, reservee_entreprise: true } : libre,
+    notes: { salaries: null, assureurs: null }, application: null, ...extra });
   const tout = () => [
-    version("v1", 1, "adoptee", "remplacee", { remplacee_par: 2, jusqu_au: "2025-01-01", suppression: garde }),
-    version("v2", 2, "adoptee", "en_vigueur", { en_vigueur_du: "2025-01-01", suppression: garde }),
-    version("v3", 3, "analyse", "projet", { en_vigueur_du: "2026-01-01" }),
-    version("v4", 4, "abandonnee", "abandonnee", { abandonnee_le: "2026-03-01T10:00:00", motif_abandon: "Trop coûteux" }),
-    version("v5", 5, "adoptee", "a_venir", { en_vigueur_du: "2099-01-01", suppression: { ...libre, reservee_entreprise: true } }),
+    version("v1", 1, "adoptee", { application: { a_venir: false, depuis: "2024-02-01", remplacee_le: "2025-01-01", remplacee_par: 2, en_cours: false },
+      suppression: { possible: false, reservee_entreprise: true, brouillons: 0, raison: "Citée par 2 études émises : elle reste." } }),
+    version("v2", 2, "adoptee", { en_vigueur_du: "2025-01-01", notes: { salaries: "NR-AAAA-BBBB", assureurs: null },
+      application: { a_venir: false, depuis: "2025-01-01", remplacee_le: null, remplacee_par: null, en_cours: true },
+      suppression: { possible: false, reservee_entreprise: true, brouillons: 0, raison: "Citée par une note émise : elle reste." } }),
+    version("v3", 3, "analyse", { en_vigueur_du: "2026-01-01", suppression: { ...libre, brouillons: 2 } }),
   ];
   const monter = (role: "admin_client" | "conseiller" | "lecteur_client", extra: Record<string, unknown> = {}, versions = tout()) =>
     simulerApi({ ...dossier(role, { [`/organisations/${ORG}/regimes`]: [{ id: "r1", nom: "Accord", versions }], ...extra }) });
-  const carte = async (n: number) => within((await screen.findByText(`Version ${n}`)).closest(".version") as HTMLElement);
+  const menu = async (n: number) => {
+    await userEvent.click(await screen.findByRole("button", { name: `Actions sur la version ${n}` }));
+    return within(screen.getByRole("menu"));
+  };
 
-  it("trois zones : en application, en discussion, l'historique replié ; un seul badge par version", async () => {
+  it("deux statuts seulement ; les dates en information ; l'historique replié", async () => {
     monter("lecteur_client");
     ouvrir(`/dossier/${ORG}/regime`);
     await screen.findByText("Version 2");
     const zones = [...document.querySelectorAll(".zone-versions")].map((z) =>
-      [...z.querySelectorAll(".version-tete > .etat")].map((e) => e.textContent));
-    expect(zones).toEqual([["En vigueur", "Adoptée, à venir"], ["Projet"], ["Remplacée", "Abandonnée"]]);
-    expect(screen.getByText(/remplacée par la version 2 le 01\/01\/2025/)).toBeInTheDocument();
-    expect(screen.getByText(/Historique \(2\)/).closest("details")).not.toHaveAttribute("open");
-    expect(screen.queryByRole("button", { name: /Supprimer|Abandonner|Modifier|Faire le ménage/ })).toBeNull();
+      [...z.querySelectorAll(".version-tete .etat")].map((e) => e.textContent));
+    expect(zones).toEqual([["Adoptée"], ["Brouillon"], ["Adoptée"]]);
+    expect(screen.getByText(/s'applique depuis le 01\/01\/2025/)).toBeInTheDocument();
+    expect(screen.getByText(/s'est appliquée du 01\/02\/2024 au 01\/01\/2025, remplacée par la version 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Historique \(1\)/).closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByText(/Communiquée : note aux salariés NR-AAAA-BBBB/)).toBeInTheDocument();
+    // Le lecteur : lire, analyser, comparer, télécharger ce qui est émis ; rien d'autre.
+    const m = await menu(2);
+    expect(m.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(
+      ["Note aux salariés (PDF)", "Émettre la note aux assureurs (PDF)Pas encore émise.", "Analyser : légalité, pièges, coûts", "Comparer dans Simuler"]);
+    expect(screen.queryByRole("button", { name: "Faire le ménage" })).toBeNull();
   });
 
-  it("un projet se modifie sur place, s'abandonne avec un motif, ou se supprime", async () => {
+  it("un brouillon : modifier sur place, dupliquer, supprimer avec ses études en brouillon", async () => {
     const appels = monter("admin_client", {
-      [`PUT /organisations/${ORG}/regimes/versions/v3`]: version("v3", 3, "analyse", "projet"),
-      [`POST /organisations/${ORG}/regimes/versions/v3/abandon`]: version("v3", 3, "abandonnee", "abandonnee") });
+      [`PUT /organisations/${ORG}/regimes/versions/v3`]: version("v3", 3, "analyse"),
+      [`POST /organisations/${ORG}/regimes/versions/v3/duplication`]: version("v4", 4, "analyse"),
+      [`DELETE /organisations/${ORG}/regimes/versions/v3`]: { supprimee: true, regime_supprime: false } });
     ouvrir(`/dossier/${ORG}/regime`);
-    const projet = await carte(3);
-    expect(projet.getByRole("button", { name: "Adopter cette version" })).toBeInTheDocument();
-    expect(projet.getByRole("button", { name: "Supprimer" })).toBeInTheDocument();
-    await userEvent.click(projet.getByRole("button", { name: "Modifier" }));
-    expect(projet.getByText(/aucune version ne s'ajoute/)).toBeInTheDocument();
-    await userEvent.click(projet.getByRole("button", { name: "Enregistrer les corrections" }));
+    let m = await menu(3);
+    expect(m.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Modifier", "Dupliquer",
+      "Analyser : légalité, pièges, coûts", "Comparer dans Simuler", "Adopter…", "Supprimer (et 2 études en brouillon)"]);
+    await userEvent.click(m.getByRole("menuitem", { name: "Modifier" }));
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer les corrections" }));
     await waitFor(() => expect(appels.some((a) => a.init?.method === "PUT")).toBe(true));
-    await userEvent.click(projet.getByRole("button", { name: "Abandonner" }));
-    const motif = projet.getByLabelText("Pourquoi ce projet n'est pas retenu");
-    await userEvent.type(motif, "Avenant non signé");
-    await userEvent.click(within(motif.closest("form") as HTMLElement).getByRole("button", { name: "Abandonner" }));
-    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
-    // Adoptée à venir : la DRH peut annuler, avec un motif ; en vigueur : rien ne se supprime.
-    expect((await carte(5)).getByRole("button", { name: "Annuler l'adoption et supprimer" })).toBeInTheDocument();
-    expect((await carte(2)).queryByRole("button", { name: /Supprimer/ })).toBeNull();
+    m = await menu(3);
+    await userEvent.click(m.getByRole("menuitem", { name: "Dupliquer" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/duplication"))).toBe(true));
+    m = await menu(3);
+    await userEvent.click(m.getByRole("menuitem", { name: /Supprimer/ }));
+    expect(screen.getByText(/2 études en brouillon qui s'appuient dessus partiront avec/)).toBeInTheDocument();
+    await userEvent.click(within(screen.getByLabelText("Motif (facultatif)").closest("form") as HTMLElement).getByRole("button", { name: "Supprimer" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "DELETE")).toBe(true));
   });
 
-  it("le conseiller ne supprime pas une adoption ; un projet retenu par des brouillons le dit", async () => {
-    const versions = tout();
-    versions[2] = version("v3", 3, "analyse", "projet", { suppression: { possible: false, reservee_entreprise: false,
-      bloquee_par_brouillons: true, raison: "2 études en brouillon s'appuient dessus : les supprimer d'abord." } });
-    monter("conseiller", {}, versions);
+  it("une version adoptée : ses notes, la dupliquer ; la supprimer seulement si rien ne la cite", async () => {
+    const appels = monter("admin_client", {
+      [`POST /organisations/${ORG}/regimes/versions/v2/notes/assureurs`]: { numero: "NR-CCCC-DDDD" } });
+    const ouvrirPdf = vi.spyOn((await import("../api")).api, "ouvrir").mockImplementation(async () => undefined);
     ouvrir(`/dossier/${ORG}/regime`);
-    const projet = await carte(3);
-    expect(projet.queryByRole("button", { name: "Supprimer" })).toBeNull();
-    expect(projet.getByText(/2 études en brouillon s'appuient dessus/)).toBeInTheDocument();
-    expect(projet.getByText("L'adoption appartient à l'entreprise.")).toBeInTheDocument();
-    expect((await carte(5)).queryByRole("button", { name: /Annuler l'adoption/ })).toBeNull();
+    let m = await menu(2);
+    const sup = m.getByRole("menuitem", { name: /Supprimer…/ });
+    expect(sup).toHaveAttribute("aria-disabled", "true");
+    expect(sup).toHaveTextContent("Citée par une note émise : elle reste.");
+    await userEvent.click(m.getByRole("menuitem", { name: "Émettre la note aux assureurs (PDF)" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/notes/assureurs") && a.init?.method === "POST")).toBe(true));
+    expect(ouvrirPdf).toHaveBeenCalledWith(`/organisations/${ORG}/regimes/versions/v2/notes/assureurs`);
+    m = await menu(2);
+    expect(m.getByRole("menuitem", { name: "Dupliquer en brouillon" })).toBeInTheDocument();
+    ouvrirPdf.mockRestore();
   });
 
-  it("faire le ménage : ce qui peut partir, coché quand c'est sans regret, supprimé en une fois", async () => {
+  it("faire le ménage : ce qui peut partir, coché quand c'est sans regret", async () => {
     const candidats = [
-      { version_id: "v4", regime: "Accord", numero: 4, etat: "abandonnee", raison: "abandonnée le 01/03/2026", coche: true, brouillons: [], motif_requis: false },
-      { version_id: "v3", regime: "Accord", numero: 3, etat: "projet", raison: "projet sans décision depuis 12 jours ; 1 étude en brouillon partira avec",
-        coche: false, brouillons: [{ id: "e9", date_evaluation: "2025-12-31" }], motif_requis: false },
-      { version_id: "v5", regime: "Accord", numero: 5, etat: "a_venir", raison: "adoptée pour le 01/01/2099", coche: false, brouillons: [], motif_requis: true },
+      { version_id: "v3", regime: "Accord", numero: 3, statut: "analyse", raison: "brouillon sans décision depuis 120 jours ; 1 étude en brouillon partira avec",
+        coche: true, brouillons: [{ id: "e9", date_evaluation: "2025-12-31" }], motif_requis: false },
+      { version_id: "v5", regime: "Accord", numero: 5, statut: "adoptee", raison: "adoptée le 01/03/2026, citée par rien", coche: false, brouillons: [], motif_requis: true },
     ];
     const appels = monter("admin_client", {
       [`/organisations/${ORG}/regimes/menage`]: { jours_sans_decision: 90, candidats },
-      [`POST /organisations/${ORG}/regimes/menage`]: { versions: 2, brouillons: 1 } });
+      [`POST /organisations/${ORG}/regimes/menage`]: { versions: 1, brouillons: 1 } });
     ouvrir(`/dossier/${ORG}/regime`);
     await userEvent.click(await screen.findByRole("button", { name: "Faire le ménage" }));
-    const bouton = await screen.findByRole("button", { name: "Supprimer 1 version" });
-    await userEvent.click(screen.getByRole("checkbox", { name: /version 3/ }));
-    expect(screen.getByRole("button", { name: "Supprimer 2 versions et 1 brouillon" })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: "Supprimer 1 version et 1 brouillon" })).toBeEnabled();
     await userEvent.click(screen.getByRole("checkbox", { name: /version 5/ }));
-    expect(screen.getByRole("button", { name: /Supprimer 3 versions/ })).toBeDisabled();     // le motif d'abord
+    expect(screen.getByRole("button", { name: /Supprimer 2 versions/ })).toBeDisabled();       // le motif d'abord
     await userEvent.click(screen.getByRole("checkbox", { name: /version 5/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Supprimer 2 versions et 1 brouillon" }));
+    await userEvent.click(screen.getByRole("button", { name: "Supprimer 1 version et 1 brouillon" }));
     await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
-    expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string))
-      .toEqual({ versions: ["v4", "v3"], motif: null });
-    expect(await screen.findByText(/2 versions supprimées, avec 1 étude en brouillon/)).toBeInTheDocument();
-    void bouton;
+    expect(await screen.findByText(/1 version supprimée, avec 1 étude en brouillon/)).toBeInTheDocument();
   });
 });

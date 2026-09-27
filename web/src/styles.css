@@ -482,3 +482,17 @@ ul.menage { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 8p
 ul.menage label { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
 ul.menage .etat { margin-left: 6px; }
 .menage-raison { display: block; font-size: 13px; margin-top: 2px; }
+
+/* Le menu ⋮ commun. */
+.menu-actions { position: relative; display: inline-block; flex: none; }
+button.menu-points { width: 34px; height: 34px; padding: 0; border-radius: 8px; font-size: 18px; line-height: 1; color: var(--encre-2); background: transparent; border-color: transparent; }
+button.menu-points:hover, button.menu-points[aria-expanded="true"] { background: var(--fond); border-color: var(--trait); }
+.menu-liste { position: absolute; right: 0; top: calc(100% + 4px); z-index: 50; min-width: 240px; max-width: min(320px, 86vw); list-style: none; margin: 0; padding: 6px; background: var(--surface); border: 1px solid var(--trait); border-radius: 12px; box-shadow: 0 12px 32px #0f1a4a24; }
+.menu-liste li { margin: 0; }
+.menu-liste button { display: grid; width: 100%; text-align: left; gap: 2px; padding: 8px 10px; border: 0; border-radius: 8px; background: none; font-weight: 500; color: var(--encre); }
+.menu-liste button:hover:not([aria-disabled="true"]), .menu-liste button:focus-visible { background: var(--fond); outline: none; }
+.menu-liste button.danger { color: var(--grave); }
+.menu-liste button[aria-disabled="true"] { color: var(--discret); cursor: not-allowed; }
+.menu-liste small { font-size: 11.5px; font-weight: 400; color: var(--discret); }
+.version-coin { display: flex; align-items: center; gap: 6px; flex: none; }
+.version-passee { background: var(--fond); }

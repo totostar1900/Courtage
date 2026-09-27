@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { api } from "../api";
 import type { Variante } from "../comparatif";
@@ -6,7 +7,7 @@ import { Comparatif } from "../composants/Comparatif";
 import { Constats, Erreur, Volet } from "../composants/communs";
 import { EditeurCategories, CONVENTION_PAR_PAYS, categorieVide } from "../composants/EditeurCategories";
 import { millions, montant, pct } from "../format";
-import { etatVersion, libelleVersion, ordonner } from "../regimes";
+import { libelleVersion, ordonner } from "../regimes";
 import type { Categorie, Constat, Totaux } from "../types";
 import { useDossier } from "./Dossier";
 
@@ -24,13 +25,14 @@ interface ResultatVariante {
 
 export default function Simulation() {
   const d = useDossier();
-  const versions = d.regimes.flatMap((r) => ordonner(r.versions).filter((v) => etatVersion(v) !== "abandonnee")
-    .map((v) => ({ ...v, nomRegime: r.nom })));
+  const versions = d.regimes.flatMap((r) => ordonner(r.versions).map((v) => ({ ...v, nomRegime: r.nom })));
   const [fichier, setFichier] = useState(d.fichiers[0]?.id ?? "");
   const [date, setDate] = useState(d.fichiers[0]?.date_donnees ?? "");
   const [convention, setConvention] = useState(CONVENTION_PAR_PAYS[d.org.pays] ?? "");
   const [fonds, setFonds] = useState(0);
-  const [choisies, setChoisies] = useState<string[]>([]);
+  // « Comparer » depuis le menu d'une version arrive ici avec la version cochée.
+  const [params] = useSearchParams();
+  const [choisies, setChoisies] = useState<string[]>(params.getAll("version"));
   const [idee, setIdee] = useState<Categorie[] | null>(null);
   const [resultats, setResultats] = useState<ResultatVariante[] | null>(null);
   const [erreur, setErreur] = useState<unknown>(null);

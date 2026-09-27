@@ -350,6 +350,7 @@ class Document(Base):
     etude_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("etudes.id"))
     fiche_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("fiches_regime.id"))
     prestation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("prestations.id"))
+    version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("regimes_versions.id"))   # une note de régime
     numero: Mapped[str] = mapped_column(ForeignKey("sceaux.numero"))
     type_contenu: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
     contenu: Mapped[bytes] = mapped_column(LargeBinary)
@@ -357,7 +358,7 @@ class Document(Base):
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
-StatutVersion = ENUM("analyse", "adoptee", "abandonnee", name="statut_version_regime", create_type=False)
+StatutVersion = ENUM("analyse", "adoptee", name="statut_version_regime", create_type=False)
 BaseSalaire = ENUM("dernier", "moyenne_12_mois", name="base_salaire", create_type=False)
 Arrondi = ENUM("annees", "mois", name="arrondi_anciennete", create_type=False)
 
@@ -385,9 +386,6 @@ class VersionRegime(Base):
     cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
     adoptee_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
-    abandonnee_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
-    abandonnee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    motif_abandon: Mapped[str | None] = mapped_column(Text)
     adoptee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     non_conformite_acceptee: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
     constats_a_l_adoption: Mapped[list | None] = mapped_column(JSONB)

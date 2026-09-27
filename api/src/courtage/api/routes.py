@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import alertes, analyse, cycle, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import alertes, analyse, cycle, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -544,21 +544,10 @@ def adopter_version(version_id: uuid.UUID, corps: Adoption, a: Acces = Depends(a
     return regimes.en_clair(a.session, v)
 
 
-class Abandon(_Corps):
-    motif: str = Field(min_length=1, max_length=500)
-
-
-@routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/abandon")
-def abandonner_version(version_id: uuid.UUID, corps: Abandon, a: Acces = Depends(acces(*CLIENT))):
-    """Un projet non retenu : il reste lisible, avec son motif."""
-    v = regimes.abandonner(a.session, regimes.obtenir_version(a.session, version_id), a.utilisateur.id, corps.motif)
-    return regimes.en_clair(a.session, v)
-
-
 @routeur.delete("/organisations/{organisation_id}/regimes/versions/{version_id}")
 def supprimer_version(version_id: uuid.UUID, motif: str | None = None, a: Acces = Depends(acces(*CLIENT))):
-    """Une version jamais appliquée que rien ne cite ; son régime aussi, s'il reste sans version. Une adoption à venir :
-    la DRH seule, avec un motif."""
+    """Un brouillon, ou une version adoptée que rien ne cite (l'administrateur de l'entreprise, avec un motif) ; ses
+    études en brouillon partent avec elle, et son régime s'il reste sans version."""
     regime_supprime = regimes.supprimer(a.session, regimes.obtenir_version(a.session, version_id), a.utilisateur.id,
                                         a.role, motif)
     return {"supprimee": True, "regime_supprime": regime_supprime}
@@ -566,13 +555,38 @@ def supprimer_version(version_id: uuid.UUID, motif: str | None = None, a: Acces 
 
 @routeur.put("/organisations/{organisation_id}/regimes/versions/{version_id}")
 def modifier_version(version_id: uuid.UUID, corps: NouvelleVersion, a: Acces = Depends(acces(*CLIENT))):
-    """Un projet se corrige sur place, jusqu'à son adoption."""
-    v = regimes.modifier_projet(
+    """Un brouillon se corrige sur place, jusqu'à son adoption."""
+    v = regimes.modifier_brouillon(
         a.session, a.organisation, regimes.obtenir_version(a.session, version_id), a.utilisateur.id,
         en_vigueur_du=corps.en_vigueur_du, fondement=corps.fondement, document_reference=corps.document_reference,
         note=corps.note, categories=[regimes.SaisieCategorie(**{**c.model_dump(), "evenements": tuple(c.evenements)})
                                      for c in corps.categories])
     return regimes.en_clair(a.session, v)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/duplication", status_code=201)
+def dupliquer_version(version_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
+    """Un nouveau brouillon, copie de la version : c'est ainsi qu'évolue une version adoptée."""
+    v = regimes.dupliquer(a.session, a.organisation, regimes.obtenir_version(a.session, version_id), a.utilisateur.id)
+    return regimes.en_clair(a.session, v)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/notes/{nature}")
+def emettre_note(version_id: uuid.UUID, nature: str, request: Request, a: Acces = Depends(acces(*CLIENT))):
+    """La note aux salariés ou aux assureurs d'une version adoptée : scellée à la première demande, la même ensuite."""
+    d = notes_regime.emettre(a.session, a.organisation, regimes.obtenir_version(a.session, version_id), nature,
+                             a.utilisateur.id, request.app.state.sceau, date.today())
+    return {"numero": d.numero}
+
+
+@routeur.get("/organisations/{organisation_id}/regimes/versions/{version_id}/notes/{nature}")
+def telecharger_note(version_id: uuid.UUID, nature: str, a: Acces = Depends(acces(*TOUS))):
+    v = regimes.obtenir_version(a.session, version_id)
+    d = notes_regime.existante(a.session, v, nature) if nature in notes_regime.NATURES else None
+    if d is None:
+        raise ErreurMetier("note_non_emise", "Cette note n'a pas encore été émise.", 404)
+    nom = f"{notes_regime.NATURES[nature][2].lower().replace(' ', '-')}-{a.organisation.nom}-v{v.numero}-{d.numero}.pdf"
+    return Response(d.contenu, media_type=d.type_contenu, headers=_piece_jointe(nom))
 
 
 @routeur.get("/organisations/{organisation_id}/regimes/menage")

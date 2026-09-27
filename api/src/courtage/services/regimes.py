@@ -5,17 +5,14 @@ convention est enregistré et signalé, jamais refusé. L'entreprise l'adopte
 d'un seul acte ; si le régime n'est pas conforme, l'acte dit qu'elle l'a vu.
 Le moteur retient toujours le plus favorable du régime et du plancher.
 
-Le parcours d'une version (`etat_version`) :
-- **projet** : enregistrée, pas adoptée. Elle se simule et s'étudie en brouillon ; aucune étude ne s'émet dessus.
-  L'entreprise l'adopte ; ou on l'abandonne (motif) ; ou, si aucune étude ne s'en est servie, on la supprime.
-- **à venir** : adoptée, sa date d'effet n'est pas arrivée.
-- **en vigueur** : adoptée, la plus récente dont la date d'effet est passée. Les études s'appuient sur elle.
-- **remplacée** : adoptée, puis relayée par une version adoptée plus récente, entrée en vigueur. Elle reste
-  la base des études aux dates où elle s'appliquait.
-- **abandonnée** : un projet non retenu. Elle reste lisible, avec son motif, et ne bouge plus.
-Une version qui ne s'est jamais appliquée (projet, abandonnée, adoptée à venir) et que rien ne cite se supprime ;
-une version en vigueur ou remplacée reste toujours. Un projet se corrige sur place. Conception :
-docs/specs/2026-09-27-versions-de-regime-design.md.
+Une version est un **brouillon** (`analyse`) ou une version **adoptée**, rien d'autre :
+- le brouillon se modifie sur place, se duplique, s'analyse, s'adopte ; il se supprime, et ses études en brouillon
+  partent avec lui ;
+- adoptée, elle est figée parce qu'elle a été communiquée (notes aux salariés et aux assureurs). Pour la changer, on
+  la duplique en brouillon. Elle se supprime tant que rien ne la cite : une étude émise, un cahier des charges, un
+  partage au catalogue ou une note émise la retiennent.
+Les dates (s'applique depuis, à partir de, remplacée le) sont une information, pas un statut : `application`.
+Conception : docs/specs/2026-09-27-versions-de-regime-design.md.
 """
 import uuid
 from dataclasses import dataclass
@@ -26,7 +23,8 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from courtage.actuariat.ifc import Regles, mois_dus
-from courtage.db import CategorieRegime, Etude, FicheRegime, Organisation, PartageRegime, Regime, VersionRegime
+from courtage.db import (CategorieRegime, Document, Etude, FicheRegime, Organisation, PartageRegime, Regime,
+                         VersionRegime)
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.referentiel import Bareme, Convention, referentiel_courant
 
@@ -81,9 +79,6 @@ def adopter(session: Session, version: VersionRegime, auteur: uuid.UUID, accepte
     """L'entreprise adopte, d'un seul acte. Une non-conformité doit avoir été vue."""
     if version.statut == "adoptee":
         raise ErreurMetier("version_deja_adoptee", "Cette version est déjà adoptée.", 409)
-    if version.statut == "abandonnee":
-        raise ErreurMetier("version_abandonnee", "Cette version a été abandonnée : enregistrer une nouvelle version "
-                                                 "pour la reprendre.", 409)
     releves = constats(session, version, version.en_vigueur_du)
     non_conforme = any(c["code"] == "sous_le_plancher" for c in releves)
     if non_conforme and not accepte_non_conformite:
@@ -124,24 +119,7 @@ def categories_de(session: Session, version: VersionRegime) -> list[CategorieReg
                                 .order_by(CategorieRegime.categorie)))
 
 
-def abandonner(session: Session, version: VersionRegime, auteur: uuid.UUID, motif: str) -> VersionRegime:
-    """Un projet que l'entreprise ne retient pas : il reste lisible, avec son motif, et ne bouge plus."""
-    if version.statut != "analyse":
-        raise ErreurMetier("version_non_projet", "Seul un projet s'abandonne : une version adoptée se remplace par "
-                                                 "une nouvelle version.", 409)
-    if not (motif or "").strip():
-        raise ErreurMetier("motif_requis", "Dire pourquoi ce projet n'est pas retenu.", 422)
-    version.statut = "abandonnee"
-    version.abandonnee_par = auteur
-    version.abandonnee_le = datetime.now(timezone.utc)
-    version.motif_abandon = motif.strip()
-    session.flush()
-    journaliser(session, version.organisation_id, auteur, "regime.version_abandonnee", version.id,
-                {"motif": version.motif_abandon})
-    return version
-
-
-JOURS_SANS_DECISION = 90      # au-delà, un projet est proposé au ménage
+JOURS_SANS_DECISION = 90      # au-delà, un brouillon est proposé au ménage
 
 
 def etudes_de(session: Session, version: VersionRegime) -> int:
@@ -149,77 +127,62 @@ def etudes_de(session: Session, version: VersionRegime) -> int:
 
 
 def citations(session: Session, version: VersionRegime) -> dict:
-    """Ce qui cite une version et la retient : les études (émises, ou en brouillon qu'on peut supprimer), les cahiers
-    des charges, les partages au catalogue."""
+    """Ce qui cite une version : les études (émises, qui la retiennent ; en brouillon, qui partent avec elle), les
+    cahiers des charges, les partages au catalogue, les notes émises."""
     etudes = session.execute(select(Etude.id, Etude.statut, Etude.date_evaluation)
                              .where(Etude.regime_version_id == version.id)).all()
+    compter = lambda modele, colonne: session.scalar(  # noqa: E731
+        select(func.count()).select_from(modele).where(colonne == version.id)) or 0
     return {
         "etudes_emises": sum(1 for e in etudes if e.statut == "emise"),
         "brouillons": [{"id": str(e.id), "date_evaluation": e.date_evaluation.isoformat()}
                        for e in etudes if e.statut == "brouillon"],
-        "cahiers": session.scalar(select(func.count()).select_from(FicheRegime)
-                                  .where(FicheRegime.regime_version_id == version.id)) or 0,
-        "partages": session.scalar(select(func.count()).select_from(PartageRegime)
-                                   .where(PartageRegime.version_id == version.id)) or 0,
+        "cahiers": compter(FicheRegime, FicheRegime.regime_version_id),
+        "partages": compter(PartageRegime, PartageRegime.version_id),
+        "notes": compter(Document, Document.version_id),
     }
 
 
-def jamais_appliquee(version: VersionRegime, jour: date) -> bool:
-    return version.statut in ("analyse", "abandonnee") or (version.statut == "adoptee" and version.en_vigueur_du > jour)
-
-
-def suppression(session: Session, version: VersionRegime, jour: date, c: dict | None = None) -> dict:
-    """Une version se supprime si elle ne s'est jamais appliquée et que rien ne la cite. Une version adoptée à venir :
-    la DRH seule, avec un motif (c'est annuler sa décision)."""
+def suppression(session: Session, version: VersionRegime, c: dict | None = None) -> dict:
+    """Un brouillon se supprime toujours ; une version adoptée, tant que rien ne la cite (la DRH seule, avec un motif :
+    c'est revenir sur sa décision). Les études en brouillon qui la citent partent avec elle."""
     c = c or citations(session, version)
-    reservee = version.statut == "adoptee"
-    if not jamais_appliquee(version, jour):
-        return {"possible": False, "reservee_entreprise": False, "bloquee_par_brouillons": False,
-                "raison": "Elle s'est appliquée : des études peuvent s'y référer. Elle reste, dans l'historique."}
-    bloquants = []
-    if c["etudes_emises"]:
-        bloquants.append(f"{c['etudes_emises']} étude{'s' if c['etudes_emises'] > 1 else ''} émise"
-                         f"{'s' if c['etudes_emises'] > 1 else ''}")
-    if c["cahiers"]:
-        bloquants.append(f"{c['cahiers']} cahier{'s' if c['cahiers'] > 1 else ''} des charges")
-    if c["partages"]:
-        bloquants.append("un partage au catalogue")
-    if bloquants:
-        return {"possible": False, "reservee_entreprise": reservee, "bloquee_par_brouillons": False,
-                "raison": "Elle est citée par " + ", ".join(bloquants) + " : elle reste."}
-    if n := len(c["brouillons"]):
-        return {"possible": False, "reservee_entreprise": reservee, "bloquee_par_brouillons": True,
-                "raison": f"{n} étude{'s' if n > 1 else ''} en brouillon s'appuie{'nt' if n > 1 else ''} dessus : "
-                          "les supprimer d'abord, ou passer par « Faire le ménage », qui le fait en une fois."}
-    return {"possible": True, "reservee_entreprise": reservee, "bloquee_par_brouillons": False, "raison": None}
+    adoptee = version.statut == "adoptee"
+    raisons = []
+    for n, un, plusieurs in ((c["etudes_emises"], "une étude émise", "études émises"),
+                             (c["cahiers"], "un cahier des charges", "cahiers des charges"),
+                             (c["notes"], "une note émise", "notes émises"),
+                             (c["partages"], "un partage au catalogue", "partages au catalogue")):
+        if n:
+            raisons.append(un if n == 1 else f"{n} {plusieurs}")
+    if raisons:
+        return {"possible": False, "reservee_entreprise": adoptee, "brouillons": len(c["brouillons"]),
+                "raison": "Citée par " + ", ".join(raisons) + " : elle reste."}
+    return {"possible": True, "reservee_entreprise": adoptee, "brouillons": len(c["brouillons"]), "raison": None}
 
 
-def supprimer(session: Session, version: VersionRegime, auteur: uuid.UUID, role: str, motif: str | None = None,
-              avec_brouillons: bool = False) -> bool:
-    """Supprime une version jamais appliquée et que rien ne cite ; son régime aussi s'il reste sans version.
-    `avec_brouillons` : supprimer d'abord les études en brouillon qui la citent (le ménage). Rend vrai si le régime
-    est parti avec."""
-    jour = date.today()
-    if avec_brouillons:
-        from . import etudes as service_etudes
-        for b in citations(session, version)["brouillons"]:
-            service_etudes.supprimer(session, session.get(Etude, uuid.UUID(b["id"])), auteur)
-    s = suppression(session, version, jour)
+def supprimer(session: Session, version: VersionRegime, auteur: uuid.UUID, role: str, motif: str | None = None) -> bool:
+    """Supprime la version (et ses études en brouillon) ; son régime aussi s'il reste sans version. Rend vrai si le
+    régime est parti avec."""
+    c = citations(session, version)
+    s = suppression(session, version, c)
     if not s["possible"]:
-        code = "version_appliquee" if not jamais_appliquee(version, jour) else "version_citee"
-        raise ErreurMetier(code, s["raison"], 409)
+        raise ErreurMetier("version_citee", s["raison"], 409)
     if s["reservee_entreprise"]:
         if role != "admin_client":
-            raise ErreurMetier("acces_refuse", "Supprimer une version adoptée, c'est annuler la décision de "
-                                               "l'entreprise : la DRH seule le peut.", 403)
+            raise ErreurMetier("acces_refuse", "Supprimer une version adoptée, c'est revenir sur la décision de "
+                                               "l'entreprise : l'administrateur de l'entreprise seul le peut.", 403)
         if not (motif or "").strip():
-            raise ErreurMetier("motif_requis", "Dire pourquoi l'adoption est annulée.", 422)
+            raise ErreurMetier("motif_requis", "Dire pourquoi la version adoptée est supprimée.", 422)
+    from . import etudes as service_etudes
+    for b in c["brouillons"]:
+        service_etudes.supprimer(session, session.get(Etude, uuid.UUID(b["id"])), auteur)
     regime_id, numero, statut = version.regime_id, version.numero, version.statut
-    session.execute(delete(CategorieRegime).where(CategorieRegime.version_id == version.id))
-    session.delete(version)
+    session.delete(version)                      # ses catégories suivent (ON DELETE CASCADE)
     session.flush()
     journaliser(session, version.organisation_id, auteur, "regime.version_supprimee", version.id,
-                {"regime_id": str(regime_id), "numero": numero, "statut": statut, "motif": (motif or "").strip() or None})
+                {"regime_id": str(regime_id), "numero": numero, "statut": statut,
+                 "brouillons": len(c["brouillons"]), "motif": (motif or "").strip() or None})
     reste = session.scalar(select(func.count()).select_from(VersionRegime).where(VersionRegime.regime_id == regime_id))
     if not reste:
         session.execute(delete(Regime).where(Regime.id == regime_id))
@@ -228,13 +191,12 @@ def supprimer(session: Session, version: VersionRegime, auteur: uuid.UUID, role:
     return False
 
 
-def modifier_projet(session: Session, org: Organisation, version: VersionRegime, auteur: uuid.UUID, *,
-                    en_vigueur_du: date, fondement: str, document_reference: str, note: str | None,
-                    categories: list[SaisieCategorie]) -> VersionRegime:
-    """Un projet se corrige sur place, jusqu'à son adoption : une retouche n'ajoute pas une version."""
+def modifier_brouillon(session: Session, org: Organisation, version: VersionRegime, auteur: uuid.UUID, *,
+                       en_vigueur_du: date, fondement: str, document_reference: str, note: str | None,
+                       categories: list[SaisieCategorie]) -> VersionRegime:
+    """Un brouillon se corrige sur place, jusqu'à son adoption : une retouche n'ajoute pas une version."""
     if version.statut != "analyse":
-        raise ErreurMetier("version_non_projet", "Seul un projet se modifie. Une version adoptée se remplace par une "
-                                                 "nouvelle version.", 409)
+        raise ErreurMetier("version_adoptee", "Une version adoptée ne se modifie plus : la dupliquer en brouillon.", 409)
     _valider_categories(org, categories, en_vigueur_du)
     version.en_vigueur_du, version.fondement = en_vigueur_du, fondement
     version.document_reference, version.note = document_reference.strip(), note
@@ -245,35 +207,43 @@ def modifier_projet(session: Session, org: Organisation, version: VersionRegime,
     return version
 
 
+def dupliquer(session: Session, org: Organisation, version: VersionRegime, auteur: uuid.UUID) -> VersionRegime:
+    """Un nouveau brouillon, copie de la version : la façon de faire évoluer une version adoptée."""
+    categories = [SaisieCategorie(
+        categorie=c.categorie, convention_code=c.convention_code, bareme=c.bareme,
+        anciennete_minimale=c.anciennete_minimale, plafond_mois=c.plafond_mois, arrondi=c.arrondi,
+        base_salaire=c.base_salaire, avec_primes=c.avec_primes, evenements=tuple(c.evenements))
+        for c in categories_de(session, version)]
+    copie = nouvelle_version(session, org, session.get(Regime, version.regime_id), auteur,
+                             en_vigueur_du=version.en_vigueur_du, fondement=version.fondement,
+                             document_reference=version.document_reference, note=version.note, categories=categories)
+    journaliser(session, org.id, auteur, "regime.version_dupliquee", copie.id, {"depuis": version.numero})
+    return copie
+
+
 def menage(session: Session, jour: date, role: str) -> list[dict]:
-    """Ce qui peut partir, avec sa raison : projets et versions abandonnées ou à venir, jamais appliqués, que seules
-    des études en brouillon retiennent (ou rien). Coché par défaut : les abandonnées, et les projets sans décision
-    depuis `JOURS_SANS_DECISION` jours ; une adoption à venir ne l'est jamais (c'est une décision à annuler)."""
+    """Ce qui peut partir, avec sa raison. Coché d'office : les brouillons sans décision depuis `JOURS_SANS_DECISION`
+    jours. Une version adoptée que rien ne cite est proposée, jamais cochée (c'est revenir sur une décision), et à
+    l'administrateur de l'entreprise seulement."""
     candidats = []
     for regime, versions in lister(session):
         for v in versions:
-            if not jamais_appliquee(v, jour):
-                continue
             c = citations(session, v)
-            s = suppression(session, v, jour, c)
-            if not (s["possible"] or s["bloquee_par_brouillons"]):
-                continue
-            if s["reservee_entreprise"] and role != "admin_client":
+            s = suppression(session, v, c)
+            if not s["possible"] or (s["reservee_entreprise"] and role != "admin_client"):
                 continue
             age = (jour - v.cree_le.date()).days
-            if v.statut == "abandonnee":
-                raison, coche = f"abandonnée le {v.abandonnee_le:%d/%m/%Y}", True
-            elif v.statut == "analyse":
+            if v.statut == "analyse":
                 depuis = "créé aujourd'hui" if age < 1 else f"sans décision depuis {age} jour{'s' if age > 1 else ''}"
-                raison, coche = f"projet {depuis}", age >= JOURS_SANS_DECISION
+                raison, coche = f"brouillon {depuis}", age >= JOURS_SANS_DECISION
             else:
-                raison, coche = f"adoptée pour le {v.en_vigueur_du:%d/%m/%Y}, pas encore appliquée : annuler cette décision", False
+                raison, coche = f"adoptée le {v.adoptee_le:%d/%m/%Y}, citée par rien : revenir sur cette décision", False
             if c["brouillons"]:
                 n = len(c["brouillons"])
-                raison += f" ; {n} étude{'s' if n > 1 else ''} en brouillon partira{'ont' if n > 1 else ''} avec"
-            candidats.append({"version_id": str(v.id), "regime": regime.nom, "numero": v.numero,
-                              "etat": etat_version(session, v, jour)["etat"], "raison": raison, "coche": coche,
-                              "brouillons": c["brouillons"], "motif_requis": s["reservee_entreprise"]})
+                raison += f" ; {n} étude{'s' if n > 1 else ''} en brouillon {'partiront' if n > 1 else 'partira'} avec"
+            candidats.append({"version_id": str(v.id), "regime": regime.nom, "numero": v.numero, "statut": v.statut,
+                              "raison": raison, "coche": coche, "brouillons": c["brouillons"],
+                              "motif_requis": s["reservee_entreprise"]})
     return candidats
 
 
@@ -283,31 +253,33 @@ def faire_le_menage(session: Session, auteur: uuid.UUID, role: str, version_ids:
     inconnues = [str(i) for i in version_ids if str(i) not in retenus]
     if inconnues:
         raise ErreurMetier("hors_menage", "Certaines versions ne peuvent pas partir : " + ", ".join(inconnues), 409)
-    versions = brouillons = 0
+    brouillons = 0
     for i in version_ids:
-        v = obtenir_version(session, i)
         brouillons += len(retenus[str(i)]["brouillons"])
-        supprimer(session, v, auteur, role, motif, avec_brouillons=True)
-        versions += 1
-    return {"versions": versions, "brouillons": brouillons}
+        supprimer(session, obtenir_version(session, i), auteur, role, motif)
+    return {"versions": len(version_ids), "brouillons": brouillons}
 
 
-def etat_version(session: Session, version: VersionRegime, jour: date) -> dict:
-    """Où en est la version au jour dit : projet, à venir, en vigueur, remplacée, abandonnée."""
-    if version.statut == "abandonnee":
-        return {"etat": "abandonnee"}
-    if version.statut == "analyse":
-        return {"etat": "projet"}
-    if version.en_vigueur_du > jour:
-        return {"etat": "a_venir"}
+def _nature_note(session: Session, numero: str) -> str | None:
+    from courtage.db import Sceau
+    nature = session.scalar(select(Sceau.nature).where(Sceau.numero == numero))
+    return {"note_regime_salaries": "salaries", "note_regime_assureurs": "assureurs"}.get(nature)
+
+
+def application(session: Session, version: VersionRegime, jour: date) -> dict | None:
+    """Une information, pas un statut : depuis quand une version adoptée s'applique, à partir de quand, jusqu'à
+    quand. Rien pour un brouillon."""
+    if version.statut != "adoptee":
+        return None
     relais = session.scalars(
         select(VersionRegime)
         .where(VersionRegime.regime_id == version.regime_id, VersionRegime.statut == "adoptee",
-               VersionRegime.en_vigueur_du > version.en_vigueur_du, VersionRegime.en_vigueur_du <= jour)
+               VersionRegime.en_vigueur_du > version.en_vigueur_du)
         .order_by(VersionRegime.en_vigueur_du).limit(1)).first()
-    if relais is None:
-        return {"etat": "en_vigueur"}
-    return {"etat": "remplacee", "remplacee_par": relais.numero, "jusqu_au": relais.en_vigueur_du.isoformat()}
+    return {"a_venir": version.en_vigueur_du > jour, "depuis": version.en_vigueur_du.isoformat(),
+            "remplacee_le": relais.en_vigueur_du.isoformat() if relais else None,
+            "remplacee_par": relais.numero if relais else None,
+            "en_cours": version.en_vigueur_du <= jour and (relais is None or relais.en_vigueur_du > jour)}
 
 
 def version_en_vigueur(session: Session, regime_id: uuid.UUID, jour: date) -> VersionRegime | None:
@@ -397,12 +369,12 @@ def en_clair(session: Session, version: VersionRegime, jour: date | None = None)
         "document_reference": version.document_reference, "note": version.note, "statut": version.statut,
         "adoptee_le": version.adoptee_le.isoformat() if version.adoptee_le else None,
         "non_conformite_acceptee": version.non_conformite_acceptee,
-        **etat_version(session, version, date.today()),
-        "abandonnee_le": version.abandonnee_le.isoformat() if version.abandonnee_le else None,
-        "motif_abandon": version.motif_abandon,
+        "application": application(session, version, date.today()),
         "etudes": etudes_de(session, version),
         "citations": (c := citations(session, version)),
-        "suppression": suppression(session, version, date.today(), c),
+        "suppression": suppression(session, version, c),
+        "notes": {n: next((d.numero for d in session.scalars(select(Document).where(Document.version_id == version.id))
+                           if _nature_note(session, d.numero) == n), None) for n in ("salaries", "assureurs")},
         "categories": [{
             "categorie": c.categorie, "convention_code": c.convention_code, "bareme": c.bareme,
             "anciennete_minimale": c.anciennete_minimale, "plafond_mois": c.plafond_mois, "arrondi": c.arrondi,

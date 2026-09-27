@@ -85,12 +85,13 @@ def sceller_pdf(session: Session, *, nature: str, empreinte: str, resume: dict, 
 
 def sceller_document(session: Session, org: Organisation, *, nature: str, empreinte: str, resume: dict,
                      config: ConfigSceau, gabarit: str, contexte, etude_id=None, fiche_id=None,
-                     prestation_id=None, numero: str | None = None, prefixe: str = "RL") -> Document:
+                     prestation_id=None, version_id=None, numero: str | None = None, prefixe: str = "RL") -> Document:
     """Scelle, rend, et range le PDF dans `documents` (données du client, conservées)."""
     numero, pdf = sceller_pdf(session, nature=nature, empreinte=empreinte, resume=resume, config=config,
                               gabarit=gabarit, contexte=contexte, numero=numero, prefixe=prefixe)
     empreinte_document = hashlib.sha256(pdf).hexdigest()
     document = Document(organisation_id=org.id, etude_id=etude_id, fiche_id=fiche_id, prestation_id=prestation_id,
+                        version_id=version_id,
                         numero=numero, contenu=pdf,
                         empreinte_document=empreinte_document)
     session.add(document)

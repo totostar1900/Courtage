@@ -1,64 +1,57 @@
-/** Le vocabulaire des versions d'un régime, en un seul endroit : ce que dit chaque état, ce qu'il implique, et comment
- *  on en sort. La page Régime, les études, la simulation et le guide le lisent ici. */
-import type { EtatVersion, Version } from "./types";
+/** Le vocabulaire des versions d'un régime, en un seul endroit. Une version est un **brouillon** ou une version
+ *  **adoptée**, rien d'autre ; ses dates (s'applique depuis, à partir de, remplacée le) sont une information. */
+import { dateFr } from "./format";
+import type { Version } from "./types";
 
-export const ETATS_VERSION: Record<EtatVersion, {
-  libelle: string; classe: "bien" | "attention" | "neutre"; definition: string; impact: string; suite: string;
-}> = {
-  projet: {
-    libelle: "Projet", classe: "attention",
-    definition: "Enregistrée, pas encore adoptée par l'entreprise.",
-    impact: "Elle se simule et s'étudie en brouillon ; aucune étude ne s'émet sur elle.",
-    suite: "Elle se corrige sur place jusqu'à son adoption. L'entreprise l'adopte ; sinon on l'abandonne, ou on la "
-      + "supprime si rien ne la cite.",
+export const STATUTS: Record<Version["statut"], { libelle: string; classe: "bien" | "attention"; definition: string }> = {
+  analyse: {
+    libelle: "Brouillon", classe: "attention",
+    definition: "En analyse : se modifie, se duplique, se compare, s'adopte ou se supprime. Aucune étude ne s'émet dessus.",
   },
-  a_venir: {
-    libelle: "Adoptée, à venir", classe: "neutre",
-    definition: "Adoptée, sa date d'effet n'est pas encore arrivée.",
-    impact: "Elle s'appliquera aux études datées de son entrée en vigueur ou après.",
-    suite: "Elle entre en vigueur d'elle-même à sa date. D'ici là, la DRH peut annuler cette adoption (la supprimer), "
-      + "avec un motif, si rien ne la cite.",
-  },
-  en_vigueur: {
-    libelle: "En vigueur", classe: "bien",
-    definition: "Adoptée, et la plus récente dont la date d'effet est passée.",
-    impact: "C'est la base des études d'aujourd'hui.",
-    suite: "Pour la changer : enregistrer une nouvelle version, que l'entreprise adopte. Elle la remplacera à sa date.",
-  },
-  remplacee: {
-    libelle: "Remplacée", classe: "neutre",
-    definition: "Adoptée, puis relayée par une version plus récente.",
-    impact: "Elle reste la base des études datées de sa période d'application.",
-    suite: "Elle ne bouge plus et ne se supprime pas : des études et des rapports la citent.",
-  },
-  abandonnee: {
-    libelle: "Abandonnée", classe: "neutre",
-    definition: "Un projet que l'entreprise n'a pas retenu.",
-    impact: "Elle ne sert plus de base à une étude ; elle reste lisible, avec son motif.",
-    suite: "Elle ne bouge plus ; elle se supprime si rien ne la cite.",
+  adoptee: {
+    libelle: "Adoptée", classe: "bien",
+    definition: "Figée parce que communiquée (notes aux salariés et aux assureurs). Pour la changer : la dupliquer en "
+      + "brouillon. Elle se supprime tant que rien ne la cite.",
   },
 };
 
-/** L'état d'une version ; une réponse ancienne (sans `etat`) se lit sur son statut. */
-export function etatVersion(v: Pick<Version, "statut" | "etat">): EtatVersion {
-  return v.etat ?? (v.statut === "adoptee" ? "en_vigueur" : v.statut === "abandonnee" ? "abandonnee" : "projet");
-}
-
-/** L'ordre de lecture : ce qui s'applique, ce qui vient, ce qui attend une décision ; puis l'historique. */
-const RANG: Record<EtatVersion, number> = { en_vigueur: 0, a_venir: 1, projet: 2, remplacee: 3, abandonnee: 4 };
-
-/** La page Régime en trois zones : ce qui s'applique, ce qui se discute, ce qui a servi (replié). */
-export const ZONES: { cle: string; titre: string; etats: EtatVersion[]; repliee?: boolean }[] = [
-  { cle: "application", titre: "En application", etats: ["en_vigueur", "a_venir"] },
-  { cle: "discussion", titre: "En discussion", etats: ["projet"] },
-  { cle: "historique", titre: "Historique", etats: ["remplacee", "abandonnee"], repliee: true },
+/** Où ranger une version : ce qui s'applique ou s'appliquera, ce qui se prépare, ce qui a été remplacé (replié). */
+export type Zone = "application" | "brouillons" | "historique";
+export const ZONES: { cle: Zone; titre: string; repliee?: boolean }[] = [
+  { cle: "application", titre: "En application" },
+  { cle: "brouillons", titre: "Brouillons" },
+  { cle: "historique", titre: "Historique", repliee: true },
 ];
 
-export function ordonner(versions: Version[]): Version[] {
-  return [...versions].sort((a, b) => RANG[etatVersion(a)] - RANG[etatVersion(b)] || b.numero - a.numero);
+export function zone(v: Version): Zone {
+  if (v.statut === "analyse") return "brouillons";
+  const a = v.application;
+  return a && !a.en_cours && !a.a_venir ? "historique" : "application";
 }
 
-/** Le libellé d'une version dans une liste (étude, simulation) : « Accord IFC, version 2 — projet ». */
-export function libelleVersion(v: Pick<Version, "numero" | "statut" | "etat">, nomRegime: string): string {
-  return `${nomRegime}, version ${v.numero} — ${ETATS_VERSION[etatVersion(v)].libelle.toLowerCase()}`;
+/** La ligne de dates d'une version. */
+export function periode(v: Version): string {
+  const a = v.application;
+  if (v.statut === "analyse") return `prévue à partir du ${dateFr(v.en_vigueur_du)}`;
+  if (!a) return `à partir du ${dateFr(v.en_vigueur_du)}`;
+  if (a.a_venir) return `s'appliquera à partir du ${dateFr(a.depuis)}`;
+  if (a.remplacee_le && !a.en_cours)
+    return `s'est appliquée du ${dateFr(a.depuis)} au ${dateFr(a.remplacee_le)}, remplacée par la version ${a.remplacee_par}`;
+  return `s'applique depuis le ${dateFr(a.depuis)}`
+    + (a.remplacee_le ? `, jusqu'au ${dateFr(a.remplacee_le)} (version ${a.remplacee_par})` : "");
+}
+
+/** Ce qui s'applique d'abord, puis ce qui vient, les brouillons, l'historique ; le plus récent d'abord. */
+export function ordonner(versions: Version[]): Version[] {
+  const rang = (v: Version) => (zone(v) === "application" ? (v.application?.en_cours ? 0 : 1) : zone(v) === "brouillons" ? 2 : 3);
+  return [...versions].sort((a, b) => rang(a) - rang(b) || b.numero - a.numero);
+}
+
+export function enCours(v: Version): boolean {
+  return v.statut === "adoptee" && (v.application?.en_cours ?? true);
+}
+
+/** Le libellé d'une version dans une liste (étude, simulation) : « Accord IFC, version 2 — brouillon ». */
+export function libelleVersion(v: Pick<Version, "numero" | "statut">, nomRegime: string): string {
+  return `${nomRegime}, version ${v.numero} — ${STATUTS[v.statut].libelle.toLowerCase()}`;
 }

@@ -97,18 +97,18 @@ def _personnel(session: Session, aujourd_hui: date) -> list[dict]:
 
 
 def _regime(session: Session, aujourd_hui: date) -> list[dict]:
-    """Un projet sans décision : un rappel à 30 jours ; à 90, une invitation au ménage (il encombre la page)."""
+    """Un brouillon sans décision : un rappel à 30 jours ; à 90, une invitation au ménage (il encombre la page)."""
     alertes = []
     for v in session.scalars(select(VersionRegime).where(VersionRegime.statut == "analyse")):
         age = _jours(v.cree_le, aujourd_hui)
         if age >= regimes.JOURS_SANS_DECISION:
-            alertes.append(_alerte("attention", "projet_a_trancher", "Un projet de version à trancher",
-                                   f"La version {v.numero} est un projet depuis {age} jours : l'adopter, l'abandonner, "
-                                   "ou la supprimer (« Faire le ménage » sur la page Régime).", "regime", "entreprise"))
+            alertes.append(_alerte("attention", "projet_a_trancher", "Un brouillon de version à trancher",
+                                   f"La version {v.numero} est un brouillon depuis {age} jours : l'adopter, ou la "
+                                   "supprimer (« Faire le ménage » sur la page Régime).", "regime", "entreprise"))
         elif age > ATTENTE_BROUILLON:
-            alertes.append(_alerte("info", "version_a_adopter", "Un projet de version attend une décision",
-                                   f"La version {v.numero}, du {v.en_vigueur_du:%d/%m/%Y}, est un projet depuis {age} "
-                                   "jours : l'entreprise l'adopte, ou l'abandonne s'il n'est pas retenu.", "regime",
+            alertes.append(_alerte("info", "version_a_adopter", "Un brouillon de version attend une décision",
+                                   f"La version {v.numero}, du {v.en_vigueur_du:%d/%m/%Y}, est un brouillon depuis {age} "
+                                   "jours : l'entreprise l'adopte, ou on le supprime s'il n'est pas retenu.", "regime",
                                    "entreprise"))
     return alertes
 

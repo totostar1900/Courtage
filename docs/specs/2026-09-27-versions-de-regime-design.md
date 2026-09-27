@@ -1,64 +1,48 @@
-# Les versions d'un régime : un vocabulaire, une règle de suppression, une page qui ne s'encombre pas
+# Les versions d'un régime : brouillon ou adoptée, un menu ⋮, des notes qui communiquent
 
 *Conception, 27/09/2026, décidée avec le porteur du projet.*
 
-## Le principe
+## Deux statuts, rien d'autre
 
-**Une version reste tant que quelque chose la cite ; tout le reste peut partir.** Ce qui a servi est conservé,
-replié ; ce qui n'a jamais servi disparaît sans regret. Un rang en base pèse quelques kilo-octets : l'enjeu n'est pas
-l'espace disque, c'est la lisibilité de la page Régime.
+| Statut | Ce que c'est | Ce qu'on en fait (menu ⋮) |
+|---|---|---|
+| **Brouillon** (en analyse) | une version à l'étude | Modifier (sur place) · Dupliquer · Analyser · Comparer dans Simuler · Adopter… · Supprimer |
+| **Adoptée** | une version figée parce que communiquée | Note aux salariés (PDF) · Note aux assureurs (PDF) · Dupliquer en brouillon · Analyser · Comparer · Supprimer… |
 
-## Le parcours
+Les dates sont une **information**, écrite sur la carte : « s'applique depuis le … », « s'appliquera à partir du … »,
+« s'est appliquée du … au …, remplacée par la version N » (`regimes.application`). La page range les versions en
+trois zones : En application, Brouillons, Historique (replié).
 
-```
-Projet ──adopter──▶ Adoptée, à venir ──sa date──▶ En vigueur ──nouvelle version──▶ Remplacée
-  │ modifiable            │                                              (repliée, conservée)
-  │ sur place             └──supprimer (DRH, motif, si non citée)
-  ├──abandonner (motif) ──▶ Abandonnée ──supprimer (si non citée)
-  └──supprimer (si non citée)
-```
+## Adopter, c'est communiquer
 
-| État | Modifiable | Abandonnable | Supprimable |
-|---|---|---|---|
-| Projet | oui, sur place | oui (motif) | si non citée |
-| Adoptée, à venir | non | non | si non citée ; la DRH seule, avec un motif (c'est annuler sa décision) |
-| En vigueur | non | non | jamais |
-| Remplacée | non | non | jamais |
-| Abandonnée | non | — | si non citée |
+L'adoption (par l'administrateur de l'entreprise, qui confirme une éventuelle non-conformité) fige la version. Ses deux
+notes, scellées à la première émission (préfixe `NR-`) et rangées dans `documents` :
 
-**« Citée »** : une étude s'appuie sur la version (en brouillon ou émise), un cahier des charges la nomme, ou elle
-est partagée au catalogue. Une étude en brouillon se supprime et libère la version ; une étude émise reste
-toujours. Le statut enregistré reste court (`analyse`, `adoptee`, `abandonnee`) ; l'état affiché se déduit des dates
-(`regimes.etat_version`).
+- **aux salariés** : ce que le régime verse, catégorie par catégorie, en mois de salaire et en mots, avec le rappel du
+  minimum conventionnel ; aucun chiffre de dette, aucun nom ;
+- **aux assureurs** : le régime à assurer (barèmes, conditions, événements couverts, conventions plancher), la
+  population par catégorie, les points relevés.
 
-## Un vocabulaire
+Pour changer une version adoptée, on la **duplique en brouillon**, qu'on adopte à son tour.
 
-- Un seul badge par version, toujours en haut à droite de sa carte (`web/src/regimes.ts`).
-- Trois niveaux pour l'analyse, partout : **Bloquant** (empêche d'adopter ou d'évaluer), **Attention** (à regarder
-  avant de décider ; « sous le plancher » s'adopte en le confirmant), **Bon à savoir**.
-- Les notes juridiques et fiscales sont rédigées comme des repères (« selon notre lecture », « pourrait »), à
-  examiner avec le conseil de l'entreprise ; aucune mention « à valider » ne s'affiche.
-- « Que veulent dire ces repères ? » définit les états, le parcours et les niveaux.
+## Supprimer
 
-## Une page en trois zones
+- Un **brouillon** se supprime toujours ; ses études en brouillon partent avec (la plateforme le dit avant).
+- Une version **adoptée** se supprime tant que rien ne la cite : une étude émise, un cahier des charges, une note émise
+  ou un partage au catalogue la retiennent (clés étrangères). C'est revenir sur une décision : l'administrateur de
+  l'entreprise seul, avec un motif.
+- Un régime resté sans version disparaît avec sa dernière version. Chaque suppression est au journal.
 
-- **En application** : la version en vigueur et celle à venir.
-- **En discussion** : les projets, chacun avec sa décision (adopter, modifier, abandonner, supprimer).
-- **Historique**, replié : les versions remplacées et abandonnées.
+## Ne pas accumuler
 
-## Ne pas accumuler, puis nettoyer
+- Un brouillon se corrige sur place ; pour essayer un barème, Simuler n'enregistre rien.
+- Un brouillon sans décision est signalé à 30 jours ; à 90, l'alerte invite à trancher.
+- « Faire le ménage » liste ce qui peut partir, avec sa raison ; les brouillons de plus de 90 jours sont cochés d'office,
+  une version adoptée jamais (motif requis).
 
-1. **Prévenir** : un projet se corrige sur place (`PUT …/regimes/versions/{id}`) ; pour essayer un barème, la page
-   renvoie à Simuler, qui n'enregistre rien.
-2. **Rappeler** : un projet sans décision est signalé à 30 jours ; à 90 (`JOURS_SANS_DECISION`), l'alerte
-   `projet_a_trancher` invite à l'adopter, l'abandonner ou le supprimer.
-3. **Nettoyer** : « Faire le ménage » (`GET/POST …/regimes/menage`) liste ce qui peut partir, avec sa raison et les
-   brouillons qui partiront avec. Coché d'office : les versions abandonnées et les projets de plus de 90 jours ; une
-   adoption à venir ne l'est jamais, et demande un motif.
+## Garde-fous en base (migration `0017_versions_et_notes`)
 
-## Garde-fous
-
-- Chaque suppression est au journal : qui, quand, le motif, et le statut qu'avait la version.
-- La base refuse de supprimer une version qui s'est appliquée (`version_supprimable` dans les déclencheurs de
-  `regimes_versions` et `regimes_categories`) ; les clés étrangères retiennent toute version citée.
-- Un régime resté sans version disparaît avec sa dernière version.
+- Une version adoptée ne se modifie pas, ni ses catégories ; elle ne disparaît qu'avec ses catégories (ON DELETE
+  CASCADE), et seulement si aucune clé étrangère ne la retient.
+- Les documents acceptent une version (`documents.version_id`) ; les sceaux, le préfixe `NR-`. La vérification publique
+  d'un numéro ne dépend que de `sceaux`.

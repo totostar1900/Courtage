@@ -83,18 +83,16 @@ export interface Version {
   en_vigueur_du: string;
   fondement: string;
   document_reference: string;
-  statut: "analyse" | "adoptee" | "abandonnee";
-  /** Où en est la version aujourd'hui (voir `regimes.ts`). Absent d'une réponse ancienne : se déduit du statut. */
-  etat?: EtatVersion;
-  remplacee_par?: number;
-  jusqu_au?: string;
+  statut: "analyse" | "adoptee";
+  /** Pour une version adoptée : depuis quand elle s'applique, et jusqu'à quand. Une information, pas un statut. */
+  application?: { a_venir: boolean; depuis: string; remplacee_le: string | null; remplacee_par: number | null;
+                  en_cours: boolean } | null;
   adoptee_le?: string | null;
-  abandonnee_le?: string | null;
-  motif_abandon?: string | null;
   etudes?: number;
-  /** Ce qui cite la version et la retient ; et si elle peut partir (sinon pourquoi). */
-  citations?: { etudes_emises: number; brouillons: { id: string; date_evaluation: string }[]; cahiers: number; partages: number };
-  suppression?: { possible: boolean; reservee_entreprise: boolean; bloquee_par_brouillons: boolean; raison: string | null };
+  citations?: { etudes_emises: number; brouillons: { id: string; date_evaluation: string }[]; cahiers: number;
+                partages: number; notes: number };
+  suppression?: { possible: boolean; reservee_entreprise: boolean; brouillons: number; raison: string | null };
+  notes?: { salaries: string | null; assureurs: string | null };
   non_conformite_acceptee: boolean;
   categories: Categorie[];
   constats: Constat[];
@@ -389,10 +387,9 @@ export interface Cycle {
                 motif: string | null; par: string; le: string }[];
 }
 
-export type EtatVersion = "projet" | "a_venir" | "en_vigueur" | "remplacee" | "abandonnee";
 
 /** Une ligne du ménage : une version qui peut partir, pourquoi, et ce que la plateforme coche. */
 export interface CandidatMenage {
-  version_id: string; regime: string; numero: number; etat: EtatVersion; raison: string; coche: boolean;
+  version_id: string; regime: string; numero: number; statut: "analyse" | "adoptee"; raison: string; coche: boolean;
   brouillons: { id: string; date_evaluation: string }[]; motif_requis: boolean;
 }

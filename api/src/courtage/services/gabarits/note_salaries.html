@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>{{ titre }} — {{ org.nom }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 26mm 18mm;
+    @bottom-left {
+      content: "N° {{ numero }} · empreinte {{ empreinte[:16] }}… · sceau {{ sceau[:16] }}…{% if not probant %} · NON PROBANT{% endif %}\A Vérifier : {{ url_verification }}";
+      white-space: pre; font: 7pt "DejaVu Sans", sans-serif; color: #55607a;
+    }
+    @bottom-right { content: "Page " counter(page) " / " counter(pages); font: 7pt "DejaVu Sans", sans-serif; color: #55607a; }
+  }
+  body { font: 9.5pt/1.45 "DejaVu Sans", sans-serif; color: #1b2240; }
+  h1 { font-size: 18pt; margin: 0 0 2mm; color: #fff; }
+  h2 { font-size: 12pt; margin: 7mm 0 3mm; color: #1f2d6b; border-bottom: 0.4mm solid #1f2d6b; padding-bottom: 1mm; }
+  .bandeau { background: #1f2d6b; color: #fff; padding: 6mm; margin-bottom: 5mm; }
+  .bandeau .sous { color: #c9cfee; }
+  .non-probant { border: 0.5mm solid #a93a2c; color: #a93a2c; padding: 2mm 3mm; margin-bottom: 4mm; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 8.5pt; }
+  th, td { padding: 1.3mm 2mm; border-bottom: 0.2mm solid #dfe2ee; text-align: left; vertical-align: top; }
+  th { background: #e8ebf8; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.04em; color: #3d4566; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .note { font-size: 8pt; color: #55607a; }
+  .reponse td:last-child { border-bottom: 0.3mm dotted #55607a; width: 35%; }
+</style>
+</head>
+<body>
+{% macro bareme(k) %}{% if k.bareme.forme == "tranches_cumulatives" %}{% set ns = namespace(de=1) %}{% for t in k.bareme.tranches %}{{ t.mois_par_annee | pct(0) }} d'un mois de salaire par année {% if t.jusqu_a %}de {{ ns.de }} à {{ t.jusqu_a }} ans{% set ns.de = t.jusqu_a + 1 %}{% else %}au-delà de {{ ns.de - 1 }} ans{% endif %}{% if not loop.last %} ; {% endif %}{% endfor %}{% else %}{% for p in k.bareme.paliers %}{{ p.mois }} mois de salaire à partir de {{ p.a_partir_de }} ans{% if not loop.last %} ; {% endif %}{% endfor %}{% endif %}{% endmacro %}
+<div class="bandeau">
+  <div class="sous">Note d'information aux salariés · Indemnité de départ à la retraite</div>
+  <h1>{{ c.organisation.nom }}</h1>
+  <div class="sous">{{ c.regime.nom }}, version {{ c.regime.numero }}, applicable à partir du {{ c.regime.en_vigueur_du | date_fr }} · document N° {{ numero }} · émis le {{ emis_le | date_fr }}</div>
+</div>
+{% if not probant %}<div class="non-probant">Sceau de développement : ce document n'est pas probant.</div>{% endif %}
+
+<h2>Ce que vous recevrez à votre départ en retraite</h2>
+<p>Quand vous partez à la retraite, l'entreprise vous verse une indemnité, calculée en mois de salaire selon votre
+ancienneté. Voici ce que prévoit le régime de l'entreprise ({{ c.regime.fondement | lower }} : {{ c.regime.document_reference }}).</p>
+{% for k in c.categories %}
+<h3>{{ k.categorie }}</h3>
+<p>{{ bareme(k) }}.{% if k.anciennete_minimale %} Il faut au moins {{ k.anciennete_minimale }} ans d'ancienneté pour y avoir droit.{% endif %}{% if k.plafond_mois %} L'indemnité ne dépasse pas {{ k.plafond_mois }} mois de salaire.{% endif %}
+Le salaire retenu est {{ k.base_salaire }}{% if k.avec_primes %}, primes comprises{% endif %}.</p>
+<table>
+  <tr><th>Ancienneté au départ</th>{% for i in k.illustration %}<th class="n">{{ i.anciennete }} ans</th>{% endfor %}</tr>
+  <tr><td>Régime de l'entreprise</td>{% for i in k.illustration %}<td class="n">{{ "%.1f" | format(i.mois) | replace(".", ",") }} mois</td>{% endfor %}</tr>
+  <tr><td>Minimum de la convention</td>{% for i in k.illustration %}<td class="n">{{ "%.1f" | format(i.convention) | replace(".", ",") }} mois</td>{% endfor %}</tr>
+</table>
+<p class="note">Vous gardez toujours droit au minimum de la {{ k.convention }} : si le régime donnait moins à votre ancienneté, c'est la convention qui s'applique.</p>
+{% endfor %}
+
+<h2>Bon à savoir</h2>
+<p>Ce montant est versé une fois, au départ en retraite. Il se calcule sur votre salaire et votre ancienneté à ce
+moment-là. Pour toute question, adressez-vous à la direction des ressources humaines.</p>
+<p class="note">Document N° {{ numero }}. Sceau : {{ sceau }}. Vérifier l'authenticité de ce document : {{ url_verification }}</p>
+</body>
+</html>

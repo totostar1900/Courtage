@@ -1,23 +1,25 @@
 import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "../api";
 import { Constats, Erreur, useCharge, Volet } from "../composants/communs";
 import { EditeurCategories, categorieVide, resumeBareme } from "../composants/EditeurCategories";
 import ExtractionTexte from "../composants/ExtractionTexte";
 import CatalogueRegimes from "../composants/CatalogueRegimes";
+import { MenuActions, type Action } from "../composants/MenuActions";
 import ModelesTypes from "../composants/ModelesTypes";
 import PartageCatalogue from "../composants/PartageCatalogue";
 import { dateFr } from "../format";
-import { Link } from "react-router-dom";
-
-import { ETATS_VERSION, etatVersion, ordonner, ZONES } from "../regimes";
-import type { CandidatMenage, Categorie, Constat, EtatVersion, Version, VersionProposee } from "../types";
+import { ordonner, periode, STATUTS, zone, ZONES } from "../regimes";
+import type { CandidatMenage, Categorie, Constat, Version, VersionProposee } from "../types";
 import { useDossier } from "./Dossier";
 
 const FONDEMENTS = {
   accord_entreprise: "Accord d'entreprise", contrat_travail: "Contrats de travail",
   usage: "Usage", decision_direction: "Décision de la direction",
 };
+
+type Acte = "modifier" | "analyser" | "adopter" | "supprimer";
 
 export default function Regime() {
   const d = useDossier();
@@ -36,14 +38,14 @@ export default function Regime() {
           <div key={r.id} className="section">
             <h2>{r.nom}</h2>
             {ZONES.map((z) => {
-              const liste = versions.filter((v) => z.etats.includes(etatVersion(v)));
+              const liste = versions.filter((v) => zone(v) === z.cle);
               if (!liste.length) return z.cle === "application"
-                ? <p key={z.cle} className="discret">Aucune version en application : les études s'appuient sur la convention seule.</p>
+                ? <p key={z.cle} className="discret">Aucune version adoptée : les études s'appuient sur la convention seule.</p>
                 : null;
               const cartes = liste.map((v) => <CarteVersion key={v.id} version={v} />);
               return z.repliee ? (
                 <details key={z.cle} className="repli section zone-versions">
-                  <summary>{z.titre} ({liste.length}) : versions remplacées ou abandonnées</summary>
+                  <summary>{z.titre} ({liste.length}) : versions adoptées puis remplacées</summary>
                   {cartes}
                 </details>
               ) : (
@@ -72,23 +74,23 @@ export default function Regime() {
   );
 }
 
-/** Ce que veulent dire les états d'une version et les niveaux de l'analyse : un seul lexique, ouvert à la demande. */
+/** Ce que veulent dire les statuts et les niveaux de l'analyse : un seul lexique, ouvert à la demande. */
 function Reperes() {
   return (
     <details className="repli reperes section">
       <summary>Que veulent dire ces repères ?</summary>
-      <h3>Les états d'une version</h3>
+      <h3>Une version est un brouillon ou une version adoptée</h3>
       <dl className="definitions">
-        {(Object.keys(ETATS_VERSION) as EtatVersion[]).map((e) => (
-          <div key={e}>
-            <dt><span className={`etat ${ETATS_VERSION[e].classe}`}>{ETATS_VERSION[e].libelle}</span></dt>
-            <dd>{ETATS_VERSION[e].definition} {ETATS_VERSION[e].impact} <span className="discret">{ETATS_VERSION[e].suite}</span></dd>
+        {(["analyse", "adoptee"] as const).map((s) => (
+          <div key={s}>
+            <dt><span className={`etat ${STATUTS[s].classe}`}>{STATUTS[s].libelle}</span></dt>
+            <dd>{STATUTS[s].definition}</dd>
           </div>
         ))}
       </dl>
-      <p className="discret">Le parcours : Projet → Adoptée (à venir, puis en vigueur) → Remplacée par une version plus
-        récente. Une version qui ne s'est jamais appliquée (projet, abandonnée, adoptée à venir) se supprime si rien ne la
-        cite ; une version en vigueur ou remplacée reste toujours. « Faire le ménage » propose ce qui peut partir.</p>
+      <p className="discret">Les dates sont une information : une version adoptée « s'applique depuis », « s'appliquera à
+        partir du » ou « a été remplacée le ». Adopter communique : la version se fige, et ses notes aux salariés et aux
+        assureurs se téléchargent. Les actions de chaque version sont dans son menu ⋮.</p>
       <h3>Les niveaux de l'analyse</h3>
       <dl className="definitions">
         <div><dt><span className="etat grave">Bloquant</span></dt><dd>Empêche d'adopter ou d'évaluer tant que ce n'est pas corrigé.</dd></div>
@@ -99,56 +101,70 @@ function Reperes() {
   );
 }
 
-function periode(v: Version): string {
-  const e = etatVersion(v);
-  if (e === "projet") return `prévue à partir du ${dateFr(v.en_vigueur_du)}`;
-  if (e === "a_venir") return `en vigueur à partir du ${dateFr(v.en_vigueur_du)}`;
-  if (e === "en_vigueur") return `en vigueur depuis le ${dateFr(v.en_vigueur_du)}`;
-  if (e === "remplacee") return `appliquée à partir du ${dateFr(v.en_vigueur_du)}, remplacée par la version ${v.remplacee_par} le ${dateFr(v.jusqu_au)}`;
-  return `abandonnée le ${dateFr(v.abandonnee_le)}`;
-}
-
 function CarteVersion({ version: v }: { version: Version }) {
   const d = useDossier();
-  const [analyse, setAnalyse] = useState<Constat[] | null>(null);
-  const [fichier, setFichier] = useState(d.fichiers[0]?.id ?? "");
-  const [accepte, setAccepte] = useState(false);
-  const [acte, setActe] = useState<"abandonner" | "supprimer" | "modifier" | null>(null);
+  const aller = useNavigate();
+  const [acte, setActe] = useState<Acte | null>(null);
   const [erreur, setErreur] = useState<unknown>(null);
-  const etat = etatVersion(v);
-  const E = ETATS_VERSION[etat];
-  const nonConforme = v.constats.some((c) => c.code === "sous_le_plancher");
+  const S = STATUTS[v.statut];
+  const brouillon = v.statut === "analyse";
   const redacteur = d.role !== "lecteur_client";
-  const supprimable = redacteur && !!v.suppression?.possible
-    && (!v.suppression.reservee_entreprise || d.role === "admin_client");
+  const entreprise = d.role === "admin_client";
+  const sup = v.suppression;
 
-  async function analyser() {
+  async function note(nature: "salaries" | "assureurs") {
     setErreur(null);
     try {
-      const params = fichier ? `?fichier_id=${fichier}` : "";
-      const r = await api.get<{ constats: Constat[] }>(`/organisations/${d.org.id}/regimes/versions/${v.id}/analyse${params}`);
-      setAnalyse(r.constats);
+      if (!v.notes?.[nature]) await api.post(`/organisations/${d.org.id}/regimes/versions/${v.id}/notes/${nature}`);
+      api.ouvrir(`/organisations/${d.org.id}/regimes/versions/${v.id}/notes/${nature}`);
+      if (!v.notes?.[nature]) d.recharger();
     } catch (e) { setErreur(e); }
   }
-  async function adopter() {
+  async function dupliquer() {
     setErreur(null);
-    try {
-      await api.post(`/organisations/${d.org.id}/regimes/versions/${v.id}/adoption`, { accepte_non_conformite: accepte });
-      d.recharger();
-    } catch (e) { setErreur(e); }
+    try { await api.post(`/organisations/${d.org.id}/regimes/versions/${v.id}/duplication`); d.recharger(); }
+    catch (e) { setErreur(e); }
   }
+  const pourNote = (nature: "salaries" | "assureurs") =>
+    !v.notes?.[nature] && !redacteur ? "Pas encore émise." : null;
+  const actions: Action[] = brouillon ? [
+    { libelle: "Modifier", agir: () => setActe("modifier"), cache: !redacteur },
+    { libelle: "Dupliquer", agir: dupliquer, cache: !redacteur },
+    { libelle: "Analyser : légalité, pièges, coûts", agir: () => setActe("analyser") },
+    { libelle: "Comparer dans Simuler", agir: () => aller(`../simulation?version=${v.id}`) },
+    { libelle: "Adopter…", agir: () => setActe("adopter"), cache: !redacteur,
+      raison: entreprise ? null : "L'adoption appartient à l'administrateur de l'entreprise." },
+    { libelle: sup?.brouillons ? `Supprimer (et ${sup.brouillons} étude${sup.brouillons > 1 ? "s" : ""} en brouillon)` : "Supprimer",
+      agir: () => setActe("supprimer"), danger: true, cache: !redacteur },
+  ] : [
+    { libelle: v.notes?.salaries ? "Note aux salariés (PDF)" : "Émettre la note aux salariés (PDF)",
+      agir: () => note("salaries"), raison: pourNote("salaries") },
+    { libelle: v.notes?.assureurs ? "Note aux assureurs (PDF)" : "Émettre la note aux assureurs (PDF)",
+      agir: () => note("assureurs"), raison: pourNote("assureurs") },
+    { libelle: "Dupliquer en brouillon", agir: dupliquer, cache: !redacteur },
+    { libelle: "Analyser : légalité, pièges, coûts", agir: () => setActe("analyser") },
+    { libelle: "Comparer dans Simuler", agir: () => aller(`../simulation?version=${v.id}`) },
+    { libelle: "Supprimer…", agir: () => setActe("supprimer"), danger: true, cache: !redacteur,
+      raison: !sup?.possible ? sup?.raison ?? "Elle reste." : !entreprise ? "Revenir sur une adoption appartient à l'administrateur de l'entreprise." : null },
+  ];
 
   return (
-    <div className={`carte version version-${etat}`} style={{ marginBottom: 14 }} data-etat={etat}>
+    <div className={`carte version version-${v.statut}${zone(v) === "historique" ? " version-passee" : ""}`}
+         style={{ marginBottom: 14 }} data-statut={v.statut}>
       <div className="version-tete">
         <div>
           <strong>Version {v.numero}</strong> · {periode(v)}
           <div className="discret">{FONDEMENTS[v.fondement as keyof typeof FONDEMENTS]} — {v.document_reference}</div>
         </div>
-        <span className={`etat ${E.classe}`} title={E.definition}>{E.libelle}</span>
+        <div className="version-coin">
+          <span className={`etat ${S.classe}`} title={S.definition}>{S.libelle}</span>
+          <MenuActions actions={actions} libelle={`Actions sur la version ${v.numero}`} />
+        </div>
       </div>
-      <p className="discret version-impact">{E.impact}
-        {etat === "abandonnee" && v.motif_abandon && <> Motif : « {v.motif_abandon} ».</>}</p>
+      {!brouillon && (v.notes?.salaries || v.notes?.assureurs) && (
+        <p className="discret version-impact">Communiquée : {[v.notes?.salaries && `note aux salariés ${v.notes.salaries}`,
+          v.notes?.assureurs && `note aux assureurs ${v.notes.assureurs}`].filter(Boolean).join(" · ")}.</p>
+      )}
       <div className="defile" style={{ marginTop: 8 }}>
         <table>
           <thead><tr><th>Catégorie</th><th>Plancher</th><th>Barème</th><th>Conditions</th></tr></thead>
@@ -174,67 +190,28 @@ function CarteVersion({ version: v }: { version: Version }) {
       {v.non_conformite_acceptee && (
         <p className="discret">À l'adoption, l'entreprise a confirmé avoir vu cette non-conformité.</p>
       )}
-
-      {etat !== "abandonnee" && (
-        <div className="actions">
-          <select value={fichier} onChange={(e) => setFichier(e.target.value)} aria-label="Personnel pour l'analyse">
-            <option value="">sans personnel (légalité seule)</option>
-            {d.fichiers.map((f) => <option key={f.id} value={f.id}>{f.nom_fichier} ({dateFr(f.date_donnees)})</option>)}
-          </select>
-          <button onClick={analyser}>Analyser : légalité, pièges, coûts</button>
-        </div>
-      )}
-      {analyse && (
-        <Volet titre="Analyse" onFermer={() => setAnalyse(null)} className="section">
-          <Constats constats={analyse} />
-          <p className="discret">Les points juridiques et fiscaux sont des repères pour décider, à examiner avec
-            votre conseil ; les chiffres sont calculés sur votre personnel.</p>
-        </Volet>
-      )}
-
-      {etat === "projet" && (
-        <div className="version-decision">
-          <h4 className="version-rubrique">La décision</h4>
-          <p className="discret">{E.suite}</p>
-          {d.role === "admin_client" && nonConforme && (
-            <label style={{ display: "flex", gap: 8, fontWeight: 400 }}>
-              <input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />
-              J'ai vu que ce régime donne moins que la convention ; mes salariés gardent droit au plancher.
-            </label>
-          )}
-          <div className="actions">
-            {d.role === "admin_client" && (
-              <button className="principal" onClick={adopter} disabled={nonConforme && !accepte}>Adopter cette version</button>
-            )}
-            {redacteur && <button type="button" onClick={() => setActe("modifier")}>Modifier</button>}
-            {redacteur && <button type="button" onClick={() => setActe("abandonner")}>Abandonner</button>}
-            {supprimable && <button type="button" className="danger" onClick={() => setActe("supprimer")}>Supprimer</button>}
-          </div>
-          {d.role === "conseiller" && <p className="discret">L'adoption appartient à l'entreprise.</p>}
-        </div>
-      )}
-      {etat !== "projet" && supprimable && (
-        <div className="actions">
-          <button type="button" className="danger" onClick={() => setActe("supprimer")}>
-            {etat === "a_venir" ? "Annuler l'adoption et supprimer" : "Supprimer"}</button>
-        </div>
-      )}
-      {redacteur && v.suppression?.bloquee_par_brouillons && <p className="discret">{v.suppression.raison}</p>}
+      {brouillon && d.role === "conseiller" && <p className="discret">L'adoption appartient à l'entreprise.</p>}
       {acte && <ActeVersion version={v} acte={acte} onFermer={() => setActe(null)} />}
-      {(etat === "en_vigueur" || etat === "a_venir") && <PartageCatalogue version={v} />}
+      {!brouillon && zone(v) === "application" && entreprise && <PartageCatalogue version={v} />}
       <Erreur erreur={erreur} />
     </div>
   );
 }
 
-function ActeVersion({ version: v, acte, onFermer }: { version: Version; acte: "abandonner" | "supprimer" | "modifier"; onFermer: () => void }) {
+function ActeVersion({ version: v, acte, onFermer }: { version: Version; acte: Acte; onFermer: () => void }) {
   const d = useDossier();
   const [erreur, setErreur] = useState<unknown>(null);
-  const reservee = !!v.suppression?.reservee_entreprise;
+  const [fichier, setFichier] = useState(d.fichiers[0]?.id ?? "");
+  const [analyse, setAnalyse] = useState<Constat[] | null>(null);
+  const [accepte, setAccepte] = useState(false);
+  const nonConforme = v.constats.some((c) => c.code === "sous_le_plancher");
+  const titre = { modifier: `Modifier la version ${v.numero}`, analyser: `Analyser la version ${v.numero}`,
+                  adopter: `Adopter la version ${v.numero}`, supprimer: `Supprimer la version ${v.numero}` }[acte];
+
   if (acte === "modifier")
     return (
-      <Volet titre={`Modifier la version ${v.numero}`} onFermer={onFermer} className="section">
-        <p className="discret">Un projet se corrige sur place : aucune version ne s'ajoute. Les études en brouillon qui
+      <Volet titre={titre} onFermer={onFermer} className="section">
+        <p className="discret">Un brouillon se corrige sur place : aucune version ne s'ajoute. Les études en brouillon qui
           s'appuient sur lui sont à recalculer.</p>
         <FormulaireVersion initial={v} bouton="Enregistrer les corrections" onValider={async (corps) => {
           await api.put(`/organisations/${d.org.id}/regimes/versions/${v.id}`, corps);
@@ -242,41 +219,75 @@ function ActeVersion({ version: v, acte, onFermer }: { version: Version; acte: "
         }} />
       </Volet>
     );
+
+  if (acte === "analyser") {
+    async function analyser() {
+      setErreur(null);
+      try {
+        const params = fichier ? `?fichier_id=${fichier}` : "";
+        setAnalyse((await api.get<{ constats: Constat[] }>(`/organisations/${d.org.id}/regimes/versions/${v.id}/analyse${params}`)).constats);
+      } catch (e) { setErreur(e); }
+    }
+    return (
+      <Volet titre={titre} onFermer={onFermer} className="section">
+        <div className="actions">
+          <select value={fichier} onChange={(e) => setFichier(e.target.value)} aria-label="Personnel pour l'analyse">
+            <option value="">sans personnel (légalité seule)</option>
+            {d.fichiers.map((f) => <option key={f.id} value={f.id}>{f.nom_fichier} ({dateFr(f.date_donnees)})</option>)}
+          </select>
+          <button className="principal" onClick={analyser}>Analyser</button>
+        </div>
+        {analyse && <><Constats constats={analyse} />
+          <p className="discret">Les points juridiques et fiscaux sont des repères pour décider, à examiner avec votre
+            conseil ; les chiffres sont calculés sur votre personnel.</p></>}
+        <Erreur erreur={erreur} />
+      </Volet>
+    );
+  }
+
   async function valider(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
-    const f = new FormData(ev.currentTarget);
-    const motif = String(f.get("motif") ?? "").trim();
+    const motif = String(new FormData(ev.currentTarget).get("motif") ?? "").trim();
     setErreur(null);
     try {
-      if (acte === "abandonner")
-        await api.post(`/organisations/${d.org.id}/regimes/versions/${v.id}/abandon`, { motif });
+      if (acte === "adopter")
+        await api.post(`/organisations/${d.org.id}/regimes/versions/${v.id}/adoption`, { accepte_non_conformite: accepte });
       else await api.del(`/organisations/${d.org.id}/regimes/versions/${v.id}${motif ? `?motif=${encodeURIComponent(motif)}` : ""}`);
       onFermer();
       d.recharger();
     } catch (e) { setErreur(e); }
   }
+  const reservee = !!v.suppression?.reservee_entreprise;
   const seule = d.regimes.find((r) => r.id === v.regime_id)?.versions.length === 1;
+  const n = v.suppression?.brouillons ?? 0;
   return (
-    <Volet titre={acte === "abandonner" ? `Abandonner la version ${v.numero}` : `Supprimer la version ${v.numero}`}
-           onFermer={onFermer} className="section">
+    <Volet titre={titre} onFermer={onFermer} className="section">
       <form className="formulaire" onSubmit={valider}>
-        {acte === "abandonner" ? (
+        {acte === "adopter" ? (
           <>
-            <p>Le projet reste lisible, avec son motif, dans l'historique. Il ne sert plus de base à une étude et ne
-              bouge plus ; il pourra être supprimé si rien ne le cite.</p>
-            <label>Pourquoi ce projet n'est pas retenu<textarea name="motif" rows={2} maxLength={500} required /></label>
+            <p>Adopter, c'est communiquer : la version se fige, puis ses deux notes se téléchargent depuis son menu ⋮
+              — aux salariés (ce que le régime leur verse) et aux assureurs (le régime à assurer). Pour la changer
+              ensuite, on la duplique en brouillon.</p>
+            {nonConforme && (
+              <label style={{ display: "flex", gap: 8, fontWeight: 400 }}>
+                <input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />
+                J'ai vu que ce régime donne moins que la convention ; mes salariés gardent droit au plancher.
+              </label>
+            )}
           </>
         ) : (
           <>
-            <p>{reservee ? "Cette version est adoptée mais ne s'est jamais appliquée, et rien ne la cite : la supprimer "
-              + "annule la décision de l'entreprise. " : "Elle ne s'est jamais appliquée et rien ne la cite : elle disparaît. "}
+            <p>{reservee ? "Cette version est adoptée, mais rien ne la cite encore : la supprimer revient sur la décision "
+              + "de l'entreprise. " : "Le brouillon disparaît. "}
+              {n > 0 && `${n} étude${n > 1 ? "s" : ""} en brouillon qui s'appuie${n > 1 ? "nt" : ""} dessus ${n > 1 ? "partiront" : "partira"} avec. `}
               Le journal garde la trace de sa création et de sa suppression.{seule && " C'est la seule version de ce régime : le régime disparaît avec elle."}</p>
-            <label>{reservee ? "Pourquoi l'adoption est annulée" : "Motif (facultatif)"}
+            <label>{reservee ? "Pourquoi revenir sur cette adoption" : "Motif (facultatif)"}
               <textarea name="motif" rows={2} maxLength={500} required={reservee} /></label>
           </>
         )}
         <div className="actions">
-          <button className={acte === "supprimer" ? "danger" : "principal"}>{acte === "abandonner" ? "Abandonner" : "Supprimer"}</button>
+          <button className={acte === "supprimer" ? "danger" : "principal"}
+                  disabled={acte === "adopter" && nonConforme && !accepte}>{acte === "adopter" ? "Adopter cette version" : "Supprimer"}</button>
           <button type="button" onClick={onFermer}>Annuler</button>
         </div>
         <Erreur erreur={erreur} />
@@ -333,23 +344,23 @@ function VoletMenage({ onFermer, onFait }: { onFermer: () => void; onFait: () =>
     <Volet titre="Faire le ménage" onFermer={onFermer} className="section">
       {donnee.candidats.length === 0 ? <p>Rien à supprimer : chaque version sert, ou attend une décision récente.</p> : (
         <>
-          <p className="discret">Ce qui ne s'est jamais appliqué et que seules des études en brouillon retiennent. Coché
-            d'office : les versions abandonnées et les projets sans décision depuis {donnee.jours_sans_decision} jours.
-            Une adoption à venir ne l'est jamais : l'annuler est une décision.</p>
+          <p className="discret">Tout ce qui peut partir. Coché d'office : les brouillons sans décision depuis
+            {" "}{donnee.jours_sans_decision} jours. Une version adoptée que rien ne cite est proposée, jamais cochée :
+            la supprimer revient sur une décision.</p>
           <ul className="menage">
             {donnee.candidats.map((c) => (
               <li key={c.version_id}>
                 <label>
                   <input type="checkbox" checked={coches.has(c.version_id)} onChange={() => basculer(c.version_id)} />
                   <span><b>{c.regime}, version {c.numero}</b>{" "}
-                    <span className={`etat ${ETATS_VERSION[c.etat].classe}`}>{ETATS_VERSION[c.etat].libelle}</span>
+                    <span className={`etat ${STATUTS[c.statut].classe}`}>{STATUTS[c.statut].libelle}</span>
                     <span className="discret menage-raison">{c.raison}</span></span>
                 </label>
               </li>
             ))}
           </ul>
           {motifRequis && (
-            <label>Pourquoi annuler l'adoption<textarea rows={2} maxLength={500} value={motif}
+            <label>Pourquoi revenir sur l'adoption<textarea rows={2} maxLength={500} value={motif}
               onChange={(e) => setMotif(e.target.value)} /></label>
           )}
           <div className="actions">

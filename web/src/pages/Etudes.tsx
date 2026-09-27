@@ -6,7 +6,7 @@ import { Erreur, useCharge } from "../composants/communs";
 import { CONVENTION_PAR_PAYS } from "../composants/EditeurCategories";
 import { aEnvoyer, Hypotheses, saisieParDefaut, type SaisieHypotheses } from "../composants/Hypotheses";
 import { dateFr, montant } from "../format";
-import { etatVersion, libelleVersion, ordonner } from "../regimes";
+import { enCours, libelleVersion, ordonner } from "../regimes";
 import type { CatalogueHypotheses, Etude } from "../types";
 import { useDossier } from "./Dossier";
 
@@ -17,9 +17,8 @@ export default function Etudes() {
   // Une hypothèse proposée par l'expérience réelle arrive ici, à confirmer : jamais appliquée sans décision.
   const [params] = useSearchParams();
   const proposee = params.get("turnover");
-  // Une version abandonnée ne sert plus de base ; la version en vigueur d'abord.
-  const versions = d.regimes.flatMap((r) => ordonner(r.versions).filter((v) => etatVersion(v) !== "abandonnee")
-    .map((v) => ({ ...v, nomRegime: r.nom })));
+  // La version qui s'applique d'abord.
+  const versions = d.regimes.flatMap((r) => ordonner(r.versions).map((v) => ({ ...v, nomRegime: r.nom })));
   const { donnee: catalogue } = useCharge(() => api.get<CatalogueHypotheses>("/referentiel/hypotheses"), []);
   // La dernière étude donne l'effet de chaque hypothèse mesuré sur l'entreprise.
   const derniere = d.etudes[0]?.id;
@@ -63,7 +62,7 @@ export default function Etudes() {
               <input name="date_evaluation" type="date" required defaultValue={d.fichiers[0]?.date_donnees} />
             </label>
             <label>Base
-              <select name="regime_version_id" defaultValue={versions.find((v) => etatVersion(v) === "en_vigueur")?.id ?? ""}>
+              <select name="regime_version_id" defaultValue={versions.find(enCours)?.id ?? ""}>
                 <option value="">la convention seule</option>
                 {versions.map((v) => <option key={v.id} value={v.id}>{libelleVersion(v, v.nomRegime)}</option>)}
               </select>
