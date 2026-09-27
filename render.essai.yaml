@@ -39,6 +39,12 @@ services:
       # COURTAGE_URL_PUBLIQUE : inutile ici, l'application prend l'adresse que Render fournit (RENDER_EXTERNAL_URL).
       - key: COURTAGE_DEMO                 # la Société Démo SA, fictive, semée au premier démarrage (0 pour s'en passer)
         value: "1"
+      - key: COURTAGE_COURTIER_NOM          # l'identité du cabinet sur le mandat de courtage (DEPLOY.md)
+        sync: false
+      - key: COURTAGE_COURTIER_AGREMENT
+        sync: false
+      - key: COURTAGE_COURTIER_ADRESSE
+        sync: false
       - key: COURTAGE_ADMIN_TELEPHONE      # le premier administrateur, créé au démarrage (DEPLOY.md §4c)
         sync: false
       - key: COURTAGE_ADMIN_NOM

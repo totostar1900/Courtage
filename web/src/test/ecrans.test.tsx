@@ -1348,6 +1348,54 @@ describe("supprimer une étude émise", () => {
   });
 });
 
+describe("l'accompagnement en courtage", () => {
+  const texte = { courtier: { nom: "[raison sociale du cabinet]", agrement: "", adresse: "" },
+    articles: [{ numero: 1, titre: "Objet", paragraphes: ["Le Client charge le Courtier de le représenter."] },
+               { numero: 2, titre: "Rémunération", paragraphes: ["Commission d'usage."] }] };
+  const base = { id: "m1", besoins: [{ code: "placement", libelle: "Placer notre engagement IFC auprès d'un assureur" }],
+    message: null, demande_par: "Awa", demande_le: "2026-09-27T10:00:00", signature: null, motif: null };
+  const propose = { ...base, statut: "propose", proposition: { perimetre: ["analyse"], date_effet: "2026-10-15", duree_mois: 12,
+    preavis_mois: 3, exclusif: true, conditions: null, propose_par: "Conseiller", propose_le: "2026-09-27T11:00:00",
+    empreinte: "a".repeat(64), texte } };
+  const tableau = (mandats: unknown[]) => ({ service: "comparaison", mandats,
+    besoins: [{ code: "placement", libelle: "Placer notre engagement IFC auprès d'un assureur" }, { code: "regime", libelle: "Être conseillés" }],
+    perimetre: [{ code: "analyse", libelle: "l'analyse des besoins" }] });
+
+  it("l'entreprise demande : ses besoins partent au conseiller", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/mandats`]: tableau([]),
+      [`POST /organisations/${ORG}/mandats`]: { ...base, statut: "demande", proposition: null } });
+    ouvrir(`/dossier/${ORG}/accompagnement`);
+    await userEvent.click(await screen.findByLabelText(/Placer notre engagement/));
+    await userEvent.click(screen.getByRole("button", { name: "Envoyer la demande" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    const envoi = appels.find((a) => a.init?.method === "POST")!;
+    expect(JSON.parse(String(envoi.init!.body))).toEqual({ besoins: ["placement"], message: null });
+  });
+
+  it("l'administrateur lit le mandat et le signe sur le texte lu", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/mandats`]: tableau([propose]),
+      [`POST /organisations/${ORG}/mandats/m1/signature`]: { ...propose, statut: "signe" } });
+    ouvrir(`/dossier/${ORG}/accompagnement`);
+    expect(await screen.findByText("Article 2 — Rémunération")).toBeInTheDocument();
+    const signer = screen.getByRole("button", { name: "Signer le mandat" });
+    expect(signer).toBeDisabled();                                    // il faut accepter
+    await userEvent.clear(screen.getByLabelText("Nom et prénom"));
+    await userEvent.type(screen.getByLabelText("Nom et prénom"), "Awa Kouassi");
+    await userEvent.click(screen.getByLabelText(/J'ai lu ce mandat et je l'accepte/));
+    await userEvent.click(signer);
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/signature"))).toBe(true));
+    const corps = JSON.parse(String(appels.find((a) => a.chemin.endsWith("/signature"))!.init!.body));
+    expect(corps).toMatchObject({ nom: "Awa Kouassi", empreinte: "a".repeat(64), accepte: true });
+  });
+
+  it("le contributeur lit le mandat, sans pouvoir le signer", async () => {
+    simulerApi({ ...dossier("contributeur_client"), [`/organisations/${ORG}/mandats`]: tableau([propose]) });
+    ouvrir(`/dossier/${ORG}/accompagnement`);
+    expect(await screen.findByText("L'administrateur de l'entreprise signe le mandat.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Signer le mandat" })).not.toBeInTheDocument();
+  });
+});
+
 describe("nettoyer le dossier", () => {
   const inventaire = { fichiers: { total: 2, actifs: 2, lignes: 46 }, brouillons: { etudes: 1, versions: 1 },
     etudes_emises: { total: 2, supprimables: 1, citees_par_un_cahier: 1 }, documents: 3, confirmation: "NETTOYER" };

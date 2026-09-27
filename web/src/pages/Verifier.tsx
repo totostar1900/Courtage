@@ -14,7 +14,11 @@ interface Verification {
   resume: Record<string, string | number | boolean>;
 }
 
-const NATURES: Record<string, string> = { etude_ifc: "Étude actuarielle IFC", fiche_regime: "Cahier des charges" };
+const NATURES: Record<string, string> = {
+  etude_ifc: "Étude actuarielle IFC", fiche_regime: "Cahier des charges", prise_en_charge: "Dossier de prise en charge", dossier_scelle: "Dossier de prise en charge",
+  fiche_de_calcul: "Fiche de calcul", note_regime_salaries: "Note aux salariés", note_regime_assureurs: "Note aux assureurs",
+  mandat_courtage: "Mandat de courtage",
+};
 
 /** Page publique : n'importe qui vérifie un document par son numéro, sans compte. */
 export default function Verifier() {
@@ -49,7 +53,10 @@ export default function Verifier() {
           <h2 style={{ marginTop: 12 }}>{NATURES[v.nature] ?? v.nature}</h2>
           <div className="lignes-offre">
             <div><span>Organisation</span><strong>{String(v.resume.organisation)}</strong></div>
-            <div><span>Évaluation au</span><span>{dateFr(String(v.resume.date_evaluation))}</span></div>
+            {"date_evaluation" in v.resume && <div><span>Évaluation au</span><span>{dateFr(String(v.resume.date_evaluation))}</span></div>}
+            {"courtier" in v.resume && <div><span>Courtier</span><span>{String(v.resume.courtier)}</span></div>}
+            {"date_effet" in v.resume && <div><span>Prise d'effet</span><span>{dateFr(String(v.resume.date_effet))}</span></div>}
+            {"signataire" in v.resume && <div><span>Signé par</span><span>{String(v.resume.signataire)}</span></div>}
             {"dette" in v.resume && <div><span>Dette actuarielle</span><span>{montant(Number(v.resume.dette))}</span></div>}
             <div><span>Émis le</span><span>{dateFr(v.emis_le)}{v.resume.emetteur ? ` par ${v.resume.emetteur}` : ""}</span></div>
           </div>

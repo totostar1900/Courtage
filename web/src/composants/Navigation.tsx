@@ -9,7 +9,7 @@ import { lancerVisite } from "./Visite";
 
 const PAGES: Record<string, string> = {
   "": "Tableau de bord", personnel: "Personnel", regime: "Régime", simulation: "Simuler", etudes: "Études",
-  financement: "Financement", cahier: "Cahier des charges", contrat: "Contrat",
+  financement: "Financement", cahier: "Cahier des charges", contrat: "Contrat", accompagnement: "Accompagnement",
   departs: "Départs", equipe: "Équipe", dossiers: "Départs",
 };
 

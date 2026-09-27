@@ -37,7 +37,7 @@ export function ouvrir(chemin: string, utilisateur: string | null = "u-drh",
 export const ORG = "o1";
 
 /** Un dossier minimal, pour un rôle donné. */
-export function dossier(role: "admin_client" | "conseiller" | "lecteur_client", extra: Record<string, unknown> = {}) {
+export function dossier(role: "admin_client" | "contributeur_client" | "conseiller" | "lecteur_client", extra: Record<string, unknown> = {}) {
   return {
     "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [{ id: ORG, nom: "AZITO", pays: "CI", role }] },
     [`/organisations/${ORG}/fichiers`]: [{ id: "f1", nom_fichier: "p.xlsx", depose_le: "2026-09-26T10:00:00", date_donnees: "2019-12-31", periodicite: "annuel", effectif: 23, anomalies: [] }],

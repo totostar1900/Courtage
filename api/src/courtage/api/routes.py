@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.financement import Offre, Scenario
-from courtage.services import alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, simulation
+from courtage.services import alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, mandats, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -248,6 +248,86 @@ def supprimer_contrat(contrat_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))
         raise Introuvable("Contrat")
     contrats.supprimer(a.session, c, a.utilisateur.id)
     return {"supprime": True}
+
+
+# --- Accompagnement : la demande, le mandat proposé, signé ------------------------
+
+class DemandeAccompagnement(_Corps):
+    besoins: list[str] = Field(min_length=1, max_length=10)
+    message: str | None = Field(default=None, max_length=2000)
+
+
+class PropositionMandat(_Corps):
+    perimetre: list[str] = Field(min_length=1, max_length=10)
+    date_effet: date
+    duree_mois: int = Field(ge=1, le=60)
+    preavis_mois: int = Field(ge=1, le=12)
+    exclusif: bool = True
+    conditions: str | None = Field(default=None, max_length=3000)
+
+
+class SignatureMandat(_Corps):
+    nom: str = Field(min_length=1, max_length=200)
+    fonction: str | None = Field(default=None, max_length=100)
+    empreinte: str = Field(min_length=64, max_length=64)
+    accepte: bool
+
+
+class Motif(_Corps):
+    motif: str | None = Field(default=None, max_length=1000)
+
+
+@routeur.get("/organisations/{organisation_id}/mandats")
+def lire_mandats(a: Acces = Depends(acces(*TOUS))):
+    return mandats.tableau(a.session, a.organisation, date.today())
+
+
+@routeur.post("/organisations/{organisation_id}/mandats", status_code=201)
+def demander_accompagnement(corps: DemandeAccompagnement, a: Acces = Depends(acces("admin_client", "contributeur_client"))):
+    m = mandats.demander(a.session, a.organisation, a.utilisateur.id, corps.besoins, corps.message, date.today())
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.put("/organisations/{organisation_id}/mandats/{mandat_id}/proposition")
+def proposer_mandat(mandat_id: uuid.UUID, corps: PropositionMandat, a: Acces = Depends(acces(*CONSEIL))):
+    m = mandats.proposer(a.session, a.organisation, mandats.obtenir(a.session, mandat_id), a.utilisateur.id,
+                         **corps.model_dump(), aujourd_hui=date.today())
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.post("/organisations/{organisation_id}/mandats/{mandat_id}/signature")
+def signer_mandat(mandat_id: uuid.UUID, corps: SignatureMandat, request: Request,
+                  a: Acces = Depends(acces(*ENTREPRISE))):
+    """L'administrateur de l'entreprise signe le texte qu'il a lu (son empreinte) : le mandat est scellé, le
+    contrat « courtage » prend effet à sa date."""
+    if not corps.accepte:
+        raise ErreurMetier("acceptation_requise", "Cocher « J'ai lu et j'accepte ce mandat ».", 422)
+    m = mandats.obtenir(a.session, mandat_id)
+    mandats.signer(a.session, a.organisation, m, a.utilisateur.id, nom=corps.nom, fonction=corps.fonction,
+                   empreinte_lue=corps.empreinte, config=request.app.state.sceau, aujourd_hui=date.today())
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.post("/organisations/{organisation_id}/mandats/{mandat_id}/refus")
+def refuser_mandat(mandat_id: uuid.UUID, corps: Motif, a: Acces = Depends(acces(*ENTREPRISE))):
+    m = mandats.obtenir(a.session, mandat_id)
+    mandats.clore(a.session, m, a.utilisateur.id, "refuse", corps.motif)
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.post("/organisations/{organisation_id}/mandats/{mandat_id}/retrait")
+def retirer_mandat(mandat_id: uuid.UUID, corps: Motif, a: Acces = Depends(acces(*CLIENT))):
+    m = mandats.obtenir(a.session, mandat_id)
+    mandats.clore(a.session, m, a.utilisateur.id, "retire", corps.motif)
+    return mandats.en_clair(a.session, a.organisation, m)
+
+
+@routeur.get("/organisations/{organisation_id}/mandats/{mandat_id}/pdf")
+def telecharger_mandat(mandat_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    d = mandats.document_de(a.session, mandats.obtenir(a.session, mandat_id))
+    if d is None:
+        raise ErreurMetier("mandat_non_signe", "Le mandat scellé existe une fois signé.", 404)
+    return Response(d.contenu, media_type=d.type_contenu, headers=_piece_jointe(f"mandat-courtage-{a.organisation.nom}-{d.numero}.pdf"))
 
 
 @routeur.get("/organisations/{organisation_id}/contrats")

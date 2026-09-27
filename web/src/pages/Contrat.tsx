@@ -68,7 +68,10 @@ export default function Contrat() {
         )}
         <h3 className="section">Quand un salarié part</h3>
         <ul>{s.depart.map((t) => <li key={t}>{t}</li>)}</ul>
-        <Link to="/guide/contrat">Courtage ou comparaison : le guide</Link>
+        <div className="actions">
+          <Link to="/guide/contrat">Courtage ou comparaison : le guide</Link>
+          {donnee.service !== "courtage" && <Link to="../accompagnement">Demander un accompagnement en courtage →</Link>}
+        </div>
       </div>
 
       {donnee.constats.length > 0 && <div className="section"><Constats constats={donnee.constats} /></div>}

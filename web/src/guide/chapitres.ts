@@ -180,7 +180,11 @@ export const CHAPITRES: Chapitre[] = [
         "En comparaison : vous vous adressez à votre assureur ; nous vous disons à qui, avec quelles pièces, et le montant dû. Nous ne demandons jamais d'identité.",
         "Dans les deux cas, vous pouvez enregistrer le départ sans nom, pour que vos rapports tiennent compte de l'expérience réelle." ] },
       { titre: "Sans contrat enregistré", texte: [
-        "Vous êtes en comparaison : la plateforme ne suppose jamais un mandat qu'elle n'a pas. Une commission prévue sans mandat est signalée à votre conseiller." ] },
+        "Vous êtes en comparaison : la plateforme ne suppose jamais un mandat qu'elle n'a pas." ] },
+      { titre: "Passer en courtage", texte: [
+        "Depuis « Accompagnement », l'entreprise dit ce qu'elle attend : placer son engagement, remettre son contrat en concurrence, faire porter ses départs, être conseillée sur son régime.",
+        "Le conseiller propose un mandat de courtage : les missions, la date d'effet, la durée, le préavis, l'exclusivité. Le texte complet s'affiche sur la page.",
+        "L'administrateur le lit et le signe en ligne, sur le texte affiché. Le mandat signé est scellé, vérifiable par son numéro, et le contrat « courtage » prend effet à sa date. Rien n'engage avant la signature." ] },
     ],
     termes: ["courtage", "comparaison", "mandat"],
   },

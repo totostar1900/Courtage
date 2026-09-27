@@ -7,6 +7,7 @@ import Accueil from "./pages/Accueil";
 import Cahier from "./pages/Cahier";
 import Connexion from "./pages/Connexion";
 import Contrat from "./pages/Contrat";
+import Accompagnement from "./pages/Accompagnement";
 import Departs from "./pages/Departs";
 import Dossier from "./pages/Dossier";
 import DossierPriseEnCharge from "./pages/DossierPEC";
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="cahier" element={<Cahier />} />
             <Route path="cahier/:fiche" element={<Reponses />} />
             <Route path="contrat" element={<Contrat />} />
+            <Route path="accompagnement" element={<Accompagnement />} />
             <Route path="departs" element={<Departs />} />
             <Route path="equipe" element={<Equipe />} />
             <Route path="dossiers/:id" element={<DossierPriseEnCharge />} />

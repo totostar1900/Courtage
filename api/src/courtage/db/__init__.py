@@ -328,6 +328,32 @@ class Sceau(Base):
     emis_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
+class MandatCourtage(Base):
+    __tablename__ = "mandats_courtage"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    statut: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
+    besoins: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=FetchedValue())
+    message: Mapped[str | None] = mapped_column(Text)
+    demande_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    demande_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    perimetre: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
+    date_effet: Mapped[date | None] = mapped_column(Date)
+    duree_mois: Mapped[int | None] = mapped_column(Integer)
+    preavis_mois: Mapped[int | None] = mapped_column(Integer)
+    exclusif: Mapped[bool | None] = mapped_column(Boolean)
+    conditions: Mapped[str | None] = mapped_column(Text)
+    propose_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    propose_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    empreinte_texte: Mapped[str | None] = mapped_column(Text)
+    signe_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    signe_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    signataire_nom: Mapped[str | None] = mapped_column(Text)
+    signataire_fonction: Mapped[str | None] = mapped_column(Text)
+    motif: Mapped[str | None] = mapped_column(Text)
+    contrat_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("contrats.id"))
+
+
 class Document(Base):
     __tablename__ = "documents"
     id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
@@ -336,6 +362,7 @@ class Document(Base):
     fiche_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("fiches_regime.id"))
     prestation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("prestations.id"))
     version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("regimes_versions.id"))   # une note de régime
+    mandat_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("mandats_courtage.id"))
     numero: Mapped[str] = mapped_column(ForeignKey("sceaux.numero"))
     type_contenu: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
     contenu: Mapped[bytes] = mapped_column(LargeBinary)

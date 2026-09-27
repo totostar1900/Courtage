@@ -523,3 +523,11 @@ fieldset.choix-nettoyage label, label.case { display: flex; gap: 8px; align-item
 .tiroir .volet.dans-tiroir { margin: 0; }
 tr.choisie > td { background: var(--indigo-doux); }
 @media (max-width: 700px) { .tiroir { width: 100vw; border-left: 0; padding: 16px; } }
+
+/* Accompagnement : le texte du mandat se lit comme un document. */
+.grille-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.citation { margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--trait); color: var(--encre-2); }
+.texte-mandat { border: 1px solid var(--trait); border-radius: var(--rayon); padding: 16px 20px; max-height: 60vh; overflow-y: auto; background: var(--fond); }
+.texte-mandat h3 { font-size: 14px; margin: 14px 0 4px; color: var(--indigo); }
+.texte-mandat p { text-align: justify; }
+.signature { border-top: 1px solid var(--trait); padding-top: 12px; }

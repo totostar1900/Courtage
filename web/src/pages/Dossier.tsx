@@ -104,6 +104,8 @@ export default function Dossier() {
           <ol className="parcours" style={{ marginTop: 14 }} data-visite="outils">
             <li><NavLink to="simulation" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="simulation" />Simuler</NavLink></li>
+            <li><NavLink to="accompagnement" className={({ isActive }) => (isActive ? "actif" : "")}>
+              <Icone nom="accompagnement" />Accompagnement</NavLink></li>
             <li><NavLink to="contrat" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="contrat" />Contrat</NavLink></li>
             <li><NavLink to="departs" className={({ isActive }) => (isActive ? "actif" : "")}>

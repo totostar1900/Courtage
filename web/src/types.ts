@@ -399,3 +399,26 @@ export interface CandidatMenage {
   version_id: string; regime: string; numero: number; statut: "analyse" | "adoptee"; raison: string; coche: boolean;
   brouillons: { id: string; date_evaluation: string }[]; motif_requis: boolean;
 }
+
+export interface ArticleMandat { numero: number; titre: string; paragraphes: string[] }
+export interface Mandat {
+  id: string;
+  statut: "demande" | "propose" | "signe" | "refuse" | "retire";
+  besoins: { code: string; libelle: string }[];
+  message: string | null;
+  demande_par: string;
+  demande_le: string;
+  proposition: null | {
+    perimetre: string[]; date_effet: string; duree_mois: number; preavis_mois: number; exclusif: boolean;
+    conditions: string | null; propose_par: string; propose_le: string; empreinte: string;
+    texte: { articles: ArticleMandat[]; courtier: { nom: string; agrement: string; adresse: string } };
+  };
+  signature: null | { nom: string; fonction: string | null; le: string; numero: string | null; contrat_du: string | null };
+  motif: string | null;
+}
+export interface Mandats {
+  service: "courtage" | "comparaison";
+  mandats: Mandat[];
+  besoins: { code: string; libelle: string }[];
+  perimetre: { code: string; libelle: string }[];
+}
