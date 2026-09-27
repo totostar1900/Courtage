@@ -8,6 +8,7 @@ import { BarreMobile, BoutonAller, FilAriane, niveauxDe, PaletteAller } from "..
 import Visite, { lancerVisite } from "../composants/Visite";
 import { VISITE_DOSSIER } from "../guide/visite";
 import { etapes, type EtatDossier } from "../parcours";
+import { Icone } from "../composants/Icones";
 import { noterReprise } from "../reprise";
 import type { Equipe, EtatCycle, EtudeResume, Fiche, Fichier, Membre, Moi, Regime, Role } from "../types";
 import { BandeauCycle } from "../composants/CycleDossier";
@@ -88,25 +89,27 @@ export default function Dossier() {
           <div id="menu-dossier" className="dossier-menu" data-ouvert={menu}>
           <BoutonAller />
           <ol className="parcours" data-visite="parcours">
-            {etapes(donnee.etat).map((e, i) => (
-              <li key={e.cle} className={e.fait ? "fait" : e.suivant ? "suivant" : ""}>
-                <NavLink to={e.cle} className={({ isActive }) => (isActive ? "actif" : "")}>
-                  <span className="pastille">{e.fait ? "✓" : i + 1}</span>{e.libelle}
+            <li><NavLink to="." end className={({ isActive }) => (isActive ? "actif" : "")}>
+              <Icone nom="tableau" />Tableau de bord</NavLink></li>
+            {etapes(donnee.etat).map((e) => (
+              <li key={e.cle} className={e.suivant ? "suivant" : ""}>
+                <NavLink to={e.cle} className={({ isActive }) => (isActive ? "actif" : "")}
+                         title={e.suivant ? `Étape suivante : ${e.aide}` : undefined}>
+                  <Icone nom={e.cle} />{e.libelle}
+                  {e.suivant && <span className="point-suivant" aria-label="étape suivante" />}
                 </NavLink>
               </li>
             ))}
           </ol>
           <ol className="parcours" style={{ marginTop: 14 }} data-visite="outils">
             <li><NavLink to="simulation" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <span className="pastille">≈</span>Simuler</NavLink></li>
-            <li><NavLink to="remuneration" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <span className="pastille">F</span>Rémunération</NavLink></li>
+              <Icone nom="simulation" />Simuler</NavLink></li>
             <li><NavLink to="contrat" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <span className="pastille">C</span>Contrat</NavLink></li>
+              <Icone nom="contrat" />Contrat</NavLink></li>
             <li><NavLink to="departs" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <span className="pastille">D</span>Départs</NavLink></li>
+              <Icone nom="departs" />Départs</NavLink></li>
             <li><NavLink to="equipe" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <span className="pastille">É</span>Équipe</NavLink></li>
+              <Icone nom="equipe" />Équipe</NavLink></li>
           </ol>
           {conseiller && (
             <div className="carte" style={{ marginTop: 20 }} data-visite="conseiller">
