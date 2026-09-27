@@ -1,7 +1,9 @@
+import { Fragment } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { api, DEMO, ErreurApi, seConnecter } from "./api";
 import { useCharge } from "./composants/communs";
+import { changerLangue, t, useLangue } from "./i18n";
 import Visionneuse from "./composants/Visionneuse";
 import Accueil from "./pages/Accueil";
 import Cahier from "./pages/Cahier";
@@ -24,13 +26,17 @@ import TableauDeBord from "./pages/TableauDeBord";
 import Verifier from "./pages/Verifier";
 
 export default function App() {
+  // Changer de langue redessine tout : chaque texte se relit dans la nouvelle langue ; l'adresse reste.
+  const l = useLangue();
   return (
-    <>
+    <Fragment key={l}>
       <Entete />
       {DEMO && (
         <div className="bandeau-demo">
-          Démonstration : la Société Démo SA et ses 40 salariés sont fictifs. Les chiffres viennent du vrai moteur ;
-          les actions qui modifieraient le dossier sont désactivées.
+          {t("Démonstration : la Société Démo SA et ses 40 salariés sont fictifs. Les chiffres viennent du vrai moteur ; "
+            + "les actions qui modifieraient le dossier sont désactivées.",
+            "Demo: Société Démo SA and its 40 employees are fictitious. The figures come from the real engine; "
+            + "actions that would change the file are disabled.")}
         </div>
       )}
       <Visionneuse />
@@ -61,7 +67,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-    </>
+    </Fragment>
   );
 }
 
@@ -70,7 +76,7 @@ function Protege({ children }: { children: React.ReactNode }) {
   const { donnee, erreur } = useCharge(() => api.get("/moi"), []);
   if (erreur instanceof ErreurApi && erreur.statut === 401) return <Navigate to="/connexion" replace />;
   if (erreur) return <div className="erreur">{erreur.message}</div>;
-  return donnee ? <>{children}</> : <p className="discret">Chargement…</p>;
+  return donnee ? <>{children}</> : <p className="discret">{t("Chargement…", "Loading…")}</p>;
 }
 
 function Entete() {
@@ -81,19 +87,34 @@ function Entete() {
     <header className="entete">
       <div className="interieur">
         <Link to="/" className="marque">courtage<span>.</span></Link>
-        <span className="discret" style={{ color: "#c9cfee" }}>Votre régime IFC, calculé avant d'être vendu</span>
+        <span className="discret" style={{ color: "#c9cfee" }}>{t("Votre régime IFC, calculé avant d'être vendu",
+          "Your end-of-service plan, costed before it is sold")}</span>
         <div className="droite">
-          <Link to="/guide" style={{ color: "#fff" }} data-visite="guide">Guide</Link>
-          <Link to="/verifier" style={{ color: "#fff" }}>Vérifier un document</Link>
+          <Link to="/guide" style={{ color: "#fff" }} data-visite="guide">{t("Guide", "Guide")}</Link>
+          <Link to="/verifier" style={{ color: "#fff" }}>{t("Vérifier un document", "Verify a document")}</Link>
+          <BasculeLangue />
           {connecte && (
             <button onClick={async () => {
               await api.post("/auth/deconnexion").catch(() => undefined);
               seConnecter(null);
               naviguer("/connexion");
-            }}>Se déconnecter</button>
+            }}>{t("Se déconnecter", "Sign out")}</button>
           )}
         </div>
       </div>
     </header>
+  );
+}
+
+/** FR | EN : la langue de l'interface, gardée dans ce navigateur. */
+function BasculeLangue() {
+  const l = useLangue();
+  return (
+    <div className="langues" role="group" aria-label={t("Langue", "Language")}>
+      {(["fr", "en"] as const).map((x) => (
+        <button key={x} type="button" lang={x} aria-pressed={l === x} onClick={() => changerLangue(x)}
+                title={x === "fr" ? "Français" : "English"}>{x.toUpperCase()}</button>
+      ))}
+    </div>
   );
 }

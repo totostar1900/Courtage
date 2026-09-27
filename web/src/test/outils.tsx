@@ -5,6 +5,7 @@ import { vi } from "vitest";
 import { seConnecter } from "../api";
 import App from "../App";
 import CATALOGUE from "./catalogue-hypotheses.json";
+import { relireLangue } from "../i18n";
 
 /** Une API simulée : chemin (sans /api/v1) → réponse JSON. Une fonction reçoit la requête. */
 export function simulerApi(reponses: Record<string, unknown | ((init?: RequestInit) => unknown)>) {
@@ -28,6 +29,7 @@ export function simulerApi(reponses: Record<string, unknown | ((init?: RequestIn
 export function ouvrir(chemin: string, utilisateur: string | null = "u-drh",
                        { premiereVisite = false, stockage = {} as Record<string, string> } = {}) {
   localStorage.clear();
+  relireLangue();
   if (!premiereVisite) localStorage.setItem("courtage:visite-faite", "1");
   for (const [k, v] of Object.entries(stockage)) localStorage.setItem(k, v);
   seConnecter(utilisateur);

@@ -531,3 +531,8 @@ tr.choisie > td { background: var(--indigo-doux); }
 .texte-mandat h3 { font-size: 14px; margin: 14px 0 4px; color: var(--indigo); }
 .texte-mandat p { text-align: justify; }
 .signature { border-top: 1px solid var(--trait); padding-top: 12px; }
+
+/* FR | EN */
+.langues { display: inline-flex; border: 1px solid rgb(255 255 255 / .35); border-radius: 999px; overflow: hidden; }
+.langues button { background: transparent; color: #c9cfee; border: 0; border-radius: 0; padding: 3px 9px; font-size: 12px; font-weight: 600; min-height: 0; }
+.langues button[aria-pressed="true"] { background: #fff; color: var(--indigo); }
