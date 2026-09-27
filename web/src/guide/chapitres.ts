@@ -184,7 +184,8 @@ export const CHAPITRES: Chapitre[] = [
       { titre: "Passer en courtage", texte: [
         "Depuis « Accompagnement », l'entreprise dit ce qu'elle attend : placer son engagement, remettre son contrat en concurrence, faire porter ses départs, être conseillée sur son régime.",
         "Le conseiller propose un mandat de courtage : les missions, la date d'effet, la durée, le préavis, l'exclusivité. Le texte complet s'affiche sur la page.",
-        "L'administrateur le lit et le signe en ligne, sur le texte affiché. Le mandat signé est scellé, vérifiable par son numéro, et le contrat « courtage » prend effet à sa date. Rien n'engage avant la signature." ] },
+        "L'administrateur le lit et le signe en ligne, sur le texte affiché. Le mandat signé est scellé, vérifiable par son numéro, et le contrat « courtage » prend effet à sa date. Rien n'engage avant la signature.",
+        "Le mandat est gratuit pour l'entreprise : le courtier est rémunéré uniquement par la commission de l'assureur retenu, dont il communique le taux sur simple demande." ] },
     ],
     termes: ["courtage", "comparaison", "mandat"],
   },

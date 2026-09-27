@@ -37,6 +37,9 @@ def test_de_la_demande_a_la_signature(client, azito):
     titres = [x["titre"] for x in p["texte"]["articles"]]
     assert {"Objet", "Mission du Courtier", "Devoir de conseil et d'information", "Rémunération",
             "Durée et résiliation", "Conditions particulières"} <= set(titres)
+    [remuneration] = [x for x in p["texte"]["articles"] if x["titre"] == "Rémunération"]
+    assert "gratuit pour le Client" in remuneration["paragraphes"][0]
+    assert "exclusivement par la commission versée par l'assureur" in remuneration["paragraphes"][1]
     # Signer exige d'accepter, un nom, et le texte lu : pas un autre.
     corps = {"nom": "Awa Kouassi", "fonction": "DRH", "empreinte": p["empreinte"], "accepte": True}
     h = en_tant_que(azito["drh"])
