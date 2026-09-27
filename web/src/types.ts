@@ -111,7 +111,8 @@ export interface Etude {
   date_evaluation: string;
   convention: { code: string; libelle: string; en_vigueur_du: string; statut: string; verification: string };
   regime: Version | null;
-  hypotheses: { valeurs: Record<string, number | string>; ecarts: unknown[]; justification: string | null };
+  hypotheses: { valeurs: Record<string, unknown>; ecarts: unknown[]; justification: string | null;
+                lues?: HypotheseLue[] };
   fonds_disponible: number;
   totaux: Totaux;
   totaux_convention: Totaux | null;
@@ -347,4 +348,20 @@ export interface Alerte {
   code: string; titre: string; detail: string;
   lien: string;                         // la page du dossier, relative à lui
   pour: "entreprise" | "conseiller";    // qui doit agir
+}
+
+/** Une hypothèse de l'étude, telle qu'on la lit : défaut, retenue, rôle, effet mesuré, comment la fixer. */
+export interface HypotheseLue {
+  champ: string; libelle: string; defaut: string; retenu: string; ecarte: boolean; role: string; effet: string; fixer: string;
+}
+
+export interface Tranche { des: number; taux: number }
+
+/** Le catalogue des hypothèses réglables (`GET /referentiel/hypotheses`). */
+export interface CatalogueHypotheses {
+  defauts: Record<string, number | string | null> & { taux_turnover: number; age_retraite: number; table: string };
+  champs: { champ: string; libelle: string; nature: "taux" | "age" | "tranches" | "table"; min: number | null;
+            max: number | null; role: string; effet: string; fixer: string; avec: string }[];
+  tables: { code: string; libelle: string; disponible: boolean; raison?: string }[];
+  age_premier_emploi: number;
 }

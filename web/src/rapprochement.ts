@@ -32,7 +32,7 @@ export function rapprocher(t: Totaux, fonds: number, tauxFrais: number): LigneRa
 }
 
 /** Le taux de frais de l'étude ; à défaut (une étude ancienne), celui que ses montants impliquent. */
-export function tauxFrais(valeurs: Record<string, number | string>, t?: Totaux): number {
+export function tauxFrais(valeurs: Record<string, unknown>, t?: Totaux): number {
   const v = Number(valeurs["frais_sur_cotisation"]);
   if (Number.isFinite(v)) return v;
   const nette = t?.cotisation_nette ?? 0;

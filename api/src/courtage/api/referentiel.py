@@ -45,6 +45,13 @@ def modeles(pays: str = Query(pattern=r"^[A-Z]{2}$")):
     return {"pays": pays, "pays_libelle": CEMAC[pays], "modeles": modeles_du_pays(referentiel_courant(), pays, date.today())}
 
 
+@routeur_referentiel.get("/referentiel/hypotheses")
+def hypotheses_etude():
+    """Les hypothèses d'une étude : défauts, bornes, rôle et effet de chacune, tables de mortalité. Public."""
+    from courtage.services.hypotheses import catalogue
+    return catalogue()
+
+
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 

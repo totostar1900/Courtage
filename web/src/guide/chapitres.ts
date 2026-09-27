@@ -265,8 +265,9 @@ export const CHAPITRES: Chapitre[] = [
         "Cotisation totale = cotisation nette × (1 + frais sur cotisation). L'étude affiche ce rapprochement ligne à ligne." ] },
       { titre: "Les hypothèses par défaut", texte: [
         "Taux d'actualisation 3,5 %. Croissance des salaires 2 %. Inflation 0 %. Départ à 60 ans. Rotation 2 % par an à tout âge. Table TV CIMA F. Frais sur cotisation 4 %.",
+        "Toutes se règlent dans la section « Hypothèses » du formulaire de l'étude, repliée par défaut : chacune dit sa valeur par défaut, son rôle, son effet et comment la fixer, et « Revenir aux valeurs par défaut » annule tout. La rotation peut y être donnée par tranche d'âge.",
         "S'écarter d'une valeur par défaut demande une justification. Elle est imprimée dans le rapport scellé.",
-        "L'étude recalcule la dette avec le taux d'actualisation à un point de moins et à un point de plus, et avec les salaires à un point de plus : ce sont les sensibilités." ] },
+        "L'étude recalcule la dette avec le taux d'actualisation, la croissance des salaires et la rotation à un point de moins et à un point de plus : ce sont les sensibilités." ] },
       { titre: "Le financement", texte: [
         "Chaque année, l'entreprise cotise : la charge indexée sur les salaires, plus une part du déficit initial (dette − fonds) amorti sur le nombre d'années choisi. L'assureur prélève ses frais, crédite le fonds au taux garanti plus sa participation aux bénéfices, puis les prestations probables de l'année sont payées par le fonds, dans la limite de ce qu'il contient.",
         "Trois scénarios de rendement : prudent 3,5 %, central 5 %, favorable 6,5 %. Les offres se comparent sur leur coût net actualisé, dans le scénario central : cotisations et découverts actualisés, moins le fonds restant à l'horizon." ] },

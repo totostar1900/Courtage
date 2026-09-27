@@ -19,7 +19,7 @@ from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fiche import agreger_population, regrouper_echeancier
 from courtage.referentiel import referentiel_courant
 
-from . import etudes, experience, fichiers, journaliser, rapport, regimes
+from . import etudes, experience, fichiers, hypotheses, journaliser, rapport, regimes
 
 GRILLE_DE_REPONSE = {
     "taux_garanti": "Taux minimum garanti annuel sur le fonds (ex. 0,025 pour 2,5 %)",
@@ -63,7 +63,8 @@ def emettre(session: Session, org: Organisation, auteur: uuid.UUID, *, etude_id:
         contexte=lambda numero, sceau: {
             "org": org, "c": contenu, "numero": numero, "sceau": sceau, "empreinte": empreinte,
             "url_verification": f"{config.url_publique}/verifier/{numero}", "probant": config.probant,
-            "emetteur": rapport.nom_de(emetteur), "emis_le": aujourd_hui, "grille": GRILLE_DE_REPONSE})
+            "emetteur": rapport.nom_de(emetteur), "emis_le": aujourd_hui, "grille": GRILLE_DE_REPONSE,
+            "sensibilites": hypotheses.SENSIBILITES})
     journaliser(session, org.id, auteur, "fiche.emise", fiche.id, {"numero": document.numero, "etude_id": str(etude.id)})
     return fiche, document
 
@@ -109,7 +110,10 @@ def _contenu(session: Session, org: Organisation, etude: Etude, conditions: dict
                   "date_evaluation": e["date_evaluation"], "convention": e["convention"]["code"],
                   "hypotheses": e["hypotheses"]["valeurs"], "fonds_disponible": e["fonds_disponible"],
                   "totaux": {k: e["totaux"][k] for k in ("dette", "charge", "vapf", "cotisation_totale")},
-                  "sensibilites": e["sensibilites"]},
+                  "sensibilites": e["sensibilites"],
+                  # Les hypothèses telles qu'on les lit : l'assureur voit sur quoi repose le besoin chiffré.
+                  "hypotheses_lues": hypotheses.pour_le_lecteur(e["hypotheses"]["valeurs"], e["hypotheses"]["ecarts"],
+                                                                e["sensibilites"], e["totaux"]["dette"])},
         "population": population,
         "echeancier": regrouper_echeancier(e["echeancier"], depuis=etude.date_evaluation.year),
         # L'expérience réelle : les retraites passées par années regroupées, les délais de paiement constatés.

@@ -18,6 +18,7 @@
   h1 { font-size: 18pt; margin: 0 0 2mm; color: #1f2d6b; }
   h2 { font-size: 12pt; margin: 8mm 0 3mm; color: #1f2d6b; border-bottom: 0.4mm solid #1f2d6b; padding-bottom: 1mm; }
   h3 { font-size: 10pt; margin: 4mm 0 2mm; }
+  .hypothese { page-break-inside: avoid; }
   p { margin: 0 0 2mm; }
   .sous { color: #55607a; }
   .bandeau { background: #1f2d6b; color: #fff; padding: 6mm; margin-bottom: 5mm; }
@@ -123,21 +124,15 @@ Sources : {% for s in convention.sources %}{{ s.titre }}{% if not loop.last %} ;
 
 <h2>Hypothèses et méthode</h2>
 <table>
-  <tr><td>Taux d'actualisation</td><td class="n">{{ e.hypotheses.valeurs.taux_actualisation | pct }}</td></tr>
-  <tr><td>Croissance annuelle des salaires</td><td class="n">{{ e.hypotheses.valeurs.croissance_salaires | pct }}</td></tr>
-  <tr><td>Inflation</td><td class="n">{{ e.hypotheses.valeurs.inflation | pct }}</td></tr>
-  <tr><td>Âge de départ à la retraite</td><td class="n">{{ e.hypotheses.valeurs.age_retraite }} ans</td></tr>
-  <tr><td>Rotation du personnel (par an, jusqu'à la retraite)</td><td class="n">{{ e.hypotheses.valeurs.taux_turnover | pct }}</td></tr>
-  <tr><td>Table de mortalité</td><td class="n">{{ e.hypotheses.valeurs.table }}</td></tr>
+  <tr><th>Hypothèse</th><th class="n">Par défaut</th><th class="n">Retenue</th></tr>
+  {% for h in hypotheses %}<tr><td>{{ h.libelle }}{% if h.ecarte %} ✱{% endif %}</td><td class="n">{{ h.defaut }}</td><td class="n">{{ h.retenu }}</td></tr>{% endfor %}
 </table>
-{% if e.hypotheses.ecarts %}
-<h3>Écarts au référentiel</h3>
-<table>
-  <tr><th>Hypothèse</th><th class="n">Référentiel</th><th class="n">Retenu</th></tr>
-  {% for x in e.hypotheses.ecarts %}<tr><td>{{ x.champ }}</td><td class="n">{{ x.referentiel }}</td><td class="n">{{ x.retenu }}</td></tr>{% endfor %}
-</table>
-<p class="note">Justification : {{ e.hypotheses.justification }}</p>
-{% endif %}
+{% if e.hypotheses.ecarts %}<p class="note">✱ Écart au référentiel. Justification : {{ e.hypotheses.justification }}</p>{% endif %}
+{% for h in hypotheses %}
+<div class="hypothese"><h3>{{ h.libelle }} — {{ h.retenu }}</h3>
+<p>{{ h.role }} {{ h.effet }}</p>
+<p class="note">Comment la fixer : {{ h.fixer }}</p></div>
+{% endfor %}
 <p class="note">Méthode prospective, salarié par salarié : l'indemnité prévue au départ en retraite est calculée sur le salaire
 projeté et l'ancienneté totale, pondérée par la probabilité d'être en vie et toujours salarié à cet âge, puis actualisée.
 La dette actuarielle en retient la part acquise, au prorata de l'ancienneté à la date d'évaluation ; la charge de
@@ -175,9 +170,8 @@ déclaré pour cette étude doit en tenir compte.</p>{% endif %}
 <table>
   <tr><th>Variante</th><th class="n">Dette actuarielle</th><th class="n">Écart</th></tr>
   <tr><td>Hypothèses retenues</td><td class="n">{{ e.totaux.dette | montant }}</td><td class="n">—</td></tr>
-  {% set libelles = {"taux_actualisation_moins_1pt": "Taux d'actualisation − 1 point", "taux_actualisation_plus_1pt": "Taux d'actualisation + 1 point", "croissance_salaires_plus_1pt": "Croissance des salaires + 1 point"} %}
-  {% for cle, v in e.sensibilites.items() %}
-  <tr><td>{{ libelles[cle] }}</td><td class="n">{{ v.dette | montant }}</td><td class="n">{{ ((v.dette - e.totaux.dette) / e.totaux.dette) | pct }}</td></tr>
+  {% for cle in sensibilites if cle in e.sensibilites %}{% set v = e.sensibilites[cle] %}
+  <tr><td>{{ sensibilites[cle] }}</td><td class="n">{{ v.dette | montant }}</td><td class="n">{{ ((v.dette - e.totaux.dette) / e.totaux.dette) | pct }}</td></tr>
   {% endfor %}
 </table>
 

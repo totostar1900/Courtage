@@ -2,7 +2,7 @@
 import unicodedata
 import uuid
 from datetime import date
-from typing import Literal
+from typing import Any, Literal
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
@@ -577,7 +577,7 @@ class ParametresSimulation(_Corps):
     date_evaluation: date
     convention_code: str
     fonds_disponible: int = Field(default=0, ge=0)
-    hypotheses: dict[str, float] = {}
+    hypotheses: dict[str, Any] = {}
     variantes: list[VarianteSaisie] = []
 
 
@@ -632,7 +632,7 @@ class ParametresEtude(_Corps):
     date_evaluation: date
     convention_code: str | None = None
     fonds_disponible: int = Field(ge=0)
-    hypotheses: dict[str, float] = {}
+    hypotheses: dict[str, Any] = {}
     justification: str | None = None
     regime_version_id: uuid.UUID | None = None
 

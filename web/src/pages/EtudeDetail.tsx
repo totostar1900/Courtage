@@ -12,8 +12,13 @@ import Rapprochement, { sousCotisation } from "../composants/Rapprochement";
 const SENSIBILITES: Record<string, string> = {
   taux_actualisation_moins_1pt: "Taux d'actualisation − 1 point",
   taux_actualisation_plus_1pt: "Taux d'actualisation + 1 point",
+  croissance_salaires_moins_1pt: "Salaires − 1 point par an",
   croissance_salaires_plus_1pt: "Salaires + 1 point par an",
+  rotation_moins_1pt: "Rotation − 1 point",
+  rotation_plus_1pt: "Rotation + 1 point",
 };
+
+const rang = (k: string) => { const i = Object.keys(SENSIBILITES).indexOf(k); return i < 0 ? 99 : i; };
 
 export default function EtudeDetail() {
   const d = useDossier();
@@ -89,12 +94,30 @@ export default function EtudeDetail() {
         <div className="carte">
           <h3>Sensibilités</h3>
           <div className="defile"><table><tbody>
-            {Object.entries(e.sensibilites).map(([k, v]) => (
+            {Object.entries(e.sensibilites).sort(([a], [b]) => rang(a) - rang(b)).map(([k, v]) => (
               <tr key={k}><td>{SENSIBILITES[k] ?? k}</td><td className="n">{montant(v.dette)}</td>
                 <td className="n">{pct((v.dette - e.totaux.dette) / e.totaux.dette)}</td></tr>
             ))}
           </tbody></table></div>
         </div>
+        {e.hypotheses.lues && (
+          <div className="carte">
+            <h3>Hypothèses retenues</h3>
+            <div className="defile"><table>
+              <thead><tr><th>Hypothèse</th><th className="n">Retenue</th><th className="n">Par défaut</th></tr></thead>
+              <tbody>{e.hypotheses.lues.map((h) => (
+                <tr key={h.champ} title={`${h.role} ${h.effet}`}>
+                  <td>{h.libelle}{h.ecarte && <span className="etat attention" style={{ marginLeft: 6 }}>ajustée</span>}</td>
+                  <td className="n">{h.retenu}</td><td className="n discret">{h.defaut}</td></tr>))}</tbody>
+            </table></div>
+            {e.hypotheses.justification && <p className="discret">Justification : {e.hypotheses.justification}</p>}
+            <details className="repli">
+              <summary>Ce que fait chaque hypothèse</summary>
+              {e.hypotheses.lues.map((h) => (
+                <p key={h.champ}><b>{h.libelle}.</b> {h.role} {h.effet}</p>))}
+            </details>
+          </div>
+        )}
       </div>
 
       {e.par_categorie && (

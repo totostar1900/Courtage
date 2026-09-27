@@ -103,17 +103,24 @@ Les totaux sont aussi donnés **par catégorie** de personnel.
 | Croissance des salaires $g$ | 2 % | Par an, jusqu'à la retraite. |
 | Inflation $i$ | 0 % | S'ajoute à $g$ par produit. |
 | Âge de départ $R$ | 60 ans | |
-| Rotation $t_k$ | 2 % par an | Le même taux à chaque âge, de 18 ans à $R - 1$. |
-| Table de mortalité | TV CIMA F | La table féminine, pour tous. |
+| Rotation $t_k$ | 2 % par an | Le même taux à chaque âge, de 18 ans à $R - 1$ ; ou, en option, un taux par tranche d'âge (jusqu'à six tranches, la première à 18 ans, chacune courant jusqu'à la suivante, la dernière jusqu'à $R - 1$). |
+| Table de mortalité | TV CIMA F | La table féminine (TF), pour tous. La table masculine (TH) sera proposée quand elle sera versée au référentiel avec sa source. |
 | Frais sur cotisation $f$ | 4 % | |
+
+Toutes les hypothèses se règlent dans le formulaire de l'étude, dans des bornes : actualisation de −2 % à
+15 %, salaires de −5 % à 15 %, inflation de −5 % à 20 %, départ de 50 à 70 ans, rotation de 0 à 50 %, frais
+de 0 à 20 %. Chacune y dit son rôle, son effet et comment la fixer ; le même texte figure au rapport.
 
 Une étude qui s'écarte d'une valeur par défaut enregistre l'écart et sa **justification**. L'écart est
 imprimé dans le rapport scellé. Une étude qui s'écarte fortement de la précédente est signalée.
 
-**Sensibilités.** L'étude recalcule la dette et la charge dans trois cas :
-- le taux d'actualisation à $r - 1$ point ;
-- le taux d'actualisation à $r + 1$ point ;
-- la croissance des salaires à $g + 1$ point.
+**Sensibilités.** L'étude recalcule la dette et la charge dans six cas :
+- le taux d'actualisation à $r - 1$ et $r + 1$ point ;
+- la croissance des salaires à $g - 1$ et $g + 1$ point ;
+- la rotation à $t_k - 1$ point (sans descendre sous zéro) et $t_k + 1$ point, à chaque âge.
+
+Quand la rotation est donnée par tranche d'âge, l'expérience réelle compare la rotation observée à la
+rotation moyenne supposée de la population : le taux de chaque salarié à son âge, en moyenne.
 
 ## 6. L'échéancier des départs
 

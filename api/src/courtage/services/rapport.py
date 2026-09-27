@@ -27,7 +27,7 @@ from courtage.db import Document, Etude, Organisation, Sceau, Utilisateur
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.referentiel import referentiel_courant
 
-from . import etudes, fichiers
+from . import etudes, fichiers, hypotheses
 
 CLE_DE_DEVELOPPEMENT = b"courtage-cle-de-developpement-non-probante"
 _ALPHABET = "ACDEFGHJKLMNPQRTUVWXY34679"   # sans 0/O, 1/I, 2/Z, 5/S, 8/B : lisible à voix haute
@@ -151,6 +151,8 @@ def _contexte(session: Session, org: Organisation, etude: Etude, emetteur, numer
         "emetteur": nom_de(emetteur), "numero": numero, "sceau": sceau, "empreinte": etude.empreinte,
         "url_verification": f"{config.url_publique}/verifier/{numero}", "probant": config.probant,
         "emis_le": etude.emise_le,
+        "hypotheses": e["hypotheses"]["lues"],
+        "sensibilites": hypotheses.SENSIBILITES,
     }
 
 

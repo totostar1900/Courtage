@@ -1,0 +1,116 @@
+{
+ "defauts": {
+  "taux_actualisation": 0.035,
+  "croissance_salaires": 0.02,
+  "inflation": 0.0,
+  "age_retraite": 60,
+  "taux_turnover": 0.02,
+  "frais_sur_cotisation": 0.04,
+  "table": "TV_CIMA_F",
+  "rotation_par_age": null
+ },
+ "champs": [
+  {
+   "champ": "taux_actualisation",
+   "libelle": "Taux d'actualisation",
+   "nature": "taux",
+   "min": -0.02,
+   "max": 0.15,
+   "role": "Une indemnité versée dans 20 ans ne coûte pas son montant aujourd'hui : l'argent mis de côté d'ici là rapporte. Le taux d'actualisation ramène chaque versement futur à sa valeur d'aujourd'hui.",
+   "effet": "Plus il est bas, plus l'engagement est lourd{effet}. C'est l'hypothèse qui pèse le plus sur le résultat.",
+   "fixer": "On retient le rendement de placements sûrs, d'une durée proche de celle de vos engagements (le temps moyen avant les départs à la retraite). Un taux prudent protège l'entreprise d'une mauvaise surprise. Un taux trop élevé embellit le chiffre sans rien changer à ce qui sera réellement payé.",
+   "avec": "La croissance des salaires. C'est l'écart entre les deux qui compte : un taux de 3,5 % avec des salaires à +2 % pèse comme un taux de 5 % avec des salaires à +3,5 %."
+  },
+  {
+   "champ": "croissance_salaires",
+   "libelle": "Croissance des salaires",
+   "nature": "taux",
+   "min": -0.05,
+   "max": 0.15,
+   "role": "L'indemnité se calcule sur le dernier salaire. Ce taux projette le salaire d'aujourd'hui jusqu'au départ à la retraite.",
+   "effet": "Plus il est haut, plus l'engagement est lourd{effet}.",
+   "fixer": "Sur les augmentations des dernières années (générales, d'ancienneté, de promotion) et la politique salariale annoncée. Une hausse exceptionnelle ne se prolonge pas sur trente ans.",
+   "avec": "Le taux d'actualisation : c'est l'écart entre les deux qui compte."
+  },
+  {
+   "champ": "inflation",
+   "libelle": "Inflation",
+   "nature": "taux",
+   "min": -0.05,
+   "max": 0.2,
+   "role": "Elle s'ajoute à la croissance des salaires, quand celle-ci est exprimée hors inflation.",
+   "effet": "Elle agit comme des points de croissance des salaires en plus : plus elle est haute, plus l'engagement est lourd.",
+   "fixer": "À zéro quand la croissance des salaires retenue comprend déjà l'inflation (c'est le cas par défaut). Sinon, la cible d'inflation de la zone.",
+   "avec": "La croissance des salaires : ne pas compter l'inflation deux fois."
+  },
+  {
+   "champ": "age_retraite",
+   "libelle": "Âge de départ à la retraite",
+   "nature": "age",
+   "min": 50,
+   "max": 70,
+   "role": "L'âge auquel l'indemnité est versée : il fixe l'ancienneté acquise au départ et la durée qui reste.",
+   "effet": "Un départ plus tardif allonge l'ancienneté (l'indemnité grandit) mais éloigne le versement (sa valeur d'aujourd'hui baisse) ; le sens dépend de la pyramide des âges.",
+   "fixer": "L'âge légal du pays, ou l'âge prévu par votre convention ou votre régime s'il est différent.",
+   "avec": "La table de mortalité et la rotation : plus le départ est loin, plus elles comptent."
+  },
+  {
+   "champ": "taux_turnover",
+   "libelle": "Rotation du personnel",
+   "nature": "taux",
+   "min": 0.0,
+   "max": 0.5,
+   "role": "La part des salariés qui quittent l'entreprise chaque année avant la retraite (démission, licenciement) : ils ne toucheront pas l'indemnité de départ à la retraite.",
+   "effet": "Plus elle est haute, plus l'engagement est léger : beaucoup de salariés d'aujourd'hui ne seront plus là au départ{effet}.",
+   "fixer": "Sur les départs volontaires et les licenciements des trois à cinq dernières années, rapportés à l'effectif. L'expérience réelle de l'étude le compare à ce qui est supposé.",
+   "avec": "Par tranche d'âge si les jeunes partent bien plus que les anciens : un taux unique sous-estime alors l'engagement des seniors."
+  },
+  {
+   "champ": "rotation_par_age",
+   "libelle": "Rotation par tranche d'âge",
+   "nature": "tranches",
+   "min": 0.0,
+   "max": 0.5,
+   "role": "La rotation, tranche d'âge par tranche d'âge : chaque tranche court de son âge jusqu'à la suivante, la dernière jusqu'à la retraite.",
+   "effet": "Une rotation forte chez les jeunes et faible chez les seniors allège moins l'engagement qu'un taux uniforme : ce sont les seniors, proches du départ, qui pèsent.",
+   "fixer": "Sur les départs observés par âge ; trois tranches suffisent le plus souvent (moins de 30 ans, 30 à 45, au-delà).",
+   "avec": "L'expérience réelle de l'étude, qui compare la rotation observée à celle supposée."
+  },
+  {
+   "champ": "frais_sur_cotisation",
+   "libelle": "Frais sur cotisation",
+   "nature": "taux",
+   "min": 0.0,
+   "max": 0.2,
+   "role": "Les frais que l'assureur prélève sur chaque cotisation versée au fonds.",
+   "effet": "Sans effet sur la dette : ils s'ajoutent à la cotisation à verser (cotisation totale = cotisation nette × (1 + frais)).",
+   "fixer": "Sur le contrat en place, ou sur les conditions demandées aux assureurs.",
+   "avec": "Le cahier des charges, qui demande un plafond de frais aux assureurs."
+  },
+  {
+   "champ": "table",
+   "libelle": "Table de mortalité",
+   "nature": "table",
+   "min": null,
+   "max": null,
+   "role": "La probabilité d'être encore en vie à l'âge de la retraite : une indemnité n'est versée qu'à un salarié vivant.",
+   "effet": "Une table plus favorable à la survie alourdit légèrement l'engagement ; l'effet reste faible avant la retraite.",
+   "fixer": "La table réglementaire CIMA. La table féminine (TF), plus prudente, s'applique à tous par défaut.",
+   "avec": "L'âge de la retraite."
+  }
+ ],
+ "tables": [
+  {
+   "code": "TV_CIMA_F",
+   "libelle": "Table de mortalité CIMA F (femmes)",
+   "disponible": true
+  },
+  {
+   "code": "TV_CIMA_H",
+   "libelle": "Table de mortalité CIMA H (hommes)",
+   "disponible": false,
+   "raison": "À venir : la table sera ajoutée au référentiel avec sa source."
+  }
+ ],
+ "age_premier_emploi": 18
+}
