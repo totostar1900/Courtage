@@ -14,11 +14,11 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from courtage.db import Contrat
+from courtage.db import Contrat, DossierPriseEnCharge, Prestation
 from courtage.erreurs import ErreurMetier
 
 from . import journaliser, remuneration
@@ -84,3 +84,26 @@ def en_clair(c: Contrat) -> dict:
             "assureur": c.assureur, "numero_police": c.numero_police,
             "date_effet_police": c.date_effet_police.isoformat() if c.date_effet_police else None,
             "mandat_reference": c.mandat_reference, "note": c.note}
+
+
+def raison_de_garder(session: Session, c: Contrat) -> str | None:
+    """Un contrat qu'un dossier de prise en charge cite, ou dont la période couvre un départ enregistré, reste : il dit
+    sous quel service ce départ a été traité. Sinon, saisi par erreur, il se supprime."""
+    if session.scalar(select(func.count()).select_from(DossierPriseEnCharge).where(DossierPriseEnCharge.contrat_id == c.id)):
+        return "Un dossier de prise en charge s'appuie sur ce contrat : il reste."
+    suivant = session.scalar(select(func.min(Contrat.en_vigueur_du)).where(Contrat.en_vigueur_du > c.en_vigueur_du))
+    requete = select(func.count()).select_from(Prestation).where(Prestation.date_depart >= c.en_vigueur_du)
+    if suivant is not None:
+        requete = requete.where(Prestation.date_depart < suivant)
+    if session.scalar(requete):
+        return "Des départs enregistrés tombent dans sa période : il dit sous quel service ils ont été traités."
+    return None
+
+
+def supprimer(session: Session, c: Contrat, auteur: uuid.UUID) -> None:
+    if raison := raison_de_garder(session, c):
+        raise ErreurMetier("contrat_utilise", raison, 409)
+    journaliser(session, c.organisation_id, auteur, "contrat.supprime", c.id,
+                {"en_vigueur_du": c.en_vigueur_du.isoformat(), "service": c.service})
+    session.delete(c)
+    session.flush()

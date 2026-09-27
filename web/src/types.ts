@@ -34,6 +34,10 @@ export interface Fichier {
   periodicite: string;
   effectif: number;
   anomalies: Anomalie[];
+  /** Allégé : les lignes vidées, le nom, la date et l'empreinte gardés. */
+  vide_le?: string | null;
+  etudes_emises?: number;
+  brouillons?: string[];
 }
 
 export interface Totaux {
@@ -156,6 +160,8 @@ export interface Experience {
 }
 
 export interface Conditions {
+  id: string;
+  raison_de_garder?: string | null;
   en_vigueur_du: string;
   mode: "honoraires" | "commission" | "mixte";
   honoraires_etude_ifc: number;
@@ -202,6 +208,8 @@ export interface Fiche {
 
 export interface Contrat {
   id: string;
+  /** Pourquoi il reste (un dossier, des départs dans sa période) ; absent : il se supprime s'il a été saisi par erreur. */
+  raison_de_garder?: string | null;
   en_vigueur_du: string;
   service: "courtage" | "comparaison";
   assureur: string | null;

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
+import { MenuActions } from "../composants/MenuActions";
 import { CONVENTION_PAR_PAYS } from "../composants/EditeurCategories";
 import { aEnvoyer, Hypotheses, saisieParDefaut, type SaisieHypotheses } from "../composants/Hypotheses";
 import { dateFr, montant } from "../format";
@@ -95,7 +96,7 @@ export default function Etudes() {
         <h2>Vos études</h2>
         <div className="defile">
           <table>
-            <thead><tr><th>Évaluation au</th><th>Base</th><th className="n">Dette</th><th>État</th></tr></thead>
+            <thead><tr><th>Évaluation au</th><th>Base</th><th className="n">Dette</th><th>État</th><th aria-label="Actions" /></tr></thead>
             <tbody>
               {d.etudes.map((e) => (
                 <tr key={e.id} className="cliquable" onClick={() => naviguer(e.id)}>
@@ -104,6 +105,21 @@ export default function Etudes() {
                   <td className="n">{montant(e.dette)}</td>
                   <td>{e.statut === "emise" ? <span className="etat bien">Émise le {dateFr(e.emise_le)}</span>
                     : <span className="etat attention">Brouillon</span>}</td>
+                  <td className="n" onClick={(ev) => ev.stopPropagation()}>
+                    <MenuActions libelle={`Actions sur l'étude au ${dateFr(e.date_evaluation)}`} actions={[
+                      { libelle: "Ouvrir", agir: () => naviguer(e.id) },
+                      { libelle: "Rapport PDF", cache: e.statut !== "emise",
+                        agir: () => api.ouvrir(`/organisations/${d.org.id}/etudes/${e.id}/rapport`) },
+                      { libelle: "Exporter en Excel", agir: () => { setErreur(null);
+                        api.telecharger(`/organisations/${d.org.id}/etudes/${e.id}/export`, `etude-ifc-${e.date_evaluation}.xlsx`).catch(setErreur); } },
+                      { libelle: "Supprimer ce brouillon", danger: true, cache: e.statut !== "brouillon" || d.role === "lecteur_client",
+                        agir: async () => {
+                          if (!window.confirm("Supprimer ce brouillon ? Il n'engage rien ; une étude émise, elle, reste.")) return;
+                          setErreur(null);
+                          try { await api.del(`/organisations/${d.org.id}/etudes/${e.id}`); d.recharger(); } catch (x) { setErreur(x); }
+                        } },
+                    ]} />
+                  </td>
                 </tr>
               ))}
             </tbody>

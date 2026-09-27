@@ -8,11 +8,11 @@ import uuid
 from datetime import date
 from typing import Literal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from courtage.db import ConditionsRemuneration
+from courtage.db import ConditionsRemuneration, Etude
 from courtage.erreurs import ErreurMetier
 
 from . import journaliser
@@ -77,3 +77,18 @@ def en_clair(c: ConditionsRemuneration) -> dict:
         "honoraires_etude_ifc": c.honoraires_etude_ifc, "honoraires_par_salarie": c.honoraires_par_salarie,
         "commission_bps": c.commission_bps, "note": c.note,
     }
+
+
+def raison_de_garder(session: Session, c: ConditionsRemuneration) -> str | None:
+    """Des conditions sur lesquelles une étude a calculé ses honoraires restent ; sinon elles se suppriment."""
+    n = session.scalar(select(func.count()).select_from(Etude).where(Etude.conditions_remuneration_id == c.id)) or 0
+    return f"{n} étude{'s' if n > 1 else ''} en {'ont' if n > 1 else 'a'} tiré ses honoraires : elles restent." if n else None
+
+
+def supprimer(session: Session, c: ConditionsRemuneration, auteur: uuid.UUID) -> None:
+    if raison := raison_de_garder(session, c):
+        raise ErreurMetier("conditions_utilisees", raison, 409)
+    journaliser(session, c.organisation_id, auteur, "remuneration.supprimee", c.id,
+                {"en_vigueur_du": c.en_vigueur_du.isoformat(), "mode": c.mode})
+    session.delete(c)
+    session.flush()

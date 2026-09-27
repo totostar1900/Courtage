@@ -878,7 +878,8 @@ describe("les fichiers du personnel", () => {
       noms.push(this.download); });
     ouvrir(`/dossier/${ORG}/personnel`);
     await userEvent.click(await screen.findByRole("button", { name: "Télécharger le canevas" }));
-    await userEvent.click(screen.getByRole("button", { name: "Télécharger p.xlsx" }));
+    await userEvent.click(screen.getByRole("button", { name: "Actions sur p.xlsx" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Télécharger (Excel)" }));
     await waitFor(() => expect(noms).toEqual(["canevas-personnel.xlsx", "personnel-2019-12-31.xlsx"]));
     expect(appels.map((a) => a.chemin)).toContain(`/organisations/${ORG}/fichiers/f1/telechargement`);
     clic.mockRestore();
@@ -1289,5 +1290,24 @@ describe("l'équipe du dossier", () => {
     await screen.findByRole("columnheader", { name: "Fonction" });
     expect(screen.queryByRole("button", { name: /Actions sur/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Inscrire quelqu'un" })).toBeNull();
+  });
+});
+
+describe("les fichiers du personnel", () => {
+  it("supprimer un fichier cité par une étude émise est grisé : on l'allège", async () => {
+    const appels = simulerApi({ ...dossier("admin_client", { [`/organisations/${ORG}/fichiers`]: [
+      { id: "f1", nom_fichier: "p.xlsx", depose_le: "2026-09-26T10:00:00", date_donnees: "2019-12-31", periodicite: "annuel",
+        effectif: 23, anomalies: [], vide_le: null, etudes_emises: 1, brouillons: ["e2"] }] }),
+      [`POST /organisations/${ORG}/fichiers/f1/allegement`]: { allege: true, brouillons: 1 } });
+    const confirmer = vi.spyOn(window, "confirm").mockReturnValue(true);
+    ouvrir(`/dossier/${ORG}/personnel`);
+    await userEvent.click(await screen.findByRole("button", { name: "Actions sur p.xlsx" }));
+    const sup = screen.getByRole("menuitem", { name: /Supprimer/ });
+    expect(sup).toHaveAttribute("aria-disabled", "true");
+    expect(sup).toHaveTextContent("1 étude émise le cite : l'alléger plutôt.");
+    await userEvent.click(screen.getByRole("menuitem", { name: /Alléger/ }));
+    expect(confirmer.mock.calls[0][0]).toMatch(/1 étude en brouillon qui s'appuie dessus partira avec/);
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/allegement"))).toBe(true));
+    confirmer.mockRestore();
   });
 });

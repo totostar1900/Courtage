@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
+import { MenuActions } from "../composants/MenuActions";
 import { dateFr, montant, pct } from "../format";
 import type { Conditions } from "../types";
 import { useDossier } from "./Dossier";
@@ -46,6 +47,30 @@ export default function Remuneration() {
           </div>
         </div>
       ) : <p className="discret">Conditions à fixer avec votre conseiller.</p>}
+
+      {d.role === "conseiller" && donnee && donnee.historique.length > 0 && (
+        <div className="section">
+          <h2>Historique des conditions</h2>
+          <div className="defile"><table>
+            <thead><tr><th>Depuis le</th><th>Mode</th><th className="n">Par étude</th><th className="n">Par salarié</th>
+              <th className="n">Commission</th><th aria-label="Actions" /></tr></thead>
+            <tbody>{donnee.historique.map((h) => (
+              <tr key={h.id}><td>{dateFr(h.en_vigueur_du)}</td><td>{MODES[h.mode]}</td>
+                <td className="n">{montant(h.honoraires_etude_ifc)}</td><td className="n">{montant(h.honoraires_par_salarie)}</td>
+                <td className="n">{pct(h.commission_bps / 10000)}</td>
+                <td className="n"><MenuActions libelle={`Actions sur les conditions du ${dateFr(h.en_vigueur_du)}`} actions={[
+                  { libelle: "Supprimer (saisies par erreur)", danger: true, raison: h.raison_de_garder ?? null,
+                    agir: async () => {
+                      if (!window.confirm("Supprimer ces conditions ? Le journal en garde la trace.")) return;
+                      setErreur(null);
+                      try { await api.del(`/organisations/${d.org.id}/remuneration/${h.id}`); recharger(); }
+                      catch (e) { setErreur(e); }
+                    } },
+                ]} /></td></tr>
+            ))}</tbody>
+          </table></div>
+        </div>
+      )}
 
       {d.role === "conseiller" && (
         <form className="carte formulaire section" onSubmit={fixer}>

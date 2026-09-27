@@ -12,8 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from courtage.auth.telephone import normaliser
-from courtage.db import Adhesion, Organisation, ReponseFiche, Utilisateur, contexte
-from courtage.erreurs import ErreurMetier
+from courtage.db import Adhesion, ConditionsRemuneration, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
+from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.financement import Offre, Scenario
 from courtage.services import alertes, analyse, cycle, equipe, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
@@ -215,8 +215,19 @@ def lire_remuneration(a: Acces = Depends(acces(*TOUS))):
     courantes = remuneration.en_vigueur(a.session, date.today())
     return {
         "en_vigueur": remuneration.en_clair(courantes) if courantes else None,
-        "historique": [remuneration.en_clair(c) for c in remuneration.historique(a.session)],
+        "historique": [{**remuneration.en_clair(c), "raison_de_garder": remuneration.raison_de_garder(a.session, c)}
+                       for c in remuneration.historique(a.session)],
     }
+
+
+@routeur.delete("/organisations/{organisation_id}/remuneration/{conditions_id}")
+def supprimer_remuneration(conditions_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))):
+    """Des conditions saisies par erreur, dont aucune étude n'a tiré ses honoraires."""
+    c = a.session.get(ConditionsRemuneration, conditions_id)
+    if c is None:
+        raise Introuvable("Conditions")
+    remuneration.supprimer(a.session, c, a.utilisateur.id)
+    return {"supprimees": True}
 
 
 # --- Contrats : courtage ou comparaison --------------------------------------------
@@ -236,6 +247,16 @@ def enregistrer_contrat(corps: NouveauContrat, a: Acces = Depends(acces(*CONSEIL
     return contrats.en_clair(contrats.enregistrer(a.session, a.organisation.id, a.utilisateur.id, **corps.model_dump()))
 
 
+@routeur.delete("/organisations/{organisation_id}/contrats/{contrat_id}")
+def supprimer_contrat(contrat_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))):
+    """Un contrat saisi par erreur, qu'aucun dossier ni aucun départ enregistré n'utilise."""
+    c = a.session.get(Contrat, contrat_id)
+    if c is None:
+        raise Introuvable("Contrat")
+    contrats.supprimer(a.session, c, a.utilisateur.id)
+    return {"supprime": True}
+
+
 @routeur.get("/organisations/{organisation_id}/contrats")
 def lire_contrats(a: Acces = Depends(acces(*TOUS))):
     aujourd_hui = date.today()
@@ -243,7 +264,8 @@ def lire_contrats(a: Acces = Depends(acces(*TOUS))):
     return {
         "service": courant.service,
         "en_vigueur": contrats.en_clair(courant.contrat) if courant.contrat else None,
-        "historique": [contrats.en_clair(c) for c in contrats.historique(a.session)],
+        "historique": [{**contrats.en_clair(c), "raison_de_garder": contrats.raison_de_garder(a.session, c)}
+                       for c in contrats.historique(a.session)],
         "constats": contrats.constats(a.session, aujourd_hui),
     }
 
@@ -714,7 +736,19 @@ async def deposer_fichier(fichier: UploadFile = File(...), date_donnees: date = 
 
 @routeur.get("/organisations/{organisation_id}/fichiers")
 def lister_fichiers(a: Acces = Depends(acces(*TOUS))):
-    return [fichiers.en_clair(f) for f in fichiers.lister(a.session)]
+    return [{**fichiers.en_clair(f), **fichiers.usages(a.session, f)} for f in fichiers.lister(a.session)]
+
+
+@routeur.delete("/organisations/{organisation_id}/fichiers/{fichier_id}")
+def supprimer_fichier(fichier_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
+    """Le fichier et ses études en brouillon ; cité par une étude émise, il s'allège plutôt."""
+    return fichiers.supprimer(a.session, fichiers.obtenir(a.session, fichier_id), a.utilisateur.id)
+
+
+@routeur.post("/organisations/{organisation_id}/fichiers/{fichier_id}/allegement")
+def alleger_fichier(fichier_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
+    """Vider les lignes, garder nom, date et empreinte ; les études émises restent prouvées."""
+    return fichiers.alleger(a.session, fichiers.obtenir(a.session, fichier_id), a.utilisateur.id)
 
 
 @routeur.get("/organisations/{organisation_id}/fichiers/{fichier_id}/telechargement")

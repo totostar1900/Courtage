@@ -6,6 +6,7 @@ import { Constats, Erreur, useCharge, Volet } from "../composants/communs";
 import { Terme } from "../composants/Terme";
 import { dateFr } from "../format";
 import type { ContratsDossier } from "../types";
+import { MenuActions } from "../composants/MenuActions";
 import { useDossier } from "./Dossier";
 
 const SERVICES = {
@@ -69,16 +70,25 @@ export default function Contrat() {
 
       {donnee.constats.length > 0 && <div className="section"><Constats constats={donnee.constats} /></div>}
 
-      {donnee.historique.length > 1 && (
+      {donnee.historique.length > 0 && (
         <div className="section">
           <h2>Historique</h2>
-          <table>
-            <thead><tr><th>Depuis le</th><th>Service</th><th>Assureur</th><th>Police</th></tr></thead>
+          <div className="defile"><table>
+            <thead><tr><th>Depuis le</th><th>Service</th><th>Assureur</th><th>Police</th><th aria-label="Actions" /></tr></thead>
             <tbody>{donnee.historique.map((h) => (
               <tr key={h.id}><td>{dateFr(h.en_vigueur_du)}</td><td>{SERVICES[h.service].titre}</td>
-                <td>{h.assureur ?? "—"}</td><td>{h.numero_police ?? "—"}</td></tr>
+                <td>{h.assureur ?? "—"}</td><td>{h.numero_police ?? "—"}</td>
+                <td className="n">{d.role === "conseiller" && (
+                  <MenuActions libelle={`Actions sur le contrat du ${dateFr(h.en_vigueur_du)}`} actions={[
+                    { libelle: "Supprimer (saisi par erreur)", danger: true, raison: h.raison_de_garder ?? null,
+                      agir: async () => {
+                        if (!window.confirm("Supprimer ce contrat ? Le journal en garde la trace.")) return;
+                        try { await api.del(`/organisations/${d.org.id}/contrats/${h.id}`); recharger(); }
+                        catch (e) { window.alert(e instanceof Error ? e.message : String(e)); }
+                      } },
+                  ]} />)}</td></tr>
             ))}</tbody>
-          </table>
+          </table></div>
         </div>
       )}
 
@@ -113,7 +123,7 @@ function NouveauContrat({ assureur, onFermer, onFait }: { assureur?: string | nu
   return (
     <Volet titre="Enregistrer un contrat" onFermer={onFermer}>
       <form className="formulaire" onSubmit={enregistrer}>
-        <p className="discret">Un contrat ne se modifie pas : un nouveau prend effet à sa date, l'ancien reste dans l'historique.</p>
+        <p className="discret">Un contrat ne se modifie pas : un nouveau prend effet à sa date, l'ancien reste dans l'historique. Saisi par erreur, il se supprime depuis son menu ⋮, tant qu'aucun dossier ni aucun départ ne s'appuie dessus.</p>
         <div className="grille g3">
           <label>Service
             <select value={service} onChange={(e) => setService(e.target.value as "courtage" | "comparaison")}>
