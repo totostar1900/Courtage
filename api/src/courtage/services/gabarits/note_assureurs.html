@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>{{ titre }} — {{ org.nom }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 26mm 18mm;
+    @bottom-left {
+      content: "N° {{ numero }} · empreinte {{ empreinte[:16] }}… · sceau {{ sceau[:16] }}…{% if not probant %} · NON PROBANT{% endif %}\A Vérifier : {{ url_verification }}";
+      white-space: pre; font: 7pt "DejaVu Sans", sans-serif; color: #55607a;
+    }
+    @bottom-right { content: "Page " counter(page) " / " counter(pages); font: 7pt "DejaVu Sans", sans-serif; color: #55607a; }
+  }
+  body { font: 9.5pt/1.45 "DejaVu Sans", sans-serif; color: #1b2240; }
+  h1 { font-size: 18pt; margin: 0 0 2mm; color: #fff; }
+  h2 { font-size: 12pt; margin: 7mm 0 3mm; color: #1f2d6b; border-bottom: 0.4mm solid #1f2d6b; padding-bottom: 1mm; }
+  .bandeau { background: #1f2d6b; color: #fff; padding: 6mm; margin-bottom: 5mm; }
+  .bandeau .sous { color: #c9cfee; }
+  .non-probant { border: 0.5mm solid #a93a2c; color: #a93a2c; padding: 2mm 3mm; margin-bottom: 4mm; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 8.5pt; }
+  th, td { padding: 1.3mm 2mm; border-bottom: 0.2mm solid #dfe2ee; text-align: left; vertical-align: top; }
+  th { background: #e8ebf8; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.04em; color: #3d4566; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .note { font-size: 8pt; color: #55607a; }
+  .reponse td:last-child { border-bottom: 0.3mm dotted #55607a; width: 35%; }
+</style>
+</head>
+<body>
+{% macro bareme(k) %}{% if k.bareme.forme == "tranches_cumulatives" %}{% set ns = namespace(de=1) %}{% for t in k.bareme.tranches %}{{ t.mois_par_annee | pct(0) }} d'un mois de salaire par année {% if t.jusqu_a %}de {{ ns.de }} à {{ t.jusqu_a }} ans{% set ns.de = t.jusqu_a + 1 %}{% else %}au-delà de {{ ns.de - 1 }} ans{% endif %}{% if not loop.last %} ; {% endif %}{% endfor %}{% else %}{% for p in k.bareme.paliers %}{{ p.mois }} mois de salaire à partir de {{ p.a_partir_de }} ans{% if not loop.last %} ; {% endif %}{% endfor %}{% endif %}{% endmacro %}
+<div class="bandeau">
+  <div class="sous">Note aux assureurs · Régime d'indemnités de fin de carrière à assurer</div>
+  <h1>{{ c.organisation.nom }}</h1>
+  <div class="sous">{{ c.regime.nom }}, version {{ c.regime.numero }} adoptée, applicable à partir du {{ c.regime.en_vigueur_du | date_fr }} · document N° {{ numero }} · émis le {{ emis_le | date_fr }} par {{ emetteur }}</div>
+</div>
+{% if not probant %}<div class="non-probant">Sceau de développement : ce document n'est pas probant.</div>{% endif %}
+
+<h2>Le régime</h2>
+<p>{{ c.regime.fondement }} — {{ c.regime.document_reference }}. Version adoptée par l'entreprise.</p>
+<table>
+  <tr><th>Catégorie</th><th>Convention plancher</th><th>Barème</th><th>Conditions</th><th>Événements couverts</th></tr>
+  {% for k in c.categories %}
+  <tr><td>{{ k.categorie }}</td><td>{{ k.convention_code }}</td><td>{{ bareme(k) }}</td>
+      <td>{% if k.anciennete_minimale %}{{ k.anciennete_minimale }} ans minimum ; {% endif %}{% if k.plafond_mois %}plafond {{ k.plafond_mois }} mois ; {% endif %}base : {{ k.base_salaire }}{% if k.avec_primes %}, primes comprises{% endif %}</td>
+      <td>{{ k.evenements | join(", ") | replace("_", " ") }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Mois de salaire versés selon l'ancienneté</h2>
+<table>
+  <tr><th>Catégorie</th>{% for i in c.categories[0].illustration %}<th class="n">{{ i.anciennete }} ans</th>{% endfor %}</tr>
+  {% for k in c.categories %}<tr><td>{{ k.categorie }}</td>{% for i in k.illustration %}<td class="n">{{ "%.1f" | format(i.mois) | replace(".", ",") }}</td>{% endfor %}</tr>{% endfor %}
+</table>
+<p class="note">Le régime s'applique avec, pour plancher, la convention de chaque catégorie : ancienneté par ancienneté, le plus favorable des deux.</p>
+
+{% if c.population %}
+<h2>La population</h2>
+<table>
+  <tr><th>Catégorie</th><th class="n">Effectif</th></tr>
+  {% for p in c.population.par_categorie %}<tr><td>{{ p.categorie }}</td><td class="n">{{ p.effectif }}</td></tr>{% endfor %}
+  <tr><td><strong>Total</strong></td><td class="n"><strong>{{ c.population.total }}</strong></td></tr>
+</table>
+<p class="note">Personnel arrêté au {{ c.population.date_donnees | date_fr }}. Aucun nom ni salaire individuel. Le chiffrage de l'engagement figure dans l'étude actuarielle et le cahier des charges.</p>
+{% endif %}
+
+{% if c.constats %}
+<h2>Points relevés sur le régime</h2>
+{% for k in c.constats %}<p>{{ k.message }}</p>{% endfor %}
+{% endif %}
+<p class="note">Document N° {{ numero }}. Sceau : {{ sceau }}. Vérifier l'authenticité de ce document : {{ url_verification }}</p>
+</body>
+</html>

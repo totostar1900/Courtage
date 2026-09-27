@@ -4,10 +4,12 @@ import uuid
 from dataclasses import asdict
 from datetime import date
 
-from sqlalchemy import select
+from datetime import datetime, timezone
+
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from courtage.db import FichierPersonnel
+from courtage.db import Etude, FichierPersonnel
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.fichier import Anomalie, Lecture, LigneLue, lire_fichier
 
@@ -69,6 +71,7 @@ def en_clair(f: FichierPersonnel) -> dict:
         "id": str(f.id), "nom_fichier": f.nom_fichier, "depose_le": f.depose_le.isoformat(),
         "date_donnees": f.date_donnees.isoformat(), "periodicite": f.periodicite,
         "effectif": len(f.lignes), "anomalies": f.anomalies,
+        "vide_le": f.vide_le.isoformat() if f.vide_le else None,
     }
 
 
@@ -79,3 +82,49 @@ def _ligne_en_json(l: LigneLue) -> dict:
         "embauche": l.embauche.isoformat() if l.embauche else None,
         "salaire_annuel": l.salaire_annuel, "categorie": l.categorie,
     }
+
+
+# --- Supprimer, alléger ----------------------------------------------------------
+
+def usages(session: Session, f: FichierPersonnel) -> dict:
+    """Ce qui s'appuie sur le fichier : des études émises (qui le retiennent), des brouillons (qui partent avec)."""
+    etudes = session.execute(select(Etude.id, Etude.statut).where(Etude.fichier_id == f.id)).all()
+    return {"etudes_emises": sum(1 for e in etudes if e.statut == "emise"),
+            "brouillons": [str(e.id) for e in etudes if e.statut == "brouillon"]}
+
+
+def _sans_brouillons(session: Session, f: FichierPersonnel, auteur: uuid.UUID) -> int:
+    from . import etudes as service_etudes
+    brouillons = usages(session, f)["brouillons"]
+    for i in brouillons:
+        service_etudes.supprimer(session, session.get(Etude, uuid.UUID(i)), auteur)
+    return len(brouillons)
+
+
+def supprimer(session: Session, f: FichierPersonnel, auteur: uuid.UUID) -> dict:
+    """Le fichier disparaît, avec ses études en brouillon. Cité par une étude émise, il ne part pas : il s'allège."""
+    if n := usages(session, f)["etudes_emises"]:
+        raise ErreurMetier("fichier_cite", f"{n} étude{'s' if n > 1 else ''} émise{'s' if n > 1 else ''} "
+                                           f"s'appuie{'nt' if n > 1 else ''} sur ce fichier : l'alléger (vider ses "
+                                           "lignes) plutôt que le supprimer ; son empreinte reste.", 409)
+    brouillons = _sans_brouillons(session, f, auteur)
+    journaliser(session, f.organisation_id, auteur, "fichier.supprime", f.id,
+                {"nom_fichier": f.nom_fichier, "date_donnees": f.date_donnees.isoformat(), "brouillons": brouillons})
+    session.delete(f)
+    session.flush()
+    return {"supprime": True, "brouillons": brouillons}
+
+
+def alleger(session: Session, f: FichierPersonnel, auteur: uuid.UUID) -> dict:
+    """Vider les lignes et garder le nom, la date et l'empreinte : ce qu'une étude émise cite reste prouvé. Les
+    brouillons, qui auraient besoin des lignes pour se recalculer, partent."""
+    if f.vide_le is not None:
+        raise ErreurMetier("deja_allege", "Ce fichier est déjà allégé.", 409)
+    brouillons = _sans_brouillons(session, f, auteur)
+    effectif = len(f.lignes)
+    session.execute(update(FichierPersonnel).where(FichierPersonnel.id == f.id)
+                    .values(lignes=[], anomalies=[], vide_le=datetime.now(timezone.utc)))
+    session.refresh(f)
+    journaliser(session, f.organisation_id, auteur, "fichier.allege", f.id,
+                {"effectif": effectif, "brouillons": brouillons})
+    return {"allege": True, "brouillons": brouillons}

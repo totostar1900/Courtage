@@ -76,6 +76,15 @@ export const CHAPITRES: Chapitre[] = [
       { titre: "Faut-il un régime ?", texte: [
         "Non : sans régime, l'étude s'appuie sur la convention collective de votre branche. Décrivez un régime si vous versez plus (accord d'entreprise, usage, contrats).",
         "Un régime a des versions : une nouvelle version s'ajoute, l'ancienne reste, et une étude dit toujours sur quelle version elle repose." ] },
+      { titre: "Brouillon ou adoptée", texte: [
+        "Une version est un brouillon ou une version adoptée, rien d'autre. Ses dates sont écrites sur sa carte : « s'applique depuis », « s'appliquera à partir du », « remplacée par la version N ». La page range les versions en trois zones : en application, brouillons, et l'historique, replié.",
+        "Toutes les actions d'une version sont dans son menu ⋮, en haut à droite de sa carte. Une action impossible reste visible, grisée, avec sa raison.",
+        "Un brouillon se modifie sur place, se duplique, s'analyse, se compare dans Simuler, s'adopte ou se supprime (ses études en brouillon partent avec lui).",
+        "Adopter, c'est communiquer : l'administrateur de l'entreprise adopte, la version se fige, et ses deux notes se tirent de son menu : aux salariés (ce que le régime leur verse) et aux assureurs (le régime à assurer). Pour la changer, on la duplique en brouillon.",
+        "Une version adoptée se supprime tant que rien ne la cite (étude émise, cahier des charges, note émise, partage au catalogue) : c'est revenir sur une décision, avec un motif. « Faire le ménage » propose tout ce qui peut partir.",
+        "L'analyse range ses constats en trois niveaux : Bloquant, Attention (un régime moins favorable que la convention s'adopte en le confirmant) et Bon à savoir. Ses points juridiques et fiscaux sont des repères, à examiner avec votre conseil." ] },
+
+
       { titre: "Partir d'un modèle type", texte: [
         "Pas encore de régime écrit ? « Partir d'un modèle type » propose quatre barèmes calculés depuis votre convention : le minimum conventionnel, la convention majorée de 25 %, les cadres favorisés (une fois et demie la convention), et un barème unique, un seul taux par année.",
         "Chaque modèle est construit pour ne jamais passer sous la convention, à aucune ancienneté, et il ne vient d'aucune entreprise : c'est un point de départ, pas le régime d'un autre.",
@@ -226,13 +235,25 @@ export const CHAPITRES: Chapitre[] = [
     id: "equipe", groupe: "Le parcours", titre: "L'équipe du dossier", ecran: "equipe",
     resume: "Qui suit le dossier, ce que chacun peut faire, et comment inscrire quelqu'un.",
     sections: [
-      { titre: "Les rôles", texte: [
-        "La DRH de l'entreprise dépose le personnel, décrit et adopte le régime, lance les études et choisit l'assureur : l'entreprise décide.",
-        "Le conseiller suit le dossier : il relit et émet les études, fixe les conditions de rémunération, inscrit les personnes.",
-        "La lecture seule consulte tout, sans rien modifier." ] },
-      { titre: "Inscrire quelqu'un", texte: [
-        "Le conseiller inscrit une personne par son nom et son numéro de téléphone, avec son rôle.",
-        "Elle se connecte ensuite avec ce numéro, par un code reçu par message : aucun mot de passe à transmettre." ] },
+      { titre: "Des droits et une fonction", texte: [
+        "Chaque membre a des droits, ce qu'il peut faire, et une fonction, ce qu'il est (DRH, DG, DAF, comptable… à écrire librement).",
+        "Administrateur de l'entreprise : décide (adopte le régime, choisit l'assureur) et gère ses collègues. Contributeur : dépose le personnel, prépare régimes et études, sans adopter. Lecture seule : consulte tout. Conseiller : suit le dossier, émet les études, gère toute l'équipe.",
+        "Côté entreprise, on voit ses collègues ; le conseiller apparaît à part, comme contact. L'administrateur de l'entreprise inscrit, modifie et retire ses collègues ; il ne donne jamais les droits de conseiller." ] },
+      { titre: "Inscrire, modifier, retirer", texte: [
+        "« Inscrire quelqu'un » : un nom, une fonction, des droits, un numéro de téléphone. La personne se connecte ensuite avec ce numéro, par un code reçu par message.",
+        "Le menu ⋮ d'un membre le modifie (nom, fonction, droits) ou le retire du dossier ; ce qu'il y a fait reste au journal, sous son nom. Le dernier administrateur de l'entreprise et le dernier conseiller restent.",
+        "Le numéro est l'identité de connexion : pour le changer, on retire la personne et on l'inscrit avec le nouveau numéro." ] },
+      { titre: "L'état du dossier", texte: [
+        "Un dossier est ouvert, suspendu, clôturé ou archivé. Le conseiller seul en change l'état, depuis la page Équipe, toujours avec un motif daté et signé ; l'historique le garde, et un bandeau le rappelle sur chaque page.",
+        "Suspendu (impayé, litige, pièces attendues) : tout se lit et s'exporte, mais aucune étude ne s'émet et aucun cahier ne part avant la reprise.",
+        "Clôturé (fin du mandat, changement de courtier, cessation) : lecture seule pour tous. Le conseiller peut encore le reprendre pendant 90 jours ; au-delà, le dossier est archivé.",
+        "Archivé : le personnel déposé est effacé et le dossier ne s'ouvre plus. Les études, les rapports scellés et le journal sont conservés : chaque document reste vérifiable par son numéro.",
+        "Seul un dossier vide, ouvert par erreur, se supprime. Dès qu'un document a été émis, son numéro circule : le dossier se clôture, il ne disparaît pas." ] },
+      { titre: "Nettoyer le dossier", texte: [
+        "La plateforme sert à souscrire et suivre une assurance IFC, pas à garder le personnel. « Nettoyer le dossier », en bas de la page Équipe (administrateur de l'entreprise ou conseiller), se fait en trois temps.",
+        "Télécharger l'archive : chaque document scellé en PDF, chaque étude émise en Excel, et un sommaire des numéros à vérifier.",
+        "Choisir ce qui part : le personnel (allégé, lignes vidées et empreinte gardée, ou supprimé quand aucune étude émise ne le cite), les brouillons, les études émises et leur rapport (sauf celles qu'un cahier des charges cite).",
+        "Confirmer en écrivant NETTOYER. Les sceaux et le journal restent : chaque numéro de document se vérifie toujours, pour la vie de l'entreprise." ] },
     ],
   },
   {

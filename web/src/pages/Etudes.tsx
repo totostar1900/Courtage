@@ -3,9 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
+import { MenuActions } from "../composants/MenuActions";
 import { CONVENTION_PAR_PAYS } from "../composants/EditeurCategories";
 import { aEnvoyer, Hypotheses, saisieParDefaut, type SaisieHypotheses } from "../composants/Hypotheses";
 import { dateFr, montant } from "../format";
+import { enCours, libelleVersion, ordonner } from "../regimes";
 import type { CatalogueHypotheses, Etude } from "../types";
 import { useDossier } from "./Dossier";
 
@@ -16,7 +18,8 @@ export default function Etudes() {
   // Une hypothèse proposée par l'expérience réelle arrive ici, à confirmer : jamais appliquée sans décision.
   const [params] = useSearchParams();
   const proposee = params.get("turnover");
-  const versions = d.regimes.flatMap((r) => r.versions.map((v) => ({ ...v, nomRegime: r.nom })));
+  // La version qui s'applique d'abord.
+  const versions = d.regimes.flatMap((r) => ordonner(r.versions).map((v) => ({ ...v, nomRegime: r.nom })));
   const { donnee: catalogue } = useCharge(() => api.get<CatalogueHypotheses>("/referentiel/hypotheses"), []);
   // La dernière étude donne l'effet de chaque hypothèse mesuré sur l'entreprise.
   const derniere = d.etudes[0]?.id;
@@ -60,9 +63,9 @@ export default function Etudes() {
               <input name="date_evaluation" type="date" required defaultValue={d.fichiers[0]?.date_donnees} />
             </label>
             <label>Base
-              <select name="regime_version_id" defaultValue={versions.find((v) => v.statut === "adoptee")?.id ?? ""}>
+              <select name="regime_version_id" defaultValue={versions.find(enCours)?.id ?? ""}>
                 <option value="">la convention seule</option>
-                {versions.map((v) => <option key={v.id} value={v.id}>{v.nomRegime}, version {v.numero}</option>)}
+                {versions.map((v) => <option key={v.id} value={v.id}>{libelleVersion(v, v.nomRegime)}</option>)}
               </select>
             </label>
             <label>Convention (sans régime)<input name="convention_code" defaultValue={CONVENTION_PAR_PAYS[d.org.pays]} /></label>
@@ -93,7 +96,7 @@ export default function Etudes() {
         <h2>Vos études</h2>
         <div className="defile">
           <table>
-            <thead><tr><th>Évaluation au</th><th>Base</th><th className="n">Dette</th><th>État</th></tr></thead>
+            <thead><tr><th>Évaluation au</th><th>Base</th><th className="n">Dette</th><th>État</th><th aria-label="Actions" /></tr></thead>
             <tbody>
               {d.etudes.map((e) => (
                 <tr key={e.id} className="cliquable" onClick={() => naviguer(e.id)}>
@@ -102,6 +105,21 @@ export default function Etudes() {
                   <td className="n">{montant(e.dette)}</td>
                   <td>{e.statut === "emise" ? <span className="etat bien">Émise le {dateFr(e.emise_le)}</span>
                     : <span className="etat attention">Brouillon</span>}</td>
+                  <td className="n" onClick={(ev) => ev.stopPropagation()}>
+                    <MenuActions libelle={`Actions sur l'étude au ${dateFr(e.date_evaluation)}`} actions={[
+                      { libelle: "Ouvrir", agir: () => naviguer(e.id) },
+                      { libelle: "Rapport PDF", cache: e.statut !== "emise",
+                        agir: () => api.ouvrir(`/organisations/${d.org.id}/etudes/${e.id}/rapport`) },
+                      { libelle: "Exporter en Excel", agir: () => { setErreur(null);
+                        api.telecharger(`/organisations/${d.org.id}/etudes/${e.id}/export`, `etude-ifc-${e.date_evaluation}.xlsx`).catch(setErreur); } },
+                      { libelle: "Supprimer ce brouillon", danger: true, cache: e.statut !== "brouillon" || d.role === "lecteur_client",
+                        agir: async () => {
+                          if (!window.confirm("Supprimer ce brouillon ? Il n'engage rien ; une étude émise, elle, reste.")) return;
+                          setErreur(null);
+                          try { await api.del(`/organisations/${d.org.id}/etudes/${e.id}`); d.recharger(); } catch (x) { setErreur(x); }
+                        } },
+                    ]} />
+                  </td>
                 </tr>
               ))}
             </tbody>

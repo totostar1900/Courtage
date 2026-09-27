@@ -63,6 +63,7 @@ export const api = {
   post: <T>(chemin: string, corps?: unknown) =>
     appel<T>(chemin, { method: "POST", body: corps instanceof FormData ? corps : JSON.stringify(corps ?? {}) }),
   put: <T>(chemin: string, corps: unknown) => appel<T>(chemin, { method: "PUT", body: JSON.stringify(corps) }),
+  patch: <T>(chemin: string, corps: unknown) => appel<T>(chemin, { method: "PATCH", body: JSON.stringify(corps) }),
   del: (chemin: string) => appel<void>(chemin, { method: "DELETE" }),
   /** Un fichier (xlsx) à enregistrer sous `nom` : le navigateur le télécharge. */
   async telecharger(chemin: string, nom: string) {

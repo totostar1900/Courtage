@@ -10,10 +10,10 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from courtage.db import Etude, FicheRegime, FichierPersonnel, Organisation, VersionRegime
+from courtage.db import EtatDossier, Etude, FicheRegime, FichierPersonnel, Organisation, VersionRegime
 from courtage.fichier.controles import FRAICHEUR_MOIS
 
-from . import dossiers, reponses
+from . import cycle, dossiers, regimes, reponses
 
 ORDRE = {"grave": 0, "attention": 1, "info": 2}
 ATTENTE_BROUILLON = 30        # jours avant qu'un brouillon d'étude ou une version de régime en attente le soit trop
@@ -26,10 +26,32 @@ def _alerte(niveau: str, code: str, titre: str, detail: str, lien: str, pour: st
 
 
 def du_dossier(session: Session, org: Organisation, aujourd_hui: date) -> list[dict]:
-    """Les alertes du dossier ouvert (le contexte RLS de l'organisation est posé par l'appelant)."""
-    alertes = _etudes(session, aujourd_hui) + _personnel(session, aujourd_hui) + _regime(session, aujourd_hui)
+    """Les alertes du dossier ouvert (le contexte RLS de l'organisation est posé par l'appelant).
+
+    Clôturé, le dossier ne dit plus que la date de son archivage : il ne se modifie plus, relancer n'a pas de sens."""
+    if org.etat == "cloture":
+        prevu = cycle.archivage_prevu(org)
+        return [_alerte("attention", "archivage_prevu", "Le dossier sera archivé",
+                        f"Clôturé, il sera archivé le {prevu:%d/%m/%Y} : le personnel déposé sera alors effacé et le "
+                        "dossier ne s'ouvrira plus. Exporter d'ici là ce que l'entreprise veut garder ; ses documents "
+                        "scellés restent vérifiables par leur numéro.", "equipe", "entreprise")]
+    alertes = _cycle(session, org)
+    alertes += _etudes(session, aujourd_hui) + _personnel(session, aujourd_hui) + _regime(session, aujourd_hui)
     alertes += _prises_en_charge(session, aujourd_hui) + _cahiers(session, aujourd_hui)
     return sorted(alertes, key=lambda a: ORDRE[a["niveau"]])
+
+
+def _cycle(session: Session, org: Organisation) -> list[dict]:
+    if org.etat != "suspendu":
+        return []
+    e = session.scalars(select(EtatDossier).where(EtatDossier.etat == "suspendu").order_by(EtatDossier.le.desc())).first()
+    motif = ""
+    if e is not None:
+        libelle = cycle.MOTIFS["suspendre"].get(e.motif_code or "", "")
+        motif = " : " + " — ".join(x for x in (libelle, e.motif) if x) if (libelle or e.motif) else ""
+    return [_alerte("attention", "dossier_suspendu", "Le dossier est suspendu",
+                    f"Depuis le {org.etat_depuis:%d/%m/%Y}{motif}. Tout se lit et s'exporte ; aucune étude ne s'émet "
+                    "et aucun cahier ne part tant que le conseiller ne l'a pas repris.", "equipe", "conseiller")]
 
 
 def _jours(depuis, aujourd_hui: date) -> int:
@@ -75,11 +97,20 @@ def _personnel(session: Session, aujourd_hui: date) -> list[dict]:
 
 
 def _regime(session: Session, aujourd_hui: date) -> list[dict]:
-    return [_alerte("info", "version_a_adopter", "Une version du régime attend l'adoption",
-                    f"La version {v.numero}, du {v.en_vigueur_du:%d/%m/%Y}, est en analyse depuis "
-                    f"{_jours(v.cree_le, aujourd_hui)} jours : l'entreprise l'adopte ou la laisse.", "regime", "entreprise")
-            for v in session.scalars(select(VersionRegime).where(VersionRegime.statut == "analyse"))
-            if _jours(v.cree_le, aujourd_hui) > ATTENTE_BROUILLON]
+    """Un brouillon sans décision : un rappel à 30 jours ; à 90, une invitation au ménage (il encombre la page)."""
+    alertes = []
+    for v in session.scalars(select(VersionRegime).where(VersionRegime.statut == "analyse")):
+        age = _jours(v.cree_le, aujourd_hui)
+        if age >= regimes.JOURS_SANS_DECISION:
+            alertes.append(_alerte("attention", "projet_a_trancher", "Un brouillon de version à trancher",
+                                   f"La version {v.numero} est un brouillon depuis {age} jours : l'adopter, ou la "
+                                   "supprimer (« Faire le ménage » sur la page Régime).", "regime", "entreprise"))
+        elif age > ATTENTE_BROUILLON:
+            alertes.append(_alerte("info", "version_a_adopter", "Un brouillon de version attend une décision",
+                                   f"La version {v.numero}, du {v.en_vigueur_du:%d/%m/%Y}, est un brouillon depuis {age} "
+                                   "jours : l'entreprise l'adopte, ou on le supprime s'il n'est pas retenu.", "regime",
+                                   "entreprise"))
+    return alertes
 
 
 def _prises_en_charge(session: Session, aujourd_hui: date) -> list[dict]:

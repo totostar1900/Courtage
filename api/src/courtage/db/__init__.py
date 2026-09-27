@@ -25,7 +25,8 @@ def contexte(connexion, organisation_id: uuid.UUID) -> None:
     connexion.execute(text("SELECT set_config('app.organisation_id', :o, true)"), {"o": str(organisation_id)})
 
 
-RoleAdhesion = ENUM("admin_client", "lecteur_client", "conseiller", name="role_adhesion", create_type=False)
+RoleAdhesion = ENUM("admin_client", "contributeur_client", "lecteur_client", "conseiller", name="role_adhesion",
+                    create_type=False)
 StatutEtude = ENUM("brouillon", "emise", name="statut_etude", create_type=False)
 Periodicite = ENUM("mensuel", "annuel", name="periodicite_salaire", create_type=False)
 Fondement = ENUM("accord_entreprise", "contrat_travail", "usage", "decision_direction",
@@ -45,6 +46,22 @@ class Organisation(Base):
     pays: Mapped[str] = mapped_column(Text)
     secteur: Mapped[str | None] = mapped_column(Text)
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    # Le cycle de vie : ouvert, suspendu, cloture, archive, supprime (histoire dans `etats_dossier`).
+    etat: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
+    etat_depuis: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class EtatDossier(Base):
+    """Un changement d'état du dossier, motivé, daté, signé (`par` vide : l'archivage automatique)."""
+    __tablename__ = "etats_dossier"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    etat: Mapped[str] = mapped_column(Text)
+    action: Mapped[str] = mapped_column(Text)
+    motif_code: Mapped[str | None] = mapped_column(Text)
+    motif: Mapped[str | None] = mapped_column(Text)
+    par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
 class Utilisateur(Base):
@@ -62,6 +79,7 @@ class Adhesion(Base):
     utilisateur_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"), primary_key=True)
     organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"), primary_key=True)
     role: Mapped[str] = mapped_column(RoleAdhesion)
+    fonction: Mapped[str | None] = mapped_column(Text)            # libre : DRH, DG, DAF…
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
@@ -77,6 +95,7 @@ class FichierPersonnel(Base):
     periodicite: Mapped[str] = mapped_column(Periodicite)
     lignes: Mapped[list] = mapped_column(JSONB)
     anomalies: Mapped[list] = mapped_column(JSONB)
+    vide_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))   # vidé à l'archivage du dossier
 
 
 class Etude(Base):
@@ -333,6 +352,7 @@ class Document(Base):
     etude_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("etudes.id"))
     fiche_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("fiches_regime.id"))
     prestation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("prestations.id"))
+    version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("regimes_versions.id"))   # une note de régime
     numero: Mapped[str] = mapped_column(ForeignKey("sceaux.numero"))
     type_contenu: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
     contenu: Mapped[bytes] = mapped_column(LargeBinary)

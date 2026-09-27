@@ -129,13 +129,20 @@ def test_les_adhesions_se_lisent_avant_de_connaitre_l_organisation(app, deux_org
     "UPDATE journal SET action = 'efface'",
     "DELETE FROM journal",
     "UPDATE fichiers_personnel SET nom_fichier = 'autre.xlsx'",
-    "DELETE FROM fichiers_personnel",
 ])
 def test_journal_et_fichiers_sont_en_ajout_seul(app, deux_organisations, instruction):
     with pytest.raises(ProgrammingError, match="permission denied"):
         with app.begin() as c:
             contexte(c, deux_organisations["A"]["org"])
             c.execute(text(instruction))
+
+
+def test_un_fichier_cite_par_une_etude_ne_se_supprime_pas(app, deux_organisations):
+    """Un fichier se supprime (donnée de travail) ; une étude qui le cite le retient, par clé étrangère."""
+    with pytest.raises(IntegrityError, match="etudes_fichier_id_fkey"):
+        with app.begin() as c:
+            contexte(c, deux_organisations["A"]["org"])
+            c.execute(text("DELETE FROM fichiers_personnel"))
 
 
 def test_un_brouillon_se_modifie_et_se_supprime(app, deux_organisations):

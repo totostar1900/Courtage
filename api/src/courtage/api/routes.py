@@ -12,17 +12,17 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from courtage.auth.telephone import normaliser
-from courtage.db import Adhesion, Organisation, ReponseFiche, Utilisateur, contexte
-from courtage.erreurs import ErreurMetier
+from courtage.db import Adhesion, ConditionsRemuneration, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
+from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.financement import Offre, Scenario
-from courtage.services import alertes, analyse, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
 
 routeur = APIRouter()
 
-CLIENT = ("admin_client", "conseiller")      # déposer, lancer une étude, décrire un régime
+CLIENT = ("admin_client", "contributeur_client", "conseiller")   # déposer, préparer : études, régimes en brouillon
 ENTREPRISE = ("admin_client",)               # adopter son régime : l'entreprise est souveraine
 CONSEIL = ("conseiller",)                    # émettre, fixer la rémunération
 TOUS: tuple[str, ...] = ()                   # lire
@@ -42,7 +42,9 @@ def moi(session: Session = Depends(session_db, scope="function"), utilisateur: U
     return {
         "id": str(utilisateur.id), "email": utilisateur.email, "telephone": utilisateur.telephone,
         "admin_plateforme": utilisateur.admin_plateforme,
-        "organisations": [{"id": str(o.id), "nom": o.nom, "pays": o.pays, "role": r} for o, r in rangs],
+        "organisations": [{"id": str(o.id), "nom": o.nom, "pays": o.pays, "role": r, "etat": o.etat,
+                           "etat_depuis": o.etat_depuis.isoformat()}
+                          for o, r in rangs if o.etat not in ("archive", "supprime")],
     }
 
 
@@ -53,6 +55,8 @@ def alertes_de_mes_dossiers(session: Session = Depends(session_db, scope="functi
     decompte = {}
     for org in session.scalars(select(Organisation).join(Adhesion, Adhesion.organisation_id == Organisation.id)
                                .where(Adhesion.utilisateur_id == utilisateur.id)):
+        if org.etat in ("archive", "supprime"):
+            continue
         contexte(session.connection(), org.id)
         liste = alertes.du_dossier(session, org, date.today())
         decompte[str(org.id)] = {n: sum(a["niveau"] == n for a in liste) for n in ("grave", "attention", "info")}
@@ -88,9 +92,63 @@ def creer_organisation(corps: NouvelleOrganisation, session: Session = Depends(s
     return {"id": str(org.id), "nom": org.nom, "pays": org.pays, "secteur": org.secteur}
 
 
+class ChangementEtat(_Corps):
+    action: Literal["suspendre", "cloturer", "reprendre", "supprimer"]
+    motif_code: str | None = None
+    motif: str | None = Field(default=None, max_length=500)
+
+
+@routeur.get("/organisations/{organisation_id}/cycle")
+def lire_cycle(a: Acces = Depends(acces(*TOUS))):
+    """L'état du dossier, son histoire, et ce que le conseiller peut en faire."""
+    return cycle.en_clair(a.session, a.organisation)
+
+
+@routeur.post("/organisations/{organisation_id}/cycle")
+def changer_cycle(corps: ChangementEtat, a: Acces = Depends(acces(*CONSEIL))):
+    """Suspendre, clôturer, reprendre, supprimer (un dossier vide) : le conseiller seul, motif à l'appui."""
+    cycle.changer(a.session, a.organisation, a.utilisateur.id, corps.action, corps.motif_code, corps.motif)
+    if corps.action == "supprimer":
+        return {"etat": "supprime"}
+    return cycle.en_clair(a.session, a.organisation)
+
+
+Droits = Literal["admin_client", "contributeur_client", "lecteur_client", "conseiller"]
+
+
+@routeur.get("/organisations/{organisation_id}/nettoyage")
+def lire_nettoyage(a: Acces = Depends(acces("admin_client", "conseiller"))):
+    """Ce que le dossier contient, et ce que chaque choix du nettoyage ferait partir."""
+    return nettoyage.inventaire(a.session)
+
+
+@routeur.get("/organisations/{organisation_id}/archive")
+def telecharger_archive(a: Acces = Depends(acces(*TOUS))):
+    """Tout ce que l'entreprise voudra garder : documents scellés, études en Excel, sommaire des numéros."""
+    journaliser(a.session, a.organisation.id, a.utilisateur.id, "dossier.archive_telechargee", a.organisation.id, {})
+    nom = f"archive-{a.organisation.nom}-{date.today().isoformat()}.zip"
+    return Response(nettoyage.archive(a.session, a.organisation, date.today()), media_type="application/zip",
+                    headers=_piece_jointe(nom))
+
+
+class Nettoyage(_Corps):
+    fichiers: Literal["alleger", "supprimer"] | None = None
+    brouillons: bool = False
+    etudes_emises: bool = False
+    confirmation: str = ""
+
+
+@routeur.post("/organisations/{organisation_id}/nettoyage")
+def nettoyer_dossier(corps: Nettoyage, a: Acces = Depends(acces("admin_client", "conseiller"))):
+    """Faire partir ce qui a été choisi ; les sceaux et le journal restent."""
+    return nettoyage.nettoyer(a.session, a.organisation, a.utilisateur.id, fichiers_=corps.fichiers,
+                             brouillons=corps.brouillons, etudes_emises=corps.etudes_emises,
+                             confirmation=corps.confirmation)
+
+
 class NouvelleAdhesion(_Corps):
     utilisateur_id: uuid.UUID
-    role: Literal["admin_client", "lecteur_client", "conseiller"]
+    role: Droits
 
 
 @routeur.post("/organisations/{organisation_id}/adhesions", status_code=201)
@@ -111,46 +169,58 @@ def ajouter_adhesion(organisation_id: uuid.UUID, corps: NouvelleAdhesion, sessio
     return adhesion
 
 
+def _role_de(session: Session, utilisateur: Utilisateur, organisation_id: uuid.UUID) -> str | None:
+    return session.scalar(select(Adhesion.role).where(
+        Adhesion.utilisateur_id == utilisateur.id, Adhesion.organisation_id == organisation_id))
+
+
 @routeur.get("/organisations/{organisation_id}/equipe")
-def equipe(a: Acces = Depends(acces(*TOUS))):
-    """Qui suit le dossier : le client voit son conseiller, et le conseiller ses interlocuteurs."""
-    rangs = a.session.execute(select(Utilisateur, Adhesion.role).join(Adhesion, Adhesion.utilisateur_id == Utilisateur.id)
-                              .where(Adhesion.organisation_id == a.organisation.id)).all()
-    return [{"id": str(u.id), "nom": u.nom_affiche or u.email or u.telephone, "email": u.email,
-             "telephone": u.telephone, "role": r} for u, r in rangs]
+def lire_equipe(a: Acces = Depends(acces(*TOUS))):
+    """Qui suit le dossier, ce que l'appelant peut y changer, et les droits qu'il peut donner."""
+    return equipe.lister(a.session, a.organisation, a.utilisateur, a.role)
 
 
 class NouveauMembre(_Corps):
     telephone: str = Field(min_length=1, max_length=30)
     nom_affiche: str = Field(min_length=1)
-    role: Literal["admin_client", "lecteur_client", "conseiller"]
+    role: Droits
+    fonction: str | None = Field(default=None, max_length=80)
 
 
 @routeur.post("/organisations/{organisation_id}/membres", status_code=201)
 def inscrire_membre(organisation_id: uuid.UUID, corps: NouveauMembre, session: Session = Depends(session_db, scope="function"),
                     utilisateur: Utilisateur = Depends(identite)):
-    """Inscrire quelqu'un par son numéro : il se connectera avec le code qu'il recevra."""
-    role_appelant = session.scalar(select(Adhesion.role).where(
-        Adhesion.utilisateur_id == utilisateur.id, Adhesion.organisation_id == organisation_id))
-    if not (utilisateur.admin_plateforme or role_appelant == "conseiller"):
-        raise ErreurMetier("acces_refuse", "Seuls la plateforme et le conseiller du dossier inscrivent un membre.", 403)
-    if session.get(Organisation, organisation_id) is None:
+    """Inscrire quelqu'un par son numéro : le conseiller (ou la plateforme) tout le monde, l'administrateur de
+    l'entreprise ses collègues."""
+    org = session.get(Organisation, organisation_id)
+    if org is None:
         raise ErreurMetier("introuvable", "Organisation introuvable.", 404)
-    try:
-        telephone = normaliser(corps.telephone)
-    except ValueError:
-        raise ErreurMetier("telephone_invalide", "Numéro de téléphone invalide.", 422) from None
-    membre = session.scalars(select(Utilisateur).where(Utilisateur.telephone == telephone)).first()
-    if membre is None:
-        membre = Utilisateur(telephone=telephone, nom_affiche=corps.nom_affiche.strip())
-        session.add(membre)
-        session.flush()
-    if session.get(Adhesion, (membre.id, organisation_id)) is not None:
-        raise ErreurMetier("deja_membre", "Cette personne est déjà membre du dossier.", 409)
-    session.add(Adhesion(utilisateur_id=membre.id, organisation_id=organisation_id, role=corps.role))
+    role = _role_de(session, utilisateur, organisation_id)
+    if not (utilisateur.admin_plateforme or role):
+        raise ErreurMetier("acces_refuse", "Vous n'êtes pas membre de cette organisation.", 403)
+    cycle.exiger_ecriture(org)
     contexte(session.connection(), organisation_id)
-    journaliser(session, organisation_id, utilisateur.id, "membre.inscrit", membre.id, {"role": corps.role})
-    return {"utilisateur_id": str(membre.id), "telephone": telephone, "role": corps.role}
+    return equipe.inscrire(session, org, utilisateur, role, telephone=corps.telephone, nom_affiche=corps.nom_affiche,
+                           role=corps.role, fonction=corps.fonction)
+
+
+class ModificationMembre(_Corps):
+    nom_affiche: str | None = Field(default=None, max_length=120)
+    fonction: str | None = Field(default=None, max_length=80)
+    role: Droits | None = None
+
+
+@routeur.patch("/organisations/{organisation_id}/membres/{utilisateur_id}")
+def modifier_membre(utilisateur_id: uuid.UUID, corps: ModificationMembre, a: Acces = Depends(acces(*TOUS))):
+    equipe.modifier(a.session, a.organisation, a.utilisateur, a.role, utilisateur_id, **corps.model_dump())
+    return equipe.lister(a.session, a.organisation, a.utilisateur, a.role)
+
+
+@routeur.delete("/organisations/{organisation_id}/membres/{utilisateur_id}")
+def retirer_membre(utilisateur_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    """Le membre quitte le dossier ; ce qu'il a fait reste au journal, sous son nom."""
+    equipe.retirer(a.session, a.organisation, a.utilisateur, a.role, utilisateur_id)
+    return equipe.lister(a.session, a.organisation, a.utilisateur, a.role)
 
 
 # --- Rémunération -------------------------------------------------------------
@@ -175,8 +245,19 @@ def lire_remuneration(a: Acces = Depends(acces(*TOUS))):
     courantes = remuneration.en_vigueur(a.session, date.today())
     return {
         "en_vigueur": remuneration.en_clair(courantes) if courantes else None,
-        "historique": [remuneration.en_clair(c) for c in remuneration.historique(a.session)],
+        "historique": [{**remuneration.en_clair(c), "raison_de_garder": remuneration.raison_de_garder(a.session, c)}
+                       for c in remuneration.historique(a.session)],
     }
+
+
+@routeur.delete("/organisations/{organisation_id}/remuneration/{conditions_id}")
+def supprimer_remuneration(conditions_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))):
+    """Des conditions saisies par erreur, dont aucune étude n'a tiré ses honoraires."""
+    c = a.session.get(ConditionsRemuneration, conditions_id)
+    if c is None:
+        raise Introuvable("Conditions")
+    remuneration.supprimer(a.session, c, a.utilisateur.id)
+    return {"supprimees": True}
 
 
 # --- Contrats : courtage ou comparaison --------------------------------------------
@@ -196,6 +277,16 @@ def enregistrer_contrat(corps: NouveauContrat, a: Acces = Depends(acces(*CONSEIL
     return contrats.en_clair(contrats.enregistrer(a.session, a.organisation.id, a.utilisateur.id, **corps.model_dump()))
 
 
+@routeur.delete("/organisations/{organisation_id}/contrats/{contrat_id}")
+def supprimer_contrat(contrat_id: uuid.UUID, a: Acces = Depends(acces(*CONSEIL))):
+    """Un contrat saisi par erreur, qu'aucun dossier ni aucun départ enregistré n'utilise."""
+    c = a.session.get(Contrat, contrat_id)
+    if c is None:
+        raise Introuvable("Contrat")
+    contrats.supprimer(a.session, c, a.utilisateur.id)
+    return {"supprime": True}
+
+
 @routeur.get("/organisations/{organisation_id}/contrats")
 def lire_contrats(a: Acces = Depends(acces(*TOUS))):
     aujourd_hui = date.today()
@@ -203,7 +294,8 @@ def lire_contrats(a: Acces = Depends(acces(*TOUS))):
     return {
         "service": courant.service,
         "en_vigueur": contrats.en_clair(courant.contrat) if courant.contrat else None,
-        "historique": [contrats.en_clair(c) for c in contrats.historique(a.session)],
+        "historique": [{**contrats.en_clair(c), "raison_de_garder": contrats.raison_de_garder(a.session, c)}
+                       for c in contrats.historique(a.session)],
         "constats": contrats.constats(a.session, aujourd_hui),
     }
 
@@ -519,6 +611,70 @@ def adopter_version(version_id: uuid.UUID, corps: Adoption, a: Acces = Depends(a
     return regimes.en_clair(a.session, v)
 
 
+@routeur.delete("/organisations/{organisation_id}/regimes/versions/{version_id}")
+def supprimer_version(version_id: uuid.UUID, motif: str | None = None, a: Acces = Depends(acces(*CLIENT))):
+    """Un brouillon, ou une version adoptée que rien ne cite (l'administrateur de l'entreprise, avec un motif) ; ses
+    études en brouillon partent avec elle, et son régime s'il reste sans version."""
+    regime_supprime = regimes.supprimer(a.session, regimes.obtenir_version(a.session, version_id), a.utilisateur.id,
+                                        a.role, motif)
+    return {"supprimee": True, "regime_supprime": regime_supprime}
+
+
+@routeur.put("/organisations/{organisation_id}/regimes/versions/{version_id}")
+def modifier_version(version_id: uuid.UUID, corps: NouvelleVersion, a: Acces = Depends(acces(*CLIENT))):
+    """Un brouillon se corrige sur place, jusqu'à son adoption."""
+    v = regimes.modifier_brouillon(
+        a.session, a.organisation, regimes.obtenir_version(a.session, version_id), a.utilisateur.id,
+        en_vigueur_du=corps.en_vigueur_du, fondement=corps.fondement, document_reference=corps.document_reference,
+        note=corps.note, categories=[regimes.SaisieCategorie(**{**c.model_dump(), "evenements": tuple(c.evenements)})
+                                     for c in corps.categories])
+    return regimes.en_clair(a.session, v)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/duplication", status_code=201)
+def dupliquer_version(version_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
+    """Un nouveau brouillon, copie de la version : c'est ainsi qu'évolue une version adoptée."""
+    v = regimes.dupliquer(a.session, a.organisation, regimes.obtenir_version(a.session, version_id), a.utilisateur.id)
+    return regimes.en_clair(a.session, v)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/notes/{nature}")
+def emettre_note(version_id: uuid.UUID, nature: str, request: Request,
+                 a: Acces = Depends(acces("admin_client", "conseiller"))):
+    """La note aux salariés ou aux assureurs d'une version adoptée : scellée à la première demande, la même ensuite."""
+    d = notes_regime.emettre(a.session, a.organisation, regimes.obtenir_version(a.session, version_id), nature,
+                             a.utilisateur.id, request.app.state.sceau, date.today())
+    return {"numero": d.numero}
+
+
+@routeur.get("/organisations/{organisation_id}/regimes/versions/{version_id}/notes/{nature}")
+def telecharger_note(version_id: uuid.UUID, nature: str, a: Acces = Depends(acces(*TOUS))):
+    v = regimes.obtenir_version(a.session, version_id)
+    d = notes_regime.existante(a.session, v, nature) if nature in notes_regime.NATURES else None
+    if d is None:
+        raise ErreurMetier("note_non_emise", "Cette note n'a pas encore été émise.", 404)
+    nom = f"{notes_regime.NATURES[nature][2].lower().replace(' ', '-')}-{a.organisation.nom}-v{v.numero}-{d.numero}.pdf"
+    return Response(d.contenu, media_type=d.type_contenu, headers=_piece_jointe(nom))
+
+
+@routeur.get("/organisations/{organisation_id}/regimes/menage")
+def lire_menage(a: Acces = Depends(acces(*CLIENT))):
+    """Ce qui peut partir, avec sa raison et ce que coche la plateforme."""
+    return {"jours_sans_decision": regimes.JOURS_SANS_DECISION,
+            "candidats": regimes.menage(a.session, date.today(), a.role)}
+
+
+class Menage(_Corps):
+    versions: list[uuid.UUID] = Field(min_length=1)
+    motif: str | None = Field(default=None, max_length=500)
+
+
+@routeur.post("/organisations/{organisation_id}/regimes/menage")
+def faire_le_menage(corps: Menage, a: Acces = Depends(acces(*CLIENT))):
+    """Supprimer d'un coup les versions choisies, et les études en brouillon qui les retiennent."""
+    return regimes.faire_le_menage(a.session, a.utilisateur.id, a.role, corps.versions, corps.motif)
+
+
 # --- Le catalogue anonyme ------------------------------------------------------
 
 class Partage(_Corps):
@@ -610,7 +766,19 @@ async def deposer_fichier(fichier: UploadFile = File(...), date_donnees: date = 
 
 @routeur.get("/organisations/{organisation_id}/fichiers")
 def lister_fichiers(a: Acces = Depends(acces(*TOUS))):
-    return [fichiers.en_clair(f) for f in fichiers.lister(a.session)]
+    return [{**fichiers.en_clair(f), **fichiers.usages(a.session, f)} for f in fichiers.lister(a.session)]
+
+
+@routeur.delete("/organisations/{organisation_id}/fichiers/{fichier_id}")
+def supprimer_fichier(fichier_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
+    """Le fichier et ses études en brouillon ; cité par une étude émise, il s'allège plutôt."""
+    return fichiers.supprimer(a.session, fichiers.obtenir(a.session, fichier_id), a.utilisateur.id)
+
+
+@routeur.post("/organisations/{organisation_id}/fichiers/{fichier_id}/allegement")
+def alleger_fichier(fichier_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
+    """Vider les lignes, garder nom, date et empreinte ; les études émises restent prouvées."""
+    return fichiers.alleger(a.session, fichiers.obtenir(a.session, fichier_id), a.utilisateur.id)
 
 
 @routeur.get("/organisations/{organisation_id}/fichiers/{fichier_id}/telechargement")
@@ -692,6 +860,7 @@ def supprimer_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
 @routeur.post("/organisations/{organisation_id}/etudes/{etude_id}/emission")
 def emettre_etude(etude_id: uuid.UUID, request: Request, a: Acces = Depends(acces(*CONSEIL))):
     """Émettre, sceller et rendre le rapport : un seul acte. Si le rapport échoue, rien n'est émis."""
+    cycle.exiger_emission(a.organisation)
     e = etudes.emettre(a.session, a.organisation, etudes.obtenir(a.session, etude_id), a.utilisateur.id, date.today())
     document = rapport.sceller(a.session, a.organisation, e, request.app.state.sceau, date.today())
     journaliser(a.session, a.organisation.id, a.utilisateur.id, "rapport.scelle", document.numero, {"etude_id": str(e.id)})
@@ -765,6 +934,7 @@ class NouvelleFiche(_Corps):
 @routeur.post("/organisations/{organisation_id}/fiches", status_code=201)
 def emettre_fiche(corps: NouvelleFiche, request: Request, a: Acces = Depends(acces(*CONSEIL))):
     """Le cahier des charges : émis, scellé, rendu, en un seul acte."""
+    cycle.exiger_emission(a.organisation)
     f, document = fiches.emettre(a.session, a.organisation, a.utilisateur.id, etude_id=corps.etude_id,
                                  conditions=corps.conditions.model_dump(), date_limite_reponse=corps.date_limite_reponse,
                                  config=request.app.state.sceau, aujourd_hui=date.today())

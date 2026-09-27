@@ -459,3 +459,47 @@ details.hypotheses[open] > summary .chevron { transform: rotate(45deg); }
   .bulle-rangee { left: 0; }
 }
 .bulle-courbe.sous { position: relative; top: 0; left: 0 !important; width: auto; margin-top: 8px; animation: none; }
+
+/* Le cycle de vie du dossier. */
+button.danger { background: var(--surface); border-color: var(--grave); color: var(--grave); }
+button.danger:hover { background: var(--grave-doux); }
+.bandeau-cycle { margin-bottom: 16px; }
+
+/* Les versions d'un régime : un seul badge d'état, toujours en haut à droite ; puis l'impact, la conformité, la décision. */
+.version-tete { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.version-tete .etat { flex: none; }
+.version-impact { margin: 6px 0 0; font-size: 13.5px; }
+.version-rubrique { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--discret); margin: 16px 0 6px; }
+.version-decision { border-top: 1px solid var(--trait); margin-top: 14px; }
+.version-abandonnee, .version-remplacee { background: var(--fond); }
+.reperes dl.definitions { display: grid; gap: 8px; margin: 0 0 10px; }
+.reperes dl.definitions > div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.reperes dd { margin: 0; font-size: 13.5px; }
+.reperes h3 { margin-top: 12px; }
+@media (max-width: 600px) { .reperes dl.definitions > div { grid-template-columns: 1fr; gap: 4px; } }
+.zone-titre { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--discret); margin: 14px 0 8px; }
+ul.menage { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 8px; }
+ul.menage label { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
+ul.menage .etat { margin-left: 6px; }
+.menage-raison { display: block; font-size: 13px; margin-top: 2px; }
+
+/* Le menu ⋮ commun. */
+.menu-actions { position: relative; display: inline-block; flex: none; }
+button.menu-points { width: 34px; height: 34px; padding: 0; border-radius: 8px; font-size: 18px; line-height: 1; color: var(--encre-2); background: transparent; border-color: transparent; }
+button.menu-points:hover, button.menu-points[aria-expanded="true"] { background: var(--fond); border-color: var(--trait); }
+.menu-liste { position: absolute; right: 0; top: calc(100% + 4px); z-index: 50; min-width: 240px; max-width: min(320px, 86vw); list-style: none; margin: 0; padding: 6px; background: var(--surface); border: 1px solid var(--trait); border-radius: 12px; box-shadow: 0 12px 32px #0f1a4a24; }
+.menu-liste li { margin: 0; }
+.menu-liste button { display: grid; width: 100%; text-align: left; gap: 2px; padding: 8px 10px; border: 0; border-radius: 8px; background: none; font-weight: 500; color: var(--encre); }
+.menu-liste button:hover:not([aria-disabled="true"]), .menu-liste button:focus-visible { background: var(--fond); outline: none; }
+.menu-liste button.danger { color: var(--grave); }
+.menu-liste button[aria-disabled="true"] { color: var(--discret); cursor: not-allowed; }
+.menu-liste small { font-size: 11.5px; font-weight: 400; color: var(--discret); }
+.version-coin { display: flex; align-items: center; gap: 6px; flex: none; }
+.version-passee { background: var(--fond); }
+
+/* Nettoyer le dossier : trois temps. */
+ol.etapes-nettoyage { padding-left: 20px; display: grid; gap: 14px; }
+ol.etapes-nettoyage li { margin: 0; }
+fieldset.choix-nettoyage { border: 1px solid var(--trait); border-radius: 10px; padding: 8px 12px; margin: 8px 0; display: grid; gap: 4px; }
+fieldset.choix-nettoyage legend { font-weight: 600; font-size: 13px; padding: 0 4px; }
+fieldset.choix-nettoyage label, label.case { display: flex; gap: 8px; align-items: baseline; font-weight: 400; margin: 4px 0; }

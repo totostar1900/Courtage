@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 
 import { api } from "../api";
 import { Anomalies, Erreur } from "../composants/communs";
+import { MenuActions } from "../composants/MenuActions";
 import { dateFr } from "../format";
 import type { Fichier } from "../types";
 import { useDossier } from "./Dossier";
@@ -18,6 +19,30 @@ export default function Personnel() {
     setErreurTelechargement(null);
     try { await api.telecharger(chemin, nom); } catch (e) { setErreurTelechargement(e); }
   }
+
+  async function agir(f: Fichier, quoi: "supprimer" | "alleger") {
+    const n = f.brouillons?.length ?? 0;
+    const brouillons = n ? ` ${n} étude${n > 1 ? "s" : ""} en brouillon qui s'appuie${n > 1 ? "nt" : ""} dessus ${n > 1 ? "partiront" : "partira"} avec.` : "";
+    const message = quoi === "supprimer"
+      ? `Supprimer « ${f.nom_fichier} » ?${brouillons}`
+      : `Alléger « ${f.nom_fichier} » ? Ses lignes sont vidées ; son nom, sa date et son empreinte restent, et les études émises restent prouvées.${brouillons}`;
+    if (!window.confirm(message)) return;
+    setErreurTelechargement(null);
+    try {
+      if (quoi === "supprimer") await api.del(`/organisations/${d.org.id}/fichiers/${f.id}`);
+      else await api.post(`/organisations/${d.org.id}/fichiers/${f.id}/allegement`);
+      d.recharger();
+    } catch (e) { setErreurTelechargement(e); }
+  }
+
+  const actionsFichier = (f: Fichier) => [
+    { libelle: "Télécharger (Excel)", cache: Boolean(f.vide_le),
+      agir: () => telecharger(`/organisations/${d.org.id}/fichiers/${f.id}/telechargement`, `personnel-${f.date_donnees}.xlsx`) },
+    { libelle: "Alléger : vider les lignes, garder l'empreinte", agir: () => agir(f, "alleger"),
+      cache: !peutDeposer || Boolean(f.vide_le) },
+    { libelle: "Supprimer", agir: () => agir(f, "supprimer"), danger: true, cache: !peutDeposer,
+      raison: f.etudes_emises ? `${f.etudes_emises} étude${f.etudes_emises > 1 ? "s" : ""} émise${f.etudes_emises > 1 ? "s" : ""} le cite${f.etudes_emises > 1 ? "nt" : ""} : l'alléger plutôt.` : null },
+  ];
 
   async function deposer(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
@@ -84,15 +109,12 @@ export default function Personnel() {
                   <tr key={f.id} className="cliquable" onClick={() => setOuvert(ouvert === f.id ? null : f.id)}>
                     <td>{f.nom_fichier}<div className="discret">déposé le {dateFr(f.depose_le)}</div></td>
                     <td>{dateFr(f.date_donnees)}</td>
-                    <td className="n">{f.effectif}</td>
+                    <td className="n">{f.vide_le ? <span className="discret" title="Lignes vidées : nom, date et empreinte gardés">allégé</span> : f.effectif}</td>
                     <td>{bloquants ? <span className="etat grave">{bloquants} à corriger</span>
                       : f.anomalies.length ? <span className="etat attention">{f.anomalies.length} à regarder</span>
                       : <span className="etat bien">Complet</span>}</td>
-                    <td className="n">
-                      <button type="button" className="lien" aria-label={`Télécharger ${f.nom_fichier}`}
-                              onClick={(e) => { e.stopPropagation();
-                                telecharger(`/organisations/${d.org.id}/fichiers/${f.id}/telechargement`,
-                                            `personnel-${f.date_donnees}.xlsx`); }}>Télécharger</button>
+                    <td className="n" onClick={(e) => e.stopPropagation()}>
+                      <MenuActions libelle={`Actions sur ${f.nom_fichier}`} actions={actionsFichier(f)} />
                     </td>
                   </tr>,
                   ouvert === f.id && (

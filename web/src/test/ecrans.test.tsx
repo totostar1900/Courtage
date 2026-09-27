@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { dossier, etude, ORG, ouvrir, simulerApi } from "./outils";
+import { cycle, dossier, equipe, etude, ORG, ouvrir, simulerApi } from "./outils";
 
 const NON_CONNECTE = () => new Response(JSON.stringify({ code: "non_authentifie", message: "Connectez-vous." }),
   { status: 401, headers: { "content-type": "application/json" } });
@@ -90,19 +90,25 @@ describe("l'adoption d'un régime", () => {
 
   it("un régime sous la convention s'adopte seulement en en prenant acte", async () => {
     simulerApi({ ...dossier("admin_client", { [`/organisations/${ORG}/regimes`]: [{ id: "r1", nom: "Accord", versions: [version([
-      { niveau: "bloque", code: "sous_le_plancher", message: "Sous la CCI de 1 à 50 ans." }])] }] }) });
+      { niveau: "avertit", code: "sous_le_plancher", message: "Sous la CCI de 1 à 50 ans." }])] }] }) });
     ouvrir(`/dossier/${ORG}/regime`);
-    const adopter = await screen.findByRole("button", { name: "Adopter cette version" });
+    await userEvent.click(await screen.findByRole("button", { name: "Actions sur la version 1" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Adopter…" }));
+    const adopter = screen.getByRole("button", { name: "Adopter cette version" });
     expect(adopter).toBeDisabled();
+    expect(screen.getByText(/Adopter, c'est communiquer/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("checkbox", { name: /donne moins que la convention/ }));
     expect(adopter).toBeEnabled();
   });
 
-  it("le conseiller n'adopte pas", async () => {
+  it("le conseiller n'adopte pas : l'action est là, grisée, avec sa raison", async () => {
     simulerApi({ ...dossier("conseiller", { [`/organisations/${ORG}/regimes`]: [{ id: "r1", nom: "Accord", versions: [version([])] }] }) });
     ouvrir(`/dossier/${ORG}/regime`);
     expect(await screen.findByText("L'adoption appartient à l'entreprise.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Adopter cette version" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Actions sur la version 1" }));
+    const item = screen.getByRole("menuitem", { name: /Adopter…/ });
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    expect(item).toHaveTextContent("L'adoption appartient à l'administrateur de l'entreprise.");
   });
 });
 
@@ -654,12 +660,13 @@ describe("une plateforme neuve", () => {
       [`POST /organisations/${ORG}/membres`]: { utilisateur_id: "d", telephone: "+237699001122", role: "admin_client" } });
     ouvrir(`/dossier/${ORG}/equipe`);
     expect(await screen.findByRole("heading", { name: "Équipe du dossier" })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Inscrire quelqu'un" }));
     await userEvent.type(screen.getByLabelText("Nom"), "Mme DRH");
     await userEvent.type(screen.getByLabelText("Téléphone"), "699001122");
     await userEvent.click(screen.getByRole("button", { name: "Inscrire" }));
     await waitFor(() => expect(appels.some((a) => a.chemin === `/organisations/${ORG}/membres`)).toBe(true));
     const envoi = appels.find((a) => a.chemin === `/organisations/${ORG}/membres`)!;
-    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", telephone: "699001122", role: "admin_client" });
+    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", fonction: "", telephone: "699001122", role: "admin_client" });
   });
 });
 
@@ -777,7 +784,7 @@ describe("le catalogue anonyme", () => {
   it("le conseiller ne partage pas pour l'entreprise", async () => {
     simulerApi(camerounais("conseiller", { [`/organisations/${ORG}/regimes/partages`]: [] }));
     ouvrir(`/dossier/${ORG}/regime`);
-    expect(await screen.findByText("Adoptée")).toBeInTheDocument();
+    expect(await screen.findByText("Adoptée", { selector: ".version-tete .etat" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Partager anonymement" })).not.toBeInTheDocument();
   });
 
@@ -871,7 +878,8 @@ describe("les fichiers du personnel", () => {
       noms.push(this.download); });
     ouvrir(`/dossier/${ORG}/personnel`);
     await userEvent.click(await screen.findByRole("button", { name: "Télécharger le canevas" }));
-    await userEvent.click(screen.getByRole("button", { name: "Télécharger p.xlsx" }));
+    await userEvent.click(screen.getByRole("button", { name: "Actions sur p.xlsx" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Télécharger (Excel)" }));
     await waitFor(() => expect(noms).toEqual(["canevas-personnel.xlsx", "personnel-2019-12-31.xlsx"]));
     expect(appels.map((a) => a.chemin)).toContain(`/organisations/${ORG}/fichiers/f1/telechargement`);
     clic.mockRestore();
@@ -1099,5 +1107,237 @@ describe("le comparatif des régimes", () => {
     await userEvent.click(bloc.getByRole("button", { name: "Voir le tableau" }));
     expect(bloc.getByRole("cell", { name: "Dette par salarié" })).toBeInTheDocument();
     expect(bloc.getByText("1 gagnent, 0 perdent")).toBeInTheDocument();
+  });
+});
+
+describe("le cycle de vie du dossier", () => {
+  it("le conseiller suspend, motif à l'appui ; la suppression n'est offerte qu'à un dossier vide", async () => {
+    const appels = simulerApi({ ...dossier("conseiller"),
+      [`POST /organisations/${ORG}/cycle`]: cycle("suspendu") });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    const carte = within((await screen.findByRole("heading", { name: "État du dossier" })).closest("section") as HTMLElement);
+    expect(carte.getByText(/Ouvert depuis le 20\/09\/2026/)).toBeInTheDocument();
+    expect(carte.queryByRole("button", { name: "Supprimer" })).toBeNull();          // pas vide
+    await userEvent.click(carte.getByRole("button", { name: "Suspendre" }));
+    expect(screen.getByText(/Rien ne s'émet/)).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Motif"), "impaye");
+    await userEvent.type(screen.getByLabelText(/Précision/), "Honoraires impayés");
+    const formulaire = screen.getByLabelText("Motif").closest("form") as HTMLElement;
+    await userEvent.click(within(formulaire).getByRole("button", { name: "Suspendre" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string))
+      .toEqual({ action: "suspendre", motif_code: "impaye", motif: "Honoraires impayés" });
+  });
+
+  it("la DRH lit l'état, sans pouvoir le changer ; un bandeau le rappelle sur chaque page", async () => {
+    const moi = { id: "u", email: null, admin_plateforme: false,
+      organisations: [{ id: ORG, nom: "AZITO", pays: "CI", role: "admin_client", etat: "cloture", etat_depuis: "2026-09-20T10:00:00+00:00" }] };
+    simulerApi({ ...dossier("admin_client"), "/moi": moi, [`/organisations/${ORG}/cycle`]: cycle("cloture") });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    expect(await screen.findByText("Dossier clôturé le 20/09/2026 : lecture seule")).toBeInTheDocument();
+    const carte = within((await screen.findByRole("heading", { name: "État du dossier" })).closest("section") as HTMLElement);
+    expect(carte.getByText(/Archivage prévu le/)).toBeInTheDocument();
+    expect(carte.getByText("Fin du mandat")).toBeInTheDocument();
+    expect(carte.queryByRole("button", { name: "Reprendre" })).toBeNull();
+    expect(carte.getByText("Seul le conseiller change l'état du dossier.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Inscrire quelqu'un" })).toBeNull();
+  });
+});
+
+describe("les versions du régime", () => {
+  const categorie = { categorie: "*", convention_code: "CM_COMMERCE", bareme: { forme: "tranches_cumulatives", tranches: [
+    { jusqu_a: null, mois_par_annee: 0.5 }] }, anciennete_minimale: 0, plafond_mois: null, arrondi: "annees",
+    base_salaire: "dernier", avec_primes: false, evenements: ["retraite"] };
+  const libre = { possible: true, reservee_entreprise: false, brouillons: 0, raison: null };
+  const version = (id: string, numero: number, statut: "analyse" | "adoptee", extra: object = {}) => ({
+    id, regime_id: "r1", nom: "Accord", numero, en_vigueur_du: "2024-02-01", fondement: "accord_entreprise",
+    document_reference: `Accord, avenant ${numero}`, statut, non_conformite_acceptee: false, categories: [categorie],
+    constats: [], etudes: 0, suppression: statut === "adoptee" ? { ...libre, reservee_entreprise: true } : libre,
+    notes: { salaries: null, assureurs: null }, application: null, ...extra });
+  const tout = () => [
+    version("v1", 1, "adoptee", { application: { a_venir: false, depuis: "2024-02-01", remplacee_le: "2025-01-01", remplacee_par: 2, en_cours: false },
+      suppression: { possible: false, reservee_entreprise: true, brouillons: 0, raison: "Citée par 2 études émises : elle reste." } }),
+    version("v2", 2, "adoptee", { en_vigueur_du: "2025-01-01", notes: { salaries: "NR-AAAA-BBBB", assureurs: null },
+      application: { a_venir: false, depuis: "2025-01-01", remplacee_le: null, remplacee_par: null, en_cours: true },
+      suppression: { possible: false, reservee_entreprise: true, brouillons: 0, raison: "Citée par une note émise : elle reste." } }),
+    version("v3", 3, "analyse", { en_vigueur_du: "2026-01-01", suppression: { ...libre, brouillons: 2 } }),
+  ];
+  const monter = (role: "admin_client" | "conseiller" | "lecteur_client", extra: Record<string, unknown> = {}, versions = tout()) =>
+    simulerApi({ ...dossier(role, { [`/organisations/${ORG}/regimes`]: [{ id: "r1", nom: "Accord", versions }], ...extra }) });
+  const menu = async (n: number) => {
+    await userEvent.click(await screen.findByRole("button", { name: `Actions sur la version ${n}` }));
+    return within(screen.getByRole("menu"));
+  };
+
+  it("deux statuts seulement ; les dates en information ; l'historique replié", async () => {
+    monter("lecteur_client");
+    ouvrir(`/dossier/${ORG}/regime`);
+    await screen.findByText("Version 2");
+    const zones = [...document.querySelectorAll(".zone-versions")].map((z) =>
+      [...z.querySelectorAll(".version-tete .etat")].map((e) => e.textContent));
+    expect(zones).toEqual([["Adoptée"], ["Brouillon"], ["Adoptée"]]);
+    expect(screen.getByText(/s'applique depuis le 01\/01\/2025/)).toBeInTheDocument();
+    expect(screen.getByText(/s'est appliquée du 01\/02\/2024 au 01\/01\/2025, remplacée par la version 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Historique \(1\)/).closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByText(/Communiquée : note aux salariés NR-AAAA-BBBB/)).toBeInTheDocument();
+    // Le lecteur : lire, analyser, comparer, télécharger ce qui est émis ; rien d'autre.
+    const m = await menu(2);
+    expect(m.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(
+      ["Note aux salariés (PDF)", "Émettre la note aux assureurs (PDF)Pas encore émise.", "Analyser : légalité, pièges, coûts", "Comparer dans Simuler"]);
+    expect(screen.queryByRole("button", { name: "Faire le ménage" })).toBeNull();
+  });
+
+  it("un brouillon : modifier sur place, dupliquer, supprimer avec ses études en brouillon", async () => {
+    const appels = monter("admin_client", {
+      [`PUT /organisations/${ORG}/regimes/versions/v3`]: version("v3", 3, "analyse"),
+      [`POST /organisations/${ORG}/regimes/versions/v3/duplication`]: version("v4", 4, "analyse"),
+      [`DELETE /organisations/${ORG}/regimes/versions/v3`]: { supprimee: true, regime_supprime: false } });
+    ouvrir(`/dossier/${ORG}/regime`);
+    let m = await menu(3);
+    expect(m.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Modifier", "Dupliquer",
+      "Analyser : légalité, pièges, coûts", "Comparer dans Simuler", "Adopter…", "Supprimer (et 2 études en brouillon)"]);
+    await userEvent.click(m.getByRole("menuitem", { name: "Modifier" }));
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer les corrections" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "PUT")).toBe(true));
+    m = await menu(3);
+    await userEvent.click(m.getByRole("menuitem", { name: "Dupliquer" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/duplication"))).toBe(true));
+    m = await menu(3);
+    await userEvent.click(m.getByRole("menuitem", { name: /Supprimer/ }));
+    expect(screen.getByText(/2 études en brouillon qui s'appuient dessus partiront avec/)).toBeInTheDocument();
+    await userEvent.click(within(screen.getByLabelText("Motif (facultatif)").closest("form") as HTMLElement).getByRole("button", { name: "Supprimer" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "DELETE")).toBe(true));
+  });
+
+  it("une version adoptée : ses notes, la dupliquer ; la supprimer seulement si rien ne la cite", async () => {
+    const appels = monter("admin_client", {
+      [`POST /organisations/${ORG}/regimes/versions/v2/notes/assureurs`]: { numero: "NR-CCCC-DDDD" } });
+    const ouvrirPdf = vi.spyOn((await import("../api")).api, "ouvrir").mockImplementation(async () => undefined);
+    ouvrir(`/dossier/${ORG}/regime`);
+    let m = await menu(2);
+    const sup = m.getByRole("menuitem", { name: /Supprimer…/ });
+    expect(sup).toHaveAttribute("aria-disabled", "true");
+    expect(sup).toHaveTextContent("Citée par une note émise : elle reste.");
+    await userEvent.click(m.getByRole("menuitem", { name: "Émettre la note aux assureurs (PDF)" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/notes/assureurs") && a.init?.method === "POST")).toBe(true));
+    expect(ouvrirPdf).toHaveBeenCalledWith(`/organisations/${ORG}/regimes/versions/v2/notes/assureurs`);
+    m = await menu(2);
+    expect(m.getByRole("menuitem", { name: "Dupliquer en brouillon" })).toBeInTheDocument();
+    ouvrirPdf.mockRestore();
+  });
+
+  it("faire le ménage : ce qui peut partir, coché quand c'est sans regret", async () => {
+    const candidats = [
+      { version_id: "v3", regime: "Accord", numero: 3, statut: "analyse", raison: "brouillon sans décision depuis 120 jours ; 1 étude en brouillon partira avec",
+        coche: true, brouillons: [{ id: "e9", date_evaluation: "2025-12-31" }], motif_requis: false },
+      { version_id: "v5", regime: "Accord", numero: 5, statut: "adoptee", raison: "adoptée le 01/03/2026, citée par rien", coche: false, brouillons: [], motif_requis: true },
+    ];
+    const appels = monter("admin_client", {
+      [`/organisations/${ORG}/regimes/menage`]: { jours_sans_decision: 90, candidats },
+      [`POST /organisations/${ORG}/regimes/menage`]: { versions: 1, brouillons: 1 } });
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Faire le ménage" }));
+    expect(await screen.findByRole("button", { name: "Supprimer 1 version et 1 brouillon" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("checkbox", { name: /version 5/ }));
+    expect(screen.getByRole("button", { name: /Supprimer 2 versions/ })).toBeDisabled();       // le motif d'abord
+    await userEvent.click(screen.getByRole("checkbox", { name: /version 5/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Supprimer 1 version et 1 brouillon" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    expect(await screen.findByText(/1 version supprimée, avec 1 étude en brouillon/)).toBeInTheDocument();
+  });
+});
+
+describe("l'équipe du dossier", () => {
+  it("le client voit ses collègues, son conseiller à part ; il inscrit un collègue, jamais un conseiller", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`POST /organisations/${ORG}/membres`]: { utilisateur_id: "n" } });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    const tableau = within((await screen.findByRole("columnheader", { name: "Fonction" })).closest("table") as HTMLElement);
+    expect(tableau.queryByText("Awa Nkoulou")).toBeNull();
+    expect(document.querySelector(".conseiller-carte")).toHaveTextContent("Awa Nkoulou");
+    expect(tableau.getByText("DRH")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Inscrire quelqu'un" }));
+    const droits = screen.getByLabelText("Droits") as HTMLSelectElement;
+    expect([...droits.options].map((o) => o.value)).toEqual(["admin_client", "contributeur_client", "lecteur_client"]);
+    await userEvent.type(screen.getByLabelText("Nom"), "M. DAF");
+    await userEvent.type(screen.getByLabelText("Fonction"), "DAF");
+    await userEvent.selectOptions(droits, "contributeur_client");
+    await userEvent.type(screen.getByLabelText("Téléphone"), "+237 6 99 00 00 22");
+    await userEvent.click(screen.getByRole("button", { name: "Inscrire" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string)).toEqual(
+      { nom_affiche: "M. DAF", fonction: "DAF", role: "contributeur_client", telephone: "+237 6 99 00 00 22" });
+  });
+
+  it("le menu ⋮ d'un membre : modifier ; retirer, grisé avec sa raison pour le dernier administrateur", async () => {
+    const appels = simulerApi({ ...dossier("conseiller"), [`PATCH /organisations/${ORG}/membres/u`]: equipe("conseiller") });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    await userEvent.click(await screen.findByRole("button", { name: "Actions sur Mme DRH" }));
+    const retirer = screen.getByRole("menuitem", { name: /Retirer du dossier/ });
+    expect(retirer).toHaveAttribute("aria-disabled", "true");
+    expect(retirer).toHaveTextContent("Le dernier administrateur de l'entreprise du dossier reste.");
+    await userEvent.click(screen.getByRole("menuitem", { name: /Modifier/ }));
+    const fonction = screen.getByLabelText("Fonction");
+    await userEvent.clear(fonction);
+    await userEvent.type(fonction, "DG");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "PATCH")).toBe(true));
+    expect(JSON.parse(appels.find((a) => a.init?.method === "PATCH")!.init!.body as string).fonction).toBe("DG");
+  });
+
+  it("la lecture seule n'a ni menu ni inscription", async () => {
+    simulerApi(dossier("lecteur_client"));
+    ouvrir(`/dossier/${ORG}/equipe`);
+    await screen.findByRole("columnheader", { name: "Fonction" });
+    expect(screen.queryByRole("button", { name: /Actions sur/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Inscrire quelqu'un" })).toBeNull();
+  });
+});
+
+describe("les fichiers du personnel", () => {
+  it("supprimer un fichier cité par une étude émise est grisé : on l'allège", async () => {
+    const appels = simulerApi({ ...dossier("admin_client", { [`/organisations/${ORG}/fichiers`]: [
+      { id: "f1", nom_fichier: "p.xlsx", depose_le: "2026-09-26T10:00:00", date_donnees: "2019-12-31", periodicite: "annuel",
+        effectif: 23, anomalies: [], vide_le: null, etudes_emises: 1, brouillons: ["e2"] }] }),
+      [`POST /organisations/${ORG}/fichiers/f1/allegement`]: { allege: true, brouillons: 1 } });
+    const confirmer = vi.spyOn(window, "confirm").mockReturnValue(true);
+    ouvrir(`/dossier/${ORG}/personnel`);
+    await userEvent.click(await screen.findByRole("button", { name: "Actions sur p.xlsx" }));
+    const sup = screen.getByRole("menuitem", { name: /Supprimer/ });
+    expect(sup).toHaveAttribute("aria-disabled", "true");
+    expect(sup).toHaveTextContent("1 étude émise le cite : l'alléger plutôt.");
+    await userEvent.click(screen.getByRole("menuitem", { name: /Alléger/ }));
+    expect(confirmer.mock.calls[0][0]).toMatch(/1 étude en brouillon qui s'appuie dessus partira avec/);
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/allegement"))).toBe(true));
+    confirmer.mockRestore();
+  });
+});
+
+describe("nettoyer le dossier", () => {
+  const inventaire = { fichiers: { total: 2, actifs: 2, lignes: 46 }, brouillons: { etudes: 1, versions: 1 },
+    etudes_emises: { total: 2, supprimables: 1, citees_par_un_cahier: 1 }, documents: 3, confirmation: "NETTOYER" };
+
+  it("archive, choix, confirmation écrite ; puis ce qui est parti", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/nettoyage`]: inventaire,
+      [`POST /organisations/${ORG}/nettoyage`]: { etudes_brouillon: 1, versions_brouillon: 1, etudes_emises: 0,
+        fichiers_alleges: 2, fichiers_supprimes: 0 } });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    await userEvent.click(await screen.findByRole("button", { name: "Nettoyer le dossier…" }));
+    expect(await screen.findByText(/1 citée\(s\) par un cahier des charges restent/)).toBeInTheDocument();
+    const nettoyer = screen.getByRole("button", { name: "Nettoyer" });
+    expect(nettoyer).toBeDisabled();
+    await userEvent.type(screen.getByLabelText("Confirmation"), "nettoyer");
+    expect(nettoyer).toBeEnabled();
+    await userEvent.click(nettoyer);
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string)).toEqual(
+      { fichiers: "alleger", brouillons: true, etudes_emises: false, confirmation: "nettoyer" });
+    expect(await screen.findByText("2 fichier(s) du personnel allégé(s)")).toBeInTheDocument();
+  });
+
+  it("la lecture seule ne nettoie pas", async () => {
+    simulerApi(dossier("lecteur_client"));
+    ouvrir(`/dossier/${ORG}/equipe`);
+    await screen.findByRole("heading", { name: "Équipe du dossier" });
+    expect(screen.queryByRole("button", { name: "Nettoyer le dossier…" })).toBeNull();
   });
 });

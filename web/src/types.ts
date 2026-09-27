@@ -1,12 +1,21 @@
 // Les formes renvoyées par l'API (courtage/api/routes.py). Seul ce que l'interface lit est typé.
 
-export type Role = "admin_client" | "lecteur_client" | "conseiller";
+export type Role = "admin_client" | "contributeur_client" | "lecteur_client" | "conseiller";
+
+/** Un membre de l'équipe, tel que l'appelant peut le voir et le gérer. */
+export interface Membre {
+  id: string; nom: string; email: string | null; telephone: string | null; role: Role; droits: string;
+  fonction: string | null; moi: boolean; modifiable: boolean; retirable: boolean; raison_retrait: string | null;
+}
+export interface Equipe {
+  membres: Membre[]; droits_attribuables: { role: Role; libelle: string }[]; fonctions: string[];
+}
 
 export interface Moi {
   id: string;
   email: string | null;
   admin_plateforme: boolean;
-  organisations: { id: string; nom: string; pays: string; role: Role }[];
+  organisations: { id: string; nom: string; pays: string; role: Role; etat?: EtatCycle; etat_depuis?: string }[];
 }
 
 export interface Anomalie {
@@ -25,6 +34,10 @@ export interface Fichier {
   periodicite: string;
   effectif: number;
   anomalies: Anomalie[];
+  /** Allégé : les lignes vidées, le nom, la date et l'empreinte gardés. */
+  vide_le?: string | null;
+  etudes_emises?: number;
+  brouillons?: string[];
 }
 
 export interface Totaux {
@@ -84,6 +97,15 @@ export interface Version {
   fondement: string;
   document_reference: string;
   statut: "analyse" | "adoptee";
+  /** Pour une version adoptée : depuis quand elle s'applique, et jusqu'à quand. Une information, pas un statut. */
+  application?: { a_venir: boolean; depuis: string; remplacee_le: string | null; remplacee_par: number | null;
+                  en_cours: boolean } | null;
+  adoptee_le?: string | null;
+  etudes?: number;
+  citations?: { etudes_emises: number; brouillons: { id: string; date_evaluation: string }[]; cahiers: number;
+                partages: number; notes: number };
+  suppression?: { possible: boolean; reservee_entreprise: boolean; brouillons: number; raison: string | null };
+  notes?: { salaries: string | null; assureurs: string | null };
   non_conformite_acceptee: boolean;
   categories: Categorie[];
   constats: Constat[];
@@ -138,6 +160,8 @@ export interface Experience {
 }
 
 export interface Conditions {
+  id: string;
+  raison_de_garder?: string | null;
   en_vigueur_du: string;
   mode: "honoraires" | "commission" | "mixte";
   honoraires_etude_ifc: number;
@@ -184,6 +208,8 @@ export interface Fiche {
 
 export interface Contrat {
   id: string;
+  /** Pourquoi il reste (un dossier, des départs dans sa période) ; absent : il se supprime s'il a été saisi par erreur. */
+  raison_de_garder?: string | null;
   en_vigueur_du: string;
   service: "courtage" | "comparaison";
   assureur: string | null;
@@ -364,4 +390,23 @@ export interface CatalogueHypotheses {
             max: number | null; role: string; effet: string; fixer: string; avec: string }[];
   tables: { code: string; libelle: string; disponible: boolean; raison?: string }[];
   age_premier_emploi: number;
+}
+
+/** Le cycle de vie d'un dossier (un dossier archivé ou supprimé ne figure plus dans « Vos dossiers »). */
+export type EtatCycle = "ouvert" | "suspendu" | "cloture" | "archive" | "supprime";
+export type ActionCycle = "suspendre" | "cloturer" | "reprendre" | "supprimer";
+
+export interface Cycle {
+  etat: EtatCycle; libelle: string; depuis: string; archivage_prevu: string | null;
+  actions: ActionCycle[]; supprimable: boolean;
+  motifs: Record<ActionCycle, { code: string; libelle: string }[]>;
+  historique: { etat: EtatCycle; libelle: string; action: string; motif_code: string | null; motif_libelle: string | null;
+                motif: string | null; par: string; le: string }[];
+}
+
+
+/** Une ligne du ménage : une version qui peut partir, pourquoi, et ce que la plateforme coche. */
+export interface CandidatMenage {
+  version_id: string; regime: string; numero: number; statut: "analyse" | "adoptee"; raison: string; coche: boolean;
+  brouillons: { id: string; date_evaluation: string }[]; motif_requis: boolean;
 }

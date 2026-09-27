@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../api";
 import { Anomalies, Cle, Echeancier, Erreur, libelleMotif, useCharge } from "../composants/communs";
@@ -25,6 +25,7 @@ export default function EtudeDetail() {
   const { etude: id } = useParams();
   const { donnee: e, erreur, recharger } = useCharge(() => api.get<Etude>(`/organisations/${d.org.id}/etudes/${id}`), [id]);
   const [erreurAction, setErreurAction] = useState<unknown>(null);
+  const aller = useNavigate();
 
   if (erreur) return <Erreur erreur={erreur} />;
   if (!e) return <p className="discret">Chargement…</p>;
@@ -78,6 +79,14 @@ export default function EtudeDetail() {
           <button onClick={() => { setErreurAction(null);
             api.telecharger(`/organisations/${d.org.id}/etudes/${e.id}/export`, `etude-ifc-${e.date_evaluation}.xlsx`)
               .catch(setErreurAction); }}>Exporter en Excel</button>
+          {e.statut === "brouillon" && d.role !== "lecteur_client" && (
+            <button className="danger" onClick={async () => {
+              if (!window.confirm("Supprimer ce brouillon ? Il n'engage rien ; une étude émise, elle, reste toujours.")) return;
+              setErreurAction(null);
+              try { await api.del(`/organisations/${d.org.id}/etudes/${e.id}`); d.recharger(); aller(".."); }
+              catch (x) { setErreurAction(x); }
+            }}>Supprimer ce brouillon</button>
+          )}
           <Link to="financement"><button>Financer cet engagement</button></Link>
         </div>
         <Erreur erreur={erreurAction} />

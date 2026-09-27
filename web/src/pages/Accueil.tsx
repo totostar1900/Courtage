@@ -9,7 +9,8 @@ import type { Alerte, Moi } from "../types";
 
 type Decomptes = Record<string, Record<Alerte["niveau"], number>>;
 
-const ROLES = { admin_client: "Votre entreprise", lecteur_client: "En lecture", conseiller: "Vous conseillez" };
+const ROLES = { admin_client: "Votre entreprise", contributeur_client: "Votre entreprise (contribution)",
+                lecteur_client: "En lecture", conseiller: "Vous conseillez" };
 
 /** Les pays que la plateforme couvre : ceux de la CEMAC, dont elle connaît les conventions. */
 export const PAYS_CEMAC = { CM: "Cameroun", GA: "Gabon", CG: "Congo", TD: "Tchad", CF: "Centrafrique",
@@ -40,6 +41,8 @@ export default function Accueil() {
           <Link key={o.id} to={`/dossier/${o.id}`} className="carte lien">
             <h2 style={{ marginBottom: 4 }}>{o.nom}</h2>
             <div className="discret">{PAYS_CEMAC[o.pays as keyof typeof PAYS_CEMAC] ?? o.pays} · {ROLES[o.role]}</div>
+            {o.etat === "suspendu" && <div style={{ marginTop: 8 }}><span className="etat attention">Suspendu</span></div>}
+            {o.etat === "cloture" && <div style={{ marginTop: 8 }}><span className="etat neutre">Clôturé · lecture seule</span></div>}
             <div style={{ marginTop: 8 }}><DecompteAlertes decompte={decomptes?.[o.id]} /></div>
           </Link>
         ))}

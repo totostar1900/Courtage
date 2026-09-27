@@ -44,8 +44,9 @@ export function dossier(role: "admin_client" | "conseiller" | "lecteur_client", 
     [`/organisations/${ORG}/regimes`]: [],
     [`/organisations/${ORG}/etudes`]: [{ id: "e1", statut: "brouillon", date_evaluation: "2019-12-31", convention_code: "CI_CCI", dette: 60130415, emise_le: null }],
     [`/organisations/${ORG}/fiches`]: [],
-    [`/organisations/${ORG}/equipe`]: [{ id: "c", nom: "Awa Nkoulou", email: "awa@x.cm", telephone: null, role: "conseiller" }],
+    [`/organisations/${ORG}/equipe`]: equipe(role),
     "/referentiel/hypotheses": CATALOGUE,
+    [`/organisations/${ORG}/cycle`]: cycle("ouvert"),
     ...extra,
   };
 }
@@ -61,5 +62,44 @@ export function etude(emission: { possible: boolean; motifs: string[] }, statut 
     sensibilites: { taux_actualisation_moins_1pt: { dette: 66000000, charge: 1 } },
     anomalies: [], emission, empreinte: null, honoraires_ht: null, emise_le: null,
     rapport: statut === "emise" ? { numero: "RL-AAAA-BBBB" } : null,
+  };
+}
+
+export function cycle(etat: "ouvert" | "suspendu" | "cloture", extra: Record<string, unknown> = {}) {
+  const libelles = { ouvert: "Ouvert", suspendu: "Suspendu", cloture: "Clôturé" };
+  const actions = { ouvert: ["suspendre", "cloturer", "supprimer"], suspendu: ["cloturer", "reprendre", "supprimer"],
+                    cloture: ["reprendre"] };
+  return {
+    etat, libelle: libelles[etat], depuis: "2026-09-20T10:00:00+00:00",
+    archivage_prevu: etat === "cloture" ? "2026-12-19" : null, actions: actions[etat], supprimable: false,
+    motifs: {
+      suspendre: [{ code: "impaye", libelle: "Impayé" }, { code: "litige", libelle: "Litige" }, { code: "autre", libelle: "Autre motif" }],
+      cloturer: [{ code: "fin_mandat", libelle: "Fin du mandat" }, { code: "autre", libelle: "Autre motif" }],
+      reprendre: [], supprimer: [{ code: "ouvert_par_erreur", libelle: "Ouvert par erreur" }],
+    },
+    historique: etat === "ouvert" ? [] : [{ etat, libelle: libelles[etat], action: etat === "suspendu" ? "suspendre" : "cloturer",
+      motif_code: etat === "suspendu" ? "impaye" : "fin_mandat", motif_libelle: etat === "suspendu" ? "Impayé" : "Fin du mandat",
+      motif: null, par: "Awa Nkoulou", le: "2026-09-20T10:00:00+00:00" }],
+    ...extra,
+  };
+}
+
+/** L'équipe telle que la voit `role` : le conseiller, la DRH, et ce que l'appelant peut gérer. */
+export function equipe(role: string) {
+  const gere = (cible: string) => role === "conseiller" || (role === "admin_client" && cible !== "conseiller");
+  const membre = (id: string, nom: string, r: string, fonction: string | null, extra: object = {}) => ({
+    id, nom, email: null, telephone: "+237690000000", role: r, droits: r, fonction, moi: false,
+    modifiable: gere(r), retirable: gere(r), raison_retrait: null, ...extra });
+  return {
+    membres: [
+      membre("c", "Awa Nkoulou", "conseiller", null, { email: "awa@x.cm", telephone: null, retirable: false,
+        raison_retrait: gere("conseiller") ? "Le dernier conseiller du dossier reste." : null }),
+      membre("u", "Mme DRH", "admin_client", "DRH", { moi: role === "admin_client", retirable: false,
+        raison_retrait: gere("admin_client") ? "Le dernier administrateur de l'entreprise du dossier reste." : null }),
+    ],
+    droits_attribuables: role === "conseiller"
+      ? ["admin_client", "contributeur_client", "lecteur_client", "conseiller"].map((r) => ({ role: r, libelle: r }))
+      : role === "admin_client" ? ["admin_client", "contributeur_client", "lecteur_client"].map((r) => ({ role: r, libelle: r })) : [],
+    fonctions: ["DRH", "DG", "DAF"],
   };
 }
