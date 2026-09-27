@@ -28,6 +28,7 @@ from courtage import auth
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.messagerie import ExpediteurJournal
+from courtage.services import cycle
 from courtage.services.rapport import ConfigSceau
 
 __all__ = ["creer_app"]
@@ -35,6 +36,8 @@ __all__ = ["creer_app"]
 ModeAuthentification = Literal["session", "entete_dev"]
 COOKIE = "courtage_session"
 _SURES = {"GET", "HEAD", "OPTIONS"}
+# Des POST qui calculent sans rien enregistrer, et le changement d'état lui-même : permis sur un dossier clôturé.
+_SANS_ECRITURE = ("/simulations", "/financement", "/cycle")
 
 
 def creer_app(moteur: Engine, authentification: ModeAuthentification = "session",
@@ -131,7 +134,8 @@ class Acces:
 
 def acces(*roles: str):
     """Membre de l'organisation, avec l'un des rôles donnés (tous si aucun), puis contexte RLS."""
-    def dependance(organisation_id: uuid.UUID, session: Session = Depends(session_db, scope="function"),
+    def dependance(organisation_id: uuid.UUID, request: Request,
+                   session: Session = Depends(session_db, scope="function"),
                    moi: Utilisateur = Depends(identite)) -> Acces:
         role = session.scalar(select(Adhesion.role).where(
             Adhesion.utilisateur_id == moi.id, Adhesion.organisation_id == organisation_id))
@@ -140,6 +144,11 @@ def acces(*roles: str):
         if roles and role not in roles:
             raise ErreurMetier("acces_refuse", "Votre rôle ne permet pas cette action.", 403)
         organisation = session.get(Organisation, organisation_id)
+        # Le cycle de vie : un dossier archivé ne s'ouvre plus ; clôturé, il se lit sans s'écrire (seuls le
+        # reprendre et les calculs qui n'enregistrent rien passent).
+        cycle.exiger_accessible(organisation)
+        if request.method not in _SURES and not request.url.path.endswith(_SANS_ECRITURE):
+            cycle.exiger_ecriture(organisation)
         contexte(session.connection(), organisation_id)
         return Acces(organisation, moi, role, session)
     return dependance

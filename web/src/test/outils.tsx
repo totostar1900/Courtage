@@ -46,6 +46,7 @@ export function dossier(role: "admin_client" | "conseiller" | "lecteur_client", 
     [`/organisations/${ORG}/fiches`]: [],
     [`/organisations/${ORG}/equipe`]: [{ id: "c", nom: "Awa Nkoulou", email: "awa@x.cm", telephone: null, role: "conseiller" }],
     "/referentiel/hypotheses": CATALOGUE,
+    [`/organisations/${ORG}/cycle`]: cycle("ouvert"),
     ...extra,
   };
 }
@@ -61,5 +62,24 @@ export function etude(emission: { possible: boolean; motifs: string[] }, statut 
     sensibilites: { taux_actualisation_moins_1pt: { dette: 66000000, charge: 1 } },
     anomalies: [], emission, empreinte: null, honoraires_ht: null, emise_le: null,
     rapport: statut === "emise" ? { numero: "RL-AAAA-BBBB" } : null,
+  };
+}
+
+export function cycle(etat: "ouvert" | "suspendu" | "cloture", extra: Record<string, unknown> = {}) {
+  const libelles = { ouvert: "Ouvert", suspendu: "Suspendu", cloture: "Clôturé" };
+  const actions = { ouvert: ["suspendre", "cloturer", "supprimer"], suspendu: ["cloturer", "reprendre", "supprimer"],
+                    cloture: ["reprendre"] };
+  return {
+    etat, libelle: libelles[etat], depuis: "2026-09-20T10:00:00+00:00",
+    archivage_prevu: etat === "cloture" ? "2026-12-19" : null, actions: actions[etat], supprimable: false,
+    motifs: {
+      suspendre: [{ code: "impaye", libelle: "Impayé" }, { code: "litige", libelle: "Litige" }, { code: "autre", libelle: "Autre motif" }],
+      cloturer: [{ code: "fin_mandat", libelle: "Fin du mandat" }, { code: "autre", libelle: "Autre motif" }],
+      reprendre: [], supprimer: [{ code: "ouvert_par_erreur", libelle: "Ouvert par erreur" }],
+    },
+    historique: etat === "ouvert" ? [] : [{ etat, libelle: libelles[etat], action: etat === "suspendu" ? "suspendre" : "cloturer",
+      motif_code: etat === "suspendu" ? "impaye" : "fin_mandat", motif_libelle: etat === "suspendu" ? "Impayé" : "Fin du mandat",
+      motif: null, par: "Awa Nkoulou", le: "2026-09-20T10:00:00+00:00" }],
+    ...extra,
   };
 }

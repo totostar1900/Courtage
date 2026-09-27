@@ -45,6 +45,22 @@ class Organisation(Base):
     pays: Mapped[str] = mapped_column(Text)
     secteur: Mapped[str | None] = mapped_column(Text)
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    # Le cycle de vie : ouvert, suspendu, cloture, archive, supprime (histoire dans `etats_dossier`).
+    etat: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
+    etat_depuis: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class EtatDossier(Base):
+    """Un changement d'état du dossier, motivé, daté, signé (`par` vide : l'archivage automatique)."""
+    __tablename__ = "etats_dossier"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    etat: Mapped[str] = mapped_column(Text)
+    action: Mapped[str] = mapped_column(Text)
+    motif_code: Mapped[str | None] = mapped_column(Text)
+    motif: Mapped[str | None] = mapped_column(Text)
+    par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
 class Utilisateur(Base):
@@ -77,6 +93,7 @@ class FichierPersonnel(Base):
     periodicite: Mapped[str] = mapped_column(Periodicite)
     lignes: Mapped[list] = mapped_column(JSONB)
     anomalies: Mapped[list] = mapped_column(JSONB)
+    vide_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))   # vidé à l'archivage du dossier
 
 
 class Etude(Base):

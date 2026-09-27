@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 
 import { api } from "../api";
 import { Erreur, Volet } from "../composants/communs";
+import { EtatDuDossier } from "../composants/CycleDossier";
 import type { Role } from "../types";
 import { useDossier } from "./Dossier";
 
@@ -23,11 +24,12 @@ export default function Equipe() {
           <tr key={m.id}><td>{m.nom}</td><td>{m.telephone ?? m.email ?? "—"}</td><td>{LIBELLES_ROLES[m.role]}</td></tr>
         ))}</tbody>
       </table>
-      {d.role === "conseiller" && !ouvert && (
+      {d.role === "conseiller" && !ouvert && (d.org.etat ?? "ouvert") === "ouvert" && (
         <div className="actions"><button type="button" className="principal" onClick={() => setOuvert(true)}>
           Inscrire quelqu'un</button></div>
       )}
       {ouvert && <Inscrire onFermer={() => setOuvert(false)} onFait={() => { setOuvert(false); d.recharger(); }} />}
+      <EtatDuDossier orgId={d.org.id} conseiller={d.role === "conseiller"} onChange={d.recharger} />
     </>
   );
 }

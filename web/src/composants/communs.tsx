@@ -95,6 +95,8 @@ const MOTIFS: Record<string, string> = {
   convention_a_valider: "convention à valider",
   hors_vigueur: "convention hors vigueur à la date",
   remuneration_absente: "conditions de rémunération à fixer",
+  dossier_suspendu: "dossier suspendu : rien ne s'émet avant sa reprise",
+  dossier_cloture: "dossier clôturé : il ne se modifie plus",
   donnees_trop_anciennes: "données de plus de 12 mois",
   matricule_double: "matricule en double",
   regime_non_adopte: "régime non adopté",

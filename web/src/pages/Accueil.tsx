@@ -40,6 +40,8 @@ export default function Accueil() {
           <Link key={o.id} to={`/dossier/${o.id}`} className="carte lien">
             <h2 style={{ marginBottom: 4 }}>{o.nom}</h2>
             <div className="discret">{PAYS_CEMAC[o.pays as keyof typeof PAYS_CEMAC] ?? o.pays} · {ROLES[o.role]}</div>
+            {o.etat === "suspendu" && <div style={{ marginTop: 8 }}><span className="etat attention">Suspendu</span></div>}
+            {o.etat === "cloture" && <div style={{ marginTop: 8 }}><span className="etat neutre">Clôturé · lecture seule</span></div>}
             <div style={{ marginTop: 8 }}><DecompteAlertes decompte={decomptes?.[o.id]} /></div>
           </Link>
         ))}

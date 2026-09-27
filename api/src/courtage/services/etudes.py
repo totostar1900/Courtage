@@ -129,6 +129,8 @@ def motifs_emission(session: Session, org: Organisation, etude: Etude, aujourd_h
             motifs.append("bareme_inferieur_convention")
     if remuneration.en_vigueur(session, aujourd_hui) is None:
         motifs.append("remuneration_absente")
+    if org.etat in ("suspendu", "cloture"):
+        motifs.append(f"dossier_{org.etat}")
     return motifs
 
 

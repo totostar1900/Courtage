@@ -162,12 +162,12 @@ Ce que l'offre gratuite ne fait pas :
 |---|---|---|
 | Veille | Le site s'endort après 15 min sans visite | La première visite prend environ une minute |
 | Base | Expire au bout de 30 jours | Refaire l'essai, ou passer en production avant |
-| Tâche programmée | Aucune | L'effacement des identités se fait au démarrage et à chaque lecture d'un dossier |
+| Tâche programmée | Aucune | L'effacement des identités et l'archivage des dossiers clôturés se font au démarrage (et l'effacement à chaque lecture d'un dossier) |
 | Domaine | Adresse `onrender.com` | `courtage.purposecapital.africa` reste pour la production |
 
 Rien de ce qui est saisi pendant l'essai ne passe en production : la production a sa propre base.
 
-## 5. La tâche quotidienne : effacer les identités échues
+## 5. La tâche quotidienne : effacer les identités échues, archiver les dossiers clôturés
 
 Sur Render, c'est le service `courtage-purge` du plan : rien à faire.
 
@@ -179,7 +179,13 @@ image ; un VPS : `cron`) :
 
 ```bash
 python -m courtage.purge        # DATABASE_URL = rôle courtage_app ; imprime « [purge] N identité(s) effacée(s) »
+                                #   puis « [purge] N dossier(s) archivé(s) »
 ```
+
+La même tâche archive les dossiers clôturés depuis 90 jours : leur personnel déposé est vidé,
+l'identité des bénéficiaires effacée, et le dossier ne s'ouvre plus. Études, rapports scellés et journal
+restent ; chaque document se vérifie toujours par son numéro. Voir
+`docs/specs/2026-09-27-cycle-de-vie-des-dossiers-design.md`.
 
 ## 6. Ce qui n'a pas pu être vérifié ici
 

@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import alertes, analyse, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import alertes, analyse, cycle, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -42,7 +42,9 @@ def moi(session: Session = Depends(session_db, scope="function"), utilisateur: U
     return {
         "id": str(utilisateur.id), "email": utilisateur.email, "telephone": utilisateur.telephone,
         "admin_plateforme": utilisateur.admin_plateforme,
-        "organisations": [{"id": str(o.id), "nom": o.nom, "pays": o.pays, "role": r} for o, r in rangs],
+        "organisations": [{"id": str(o.id), "nom": o.nom, "pays": o.pays, "role": r, "etat": o.etat,
+                           "etat_depuis": o.etat_depuis.isoformat()}
+                          for o, r in rangs if o.etat not in ("archive", "supprime")],
     }
 
 
@@ -53,6 +55,8 @@ def alertes_de_mes_dossiers(session: Session = Depends(session_db, scope="functi
     decompte = {}
     for org in session.scalars(select(Organisation).join(Adhesion, Adhesion.organisation_id == Organisation.id)
                                .where(Adhesion.utilisateur_id == utilisateur.id)):
+        if org.etat in ("archive", "supprime"):
+            continue
         contexte(session.connection(), org.id)
         liste = alertes.du_dossier(session, org, date.today())
         decompte[str(org.id)] = {n: sum(a["niveau"] == n for a in liste) for n in ("grave", "attention", "info")}
@@ -86,6 +90,27 @@ def creer_organisation(corps: NouvelleOrganisation, session: Session = Depends(s
         journaliser(session, org.id, utilisateur.id, "adhesion.ajoutee", utilisateur.id,
                     {"utilisateur_id": str(utilisateur.id), "role": "conseiller"})
     return {"id": str(org.id), "nom": org.nom, "pays": org.pays, "secteur": org.secteur}
+
+
+class ChangementEtat(_Corps):
+    action: Literal["suspendre", "cloturer", "reprendre", "supprimer"]
+    motif_code: str | None = None
+    motif: str | None = Field(default=None, max_length=500)
+
+
+@routeur.get("/organisations/{organisation_id}/cycle")
+def lire_cycle(a: Acces = Depends(acces(*TOUS))):
+    """L'état du dossier, son histoire, et ce que le conseiller peut en faire."""
+    return cycle.en_clair(a.session, a.organisation)
+
+
+@routeur.post("/organisations/{organisation_id}/cycle")
+def changer_cycle(corps: ChangementEtat, a: Acces = Depends(acces(*CONSEIL))):
+    """Suspendre, clôturer, reprendre, supprimer (un dossier vide) : le conseiller seul, motif à l'appui."""
+    cycle.changer(a.session, a.organisation, a.utilisateur.id, corps.action, corps.motif_code, corps.motif)
+    if corps.action == "supprimer":
+        return {"etat": "supprime"}
+    return cycle.en_clair(a.session, a.organisation)
 
 
 class NouvelleAdhesion(_Corps):
@@ -692,6 +717,7 @@ def supprimer_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT))):
 @routeur.post("/organisations/{organisation_id}/etudes/{etude_id}/emission")
 def emettre_etude(etude_id: uuid.UUID, request: Request, a: Acces = Depends(acces(*CONSEIL))):
     """Émettre, sceller et rendre le rapport : un seul acte. Si le rapport échoue, rien n'est émis."""
+    cycle.exiger_emission(a.organisation)
     e = etudes.emettre(a.session, a.organisation, etudes.obtenir(a.session, etude_id), a.utilisateur.id, date.today())
     document = rapport.sceller(a.session, a.organisation, e, request.app.state.sceau, date.today())
     journaliser(a.session, a.organisation.id, a.utilisateur.id, "rapport.scelle", document.numero, {"etude_id": str(e.id)})
@@ -765,6 +791,7 @@ class NouvelleFiche(_Corps):
 @routeur.post("/organisations/{organisation_id}/fiches", status_code=201)
 def emettre_fiche(corps: NouvelleFiche, request: Request, a: Acces = Depends(acces(*CONSEIL))):
     """Le cahier des charges : émis, scellé, rendu, en un seul acte."""
+    cycle.exiger_emission(a.organisation)
     f, document = fiches.emettre(a.session, a.organisation, a.utilisateur.id, etude_id=corps.etude_id,
                                  conditions=corps.conditions.model_dump(), date_limite_reponse=corps.date_limite_reponse,
                                  config=request.app.state.sceau, aujourd_hui=date.today())

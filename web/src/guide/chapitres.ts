@@ -233,6 +233,12 @@ export const CHAPITRES: Chapitre[] = [
       { titre: "Inscrire quelqu'un", texte: [
         "Le conseiller inscrit une personne par son nom et son numéro de téléphone, avec son rôle.",
         "Elle se connecte ensuite avec ce numéro, par un code reçu par message : aucun mot de passe à transmettre." ] },
+      { titre: "L'état du dossier", texte: [
+        "Un dossier est ouvert, suspendu, clôturé ou archivé. Le conseiller seul en change l'état, depuis la page Équipe, toujours avec un motif daté et signé ; l'historique le garde, et un bandeau le rappelle sur chaque page.",
+        "Suspendu (impayé, litige, pièces attendues) : tout se lit et s'exporte, mais aucune étude ne s'émet et aucun cahier ne part avant la reprise.",
+        "Clôturé (fin du mandat, changement de courtier, cessation) : lecture seule pour tous. Le conseiller peut encore le reprendre pendant 90 jours ; au-delà, le dossier est archivé.",
+        "Archivé : le personnel déposé est effacé et le dossier ne s'ouvre plus. Les études, les rapports scellés et le journal sont conservés : chaque document reste vérifiable par son numéro.",
+        "Seul un dossier vide, ouvert par erreur, se supprime. Dès qu'un document a été émis, son numéro circule : le dossier se clôture, il ne disparaît pas." ] },
     ],
   },
   {

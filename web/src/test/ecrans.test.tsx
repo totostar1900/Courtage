@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { dossier, etude, ORG, ouvrir, simulerApi } from "./outils";
+import { cycle, dossier, etude, ORG, ouvrir, simulerApi } from "./outils";
 
 const NON_CONNECTE = () => new Response(JSON.stringify({ code: "non_authentifie", message: "Connectez-vous." }),
   { status: 401, headers: { "content-type": "application/json" } });
@@ -1099,5 +1099,39 @@ describe("le comparatif des régimes", () => {
     await userEvent.click(bloc.getByRole("button", { name: "Voir le tableau" }));
     expect(bloc.getByRole("cell", { name: "Dette par salarié" })).toBeInTheDocument();
     expect(bloc.getByText("1 gagnent, 0 perdent")).toBeInTheDocument();
+  });
+});
+
+describe("le cycle de vie du dossier", () => {
+  it("le conseiller suspend, motif à l'appui ; la suppression n'est offerte qu'à un dossier vide", async () => {
+    const appels = simulerApi({ ...dossier("conseiller"),
+      [`POST /organisations/${ORG}/cycle`]: cycle("suspendu") });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    const carte = within((await screen.findByRole("heading", { name: "État du dossier" })).closest("section") as HTMLElement);
+    expect(carte.getByText(/Ouvert depuis le 20\/09\/2026/)).toBeInTheDocument();
+    expect(carte.queryByRole("button", { name: "Supprimer" })).toBeNull();          // pas vide
+    await userEvent.click(carte.getByRole("button", { name: "Suspendre" }));
+    expect(screen.getByText(/Rien ne s'émet/)).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Motif"), "impaye");
+    await userEvent.type(screen.getByLabelText(/Précision/), "Honoraires impayés");
+    const formulaire = screen.getByLabelText("Motif").closest("form") as HTMLElement;
+    await userEvent.click(within(formulaire).getByRole("button", { name: "Suspendre" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string))
+      .toEqual({ action: "suspendre", motif_code: "impaye", motif: "Honoraires impayés" });
+  });
+
+  it("la DRH lit l'état, sans pouvoir le changer ; un bandeau le rappelle sur chaque page", async () => {
+    const moi = { id: "u", email: null, admin_plateforme: false,
+      organisations: [{ id: ORG, nom: "AZITO", pays: "CI", role: "admin_client", etat: "cloture", etat_depuis: "2026-09-20T10:00:00+00:00" }] };
+    simulerApi({ ...dossier("admin_client"), "/moi": moi, [`/organisations/${ORG}/cycle`]: cycle("cloture") });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    expect(await screen.findByText("Dossier clôturé le 20/09/2026 : lecture seule")).toBeInTheDocument();
+    const carte = within((await screen.findByRole("heading", { name: "État du dossier" })).closest("section") as HTMLElement);
+    expect(carte.getByText(/Archivage prévu le/)).toBeInTheDocument();
+    expect(carte.getByText("Fin du mandat")).toBeInTheDocument();
+    expect(carte.queryByRole("button", { name: "Reprendre" })).toBeNull();
+    expect(carte.getByText("Seul le conseiller change l'état du dossier.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Inscrire quelqu'un" })).toBeNull();
   });
 });

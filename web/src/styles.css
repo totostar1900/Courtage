@@ -459,3 +459,8 @@ details.hypotheses[open] > summary .chevron { transform: rotate(45deg); }
   .bulle-rangee { left: 0; }
 }
 .bulle-courbe.sous { position: relative; top: 0; left: 0 !important; width: auto; margin-top: 8px; animation: none; }
+
+/* Le cycle de vie du dossier. */
+button.danger { background: var(--surface); border-color: var(--grave); color: var(--grave); }
+button.danger:hover { background: var(--grave-doux); }
+.bandeau-cycle { margin-bottom: 16px; }

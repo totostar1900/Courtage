@@ -6,7 +6,7 @@ export interface Moi {
   id: string;
   email: string | null;
   admin_plateforme: boolean;
-  organisations: { id: string; nom: string; pays: string; role: Role }[];
+  organisations: { id: string; nom: string; pays: string; role: Role; etat?: EtatCycle; etat_depuis?: string }[];
 }
 
 export interface Anomalie {
@@ -364,4 +364,16 @@ export interface CatalogueHypotheses {
             max: number | null; role: string; effet: string; fixer: string; avec: string }[];
   tables: { code: string; libelle: string; disponible: boolean; raison?: string }[];
   age_premier_emploi: number;
+}
+
+/** Le cycle de vie d'un dossier (un dossier archivé ou supprimé ne figure plus dans « Vos dossiers »). */
+export type EtatCycle = "ouvert" | "suspendu" | "cloture" | "archive" | "supprime";
+export type ActionCycle = "suspendre" | "cloturer" | "reprendre" | "supprimer";
+
+export interface Cycle {
+  etat: EtatCycle; libelle: string; depuis: string; archivage_prevu: string | null;
+  actions: ActionCycle[]; supprimable: boolean;
+  motifs: Record<ActionCycle, { code: string; libelle: string }[]>;
+  historique: { etat: EtatCycle; libelle: string; action: string; motif_code: string | null; motif_libelle: string | null;
+                motif: string | null; par: string; le: string }[];
 }

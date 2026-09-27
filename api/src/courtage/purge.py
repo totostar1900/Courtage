@@ -1,4 +1,5 @@
-"""L'effacement programmé des identités échues : `python -m courtage.purge` (une fois par jour).
+"""L'effacement programmé des identités échues et l'archivage des dossiers clôturés depuis 90 jours :
+`python -m courtage.purge` (une fois par jour, et à chaque démarrage).
 
 Chaque lecture d'un dossier efface déjà ce qui est échu ; cette tâche garantit
 l'effacement même pour un client qui ne se connecte plus. Rôle applicatif
@@ -11,8 +12,12 @@ from datetime import date
 from sqlalchemy import create_engine
 
 from courtage.deploiement import url_applicative
+from courtage.services.cycle import archiver_echus_partout
 from courtage.services.dossiers import effacer_echus_partout
 
 if __name__ == "__main__":
-    n = effacer_echus_partout(create_engine(url_applicative(os.environ)), date.today())
+    moteur = create_engine(url_applicative(os.environ))
+    n = effacer_echus_partout(moteur, date.today())
     print(f"[purge] {n} identité(s) effacée(s)", flush=True)
+    a = archiver_echus_partout(moteur, date.today())
+    print(f"[purge] {a} dossier(s) archivé(s)", flush=True)

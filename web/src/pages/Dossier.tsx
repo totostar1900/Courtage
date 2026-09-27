@@ -9,12 +9,13 @@ import Visite, { lancerVisite } from "../composants/Visite";
 import { VISITE_DOSSIER } from "../guide/visite";
 import { etapes, type EtatDossier } from "../parcours";
 import { noterReprise } from "../reprise";
-import type { EtudeResume, Fiche, Fichier, Moi, Regime, Role } from "../types";
+import type { EtatCycle, EtudeResume, Fiche, Fichier, Moi, Regime, Role } from "../types";
+import { BandeauCycle } from "../composants/CycleDossier";
 
 interface Membre { id: string; nom: string; email: string | null; telephone: string | null; role: Role }
 
 export interface ContexteDossier {
-  org: { id: string; nom: string; pays: string };
+  org: { id: string; nom: string; pays: string; etat?: EtatCycle; etat_depuis?: string };
   role: Role;
   fichiers: Fichier[];
   regimes: Regime[];
@@ -130,6 +131,7 @@ export default function Dossier() {
         </aside>
         <section>
           <div className="entete-page"><FilAriane d={donnee} /><AidePage base={`/dossier/${donnee.org.id}`} /></div>
+          <BandeauCycle org={donnee.org} />
           <Outlet />
         </section>
         <PaletteAller d={donnee} />
