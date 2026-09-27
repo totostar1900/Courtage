@@ -88,3 +88,18 @@ def test_l_expert_comptable_peut_simuler(client, azito, personnes):
                                                                       "role": "lecteur_client"},
                 headers=en_tant_que(personnes["admin"]))
     assert simuler(client, azito, [], qui="etranger").status_code == 200
+
+
+def test_de_quoi_comparer_les_regimes_courbes_et_montants_par_salarie(client, azito):
+    r = simuler(client, azito, [{"nom": "+50 % pour tous", "categories": [categorie("*", UNIFORME)]}])
+    assert r.status_code == 200, r.text
+    base, uniforme = r.json()["resultats"]
+    # La courbe : les mois versés, ancienneté par ancienneté (0 à 40 ans), jamais sous la convention.
+    assert set(base["courbes"]) == {"*"} and len(base["courbes"]["*"]) == 41
+    assert base["courbes"]["*"][0] == 0
+    assert all(u >= b for u, b in zip(uniforme["courbes"]["*"], base["courbes"]["*"]))
+    assert uniforme["courbes"]["*"][20] > base["courbes"]["*"][20]
+    # Chaque salarié, par matricule : ce qu'il toucherait au départ, sous chaque variante.
+    assert len(base["ifc_par_salarie"]) == 23 and set(base["ifc_par_salarie"]) == set(uniforme["ifc_par_salarie"])
+    assert all(uniforme["ifc_par_salarie"][m] >= v for m, v in base["ifc_par_salarie"].items())
+    assert set(base["categorie_par_salarie"]) == set(base["ifc_par_salarie"])

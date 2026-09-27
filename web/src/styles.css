@@ -421,3 +421,41 @@ details.hypotheses[open] > summary .chevron { transform: rotate(45deg); }
 }
 .grille > label > input, .grille > label > select { min-width: 0; width: 100%; box-sizing: border-box; }
 @media (max-width: 700px) { .tranche .discret { display: none; } }
+
+/* Le comparatif des régimes : petits multiples en barres, une courbe, des bilans gagnants / perdants. */
+.legende .cle.reference { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 6px) !important; color: #4a5068; height: 3px; width: 16px; vertical-align: 3px; }
+.petits-multiples { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 28px; }
+.multiple-titre { font-weight: 600; font-size: 13.5px; margin-bottom: 6px; }
+.rangee { position: relative; display: grid; grid-template-columns: minmax(0, 9em) minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 4px 0; border-radius: 6px; outline: none; }
+.rangee.active .rangee-nom, .rangee:focus-visible .rangee-nom { color: var(--encre); }
+.rangee:focus-visible { box-shadow: 0 0 0 2px var(--indigo-vif); }
+.rangee-nom { font-size: 12.5px; color: var(--encre-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rangee-piste { height: 12px; }
+.rangee-barre { display: block; height: 12px; border-radius: 0 4px 4px 0; min-width: 2px; }
+.rangee-valeur { font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--encre); }
+.rangee-valeur small { margin-left: 6px; color: var(--discret); }
+.bulle-rangee { top: calc(100% + 6px); left: 9em; }
+.bulle-rangee::after { top: auto; bottom: 100%; left: 24px; border-top-color: transparent; border-bottom-color: #0d0f14; }
+.trace-courbes { position: relative; }
+.trace-courbes svg { max-width: 100%; height: auto; display: block; overflow: visible; }
+.grille-ligne { stroke: var(--trait); stroke-width: 1; }
+.axe-texte { font-size: 11px; fill: var(--discret); }
+.etiquette-courbe { font-size: 11.5px; fill: var(--encre); }
+.reticule { stroke: var(--discret); stroke-width: 1; stroke-dasharray: 3 3; }
+.bulle-courbe { top: 8px; }
+.bulle-courbe::after { display: none; }
+.bilans { display: grid; gap: 16px; }
+.bilan-tete { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.bilan-tete .cle { width: 10px; height: 10px; border-radius: 2px; }
+.barre-bilan { display: flex; gap: 2px; height: 14px; }
+.barre-bilan span { display: block; height: 100%; }
+.barre-bilan span:first-child { border-radius: 4px 0 0 4px; }
+.barre-bilan span:last-child { border-radius: 0 4px 4px 0; }
+.barre-bilan span:only-child { border-radius: 4px; }
+.bilan-texte { margin: 6px 0 0; font-size: 13px; }
+@media (max-width: 700px) {
+  .petits-multiples { grid-template-columns: 1fr; }
+  .rangee { grid-template-columns: minmax(0, 7em) minmax(0, 1fr) auto; }
+  .bulle-rangee { left: 0; }
+}
+.bulle-courbe.sous { position: relative; top: 0; left: 0 !important; width: auto; margin-top: 8px; animation: none; }

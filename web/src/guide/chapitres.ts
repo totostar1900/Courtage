@@ -105,6 +105,11 @@ export const CHAPITRES: Chapitre[] = [
         "Cochez les versions à comparer, ou « Tester une idée de barème » : chaque variante est calculée sur le même personnel à la même date.",
         "Chaque carte dit la dette, ce qu'elle ajoute à la convention, la charge, et qui en profite : si l'ajout va surtout aux mieux payés, la carte le signale.",
         "Les résultats s'ouvrent dans un volet que la croix referme ; vos réglages restent." ] },
+      { titre: "Le comparatif", texte: [
+        "Sous les cartes, « Comparer les régimes » met les variantes côte à côte : la dette, la charge, la cotisation initiale et la dette par salarié, chacune avec son écart à la convention seule.",
+        "La courbe montre ce que chaque régime verse au départ, en mois de salaire, selon l'ancienneté ; elle s'ouvre sur la catégorie où les régimes diffèrent le plus. Survolez-la (ou touchez-la) pour lire les mois à une ancienneté.",
+        "« Qui gagne, qui perd » compare, salarié par salarié, l'indemnité au départ d'un régime à l'autre : combien gagnent, combien perdent, de combien en moyenne, et le plus gros écart, par matricule. Choisissez le point de comparaison et la catégorie.",
+        "« Voir le tableau » donne tous ces chiffres en un tableau." ] },
     ],
   },
   {
