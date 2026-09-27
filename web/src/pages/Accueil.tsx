@@ -9,7 +9,8 @@ import type { Alerte, Moi } from "../types";
 
 type Decomptes = Record<string, Record<Alerte["niveau"], number>>;
 
-const ROLES = { admin_client: "Votre entreprise", lecteur_client: "En lecture", conseiller: "Vous conseillez" };
+const ROLES = { admin_client: "Votre entreprise", contributeur_client: "Votre entreprise (contribution)",
+                lecteur_client: "En lecture", conseiller: "Vous conseillez" };
 
 /** Les pays que la plateforme couvre : ceux de la CEMAC, dont elle connaît les conventions. */
 export const PAYS_CEMAC = { CM: "Cameroun", GA: "Gabon", CG: "Congo", TD: "Tchad", CF: "Centrafrique",

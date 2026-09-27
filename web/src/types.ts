@@ -1,6 +1,15 @@
 // Les formes renvoyées par l'API (courtage/api/routes.py). Seul ce que l'interface lit est typé.
 
-export type Role = "admin_client" | "lecteur_client" | "conseiller";
+export type Role = "admin_client" | "contributeur_client" | "lecteur_client" | "conseiller";
+
+/** Un membre de l'équipe, tel que l'appelant peut le voir et le gérer. */
+export interface Membre {
+  id: string; nom: string; email: string | null; telephone: string | null; role: Role; droits: string;
+  fonction: string | null; moi: boolean; modifiable: boolean; retirable: boolean; raison_retrait: string | null;
+}
+export interface Equipe {
+  membres: Membre[]; droits_attribuables: { role: Role; libelle: string }[]; fonctions: string[];
+}
 
 export interface Moi {
   id: string;

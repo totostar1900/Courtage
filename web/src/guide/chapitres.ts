@@ -235,13 +235,14 @@ export const CHAPITRES: Chapitre[] = [
     id: "equipe", groupe: "Le parcours", titre: "L'équipe du dossier", ecran: "equipe",
     resume: "Qui suit le dossier, ce que chacun peut faire, et comment inscrire quelqu'un.",
     sections: [
-      { titre: "Les rôles", texte: [
-        "La DRH de l'entreprise dépose le personnel, décrit et adopte le régime, lance les études et choisit l'assureur : l'entreprise décide.",
-        "Le conseiller suit le dossier : il relit et émet les études, fixe les conditions de rémunération, inscrit les personnes.",
-        "La lecture seule consulte tout, sans rien modifier." ] },
-      { titre: "Inscrire quelqu'un", texte: [
-        "Le conseiller inscrit une personne par son nom et son numéro de téléphone, avec son rôle.",
-        "Elle se connecte ensuite avec ce numéro, par un code reçu par message : aucun mot de passe à transmettre." ] },
+      { titre: "Des droits et une fonction", texte: [
+        "Chaque membre a des droits, ce qu'il peut faire, et une fonction, ce qu'il est (DRH, DG, DAF, comptable… à écrire librement).",
+        "Administrateur de l'entreprise : décide (adopte le régime, choisit l'assureur) et gère ses collègues. Contributeur : dépose le personnel, prépare régimes et études, sans adopter. Lecture seule : consulte tout. Conseiller : suit le dossier, émet les études, gère toute l'équipe.",
+        "Côté entreprise, on voit ses collègues ; le conseiller apparaît à part, comme contact. L'administrateur de l'entreprise inscrit, modifie et retire ses collègues ; il ne donne jamais les droits de conseiller." ] },
+      { titre: "Inscrire, modifier, retirer", texte: [
+        "« Inscrire quelqu'un » : un nom, une fonction, des droits, un numéro de téléphone. La personne se connecte ensuite avec ce numéro, par un code reçu par message.",
+        "Le menu ⋮ d'un membre le modifie (nom, fonction, droits) ou le retire du dossier ; ce qu'il y a fait reste au journal, sous son nom. Le dernier administrateur de l'entreprise et le dernier conseiller restent.",
+        "Le numéro est l'identité de connexion : pour le changer, on retire la personne et on l'inscrit avec le nouveau numéro." ] },
       { titre: "L'état du dossier", texte: [
         "Un dossier est ouvert, suspendu, clôturé ou archivé. Le conseiller seul en change l'état, depuis la page Équipe, toujours avec un motif daté et signé ; l'historique le garde, et un bandeau le rappelle sur chaque page.",
         "Suspendu (impayé, litige, pièces attendues) : tout se lit et s'exporte, mais aucune étude ne s'émet et aucun cahier ne part avant la reprise.",

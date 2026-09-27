@@ -25,7 +25,8 @@ def contexte(connexion, organisation_id: uuid.UUID) -> None:
     connexion.execute(text("SELECT set_config('app.organisation_id', :o, true)"), {"o": str(organisation_id)})
 
 
-RoleAdhesion = ENUM("admin_client", "lecteur_client", "conseiller", name="role_adhesion", create_type=False)
+RoleAdhesion = ENUM("admin_client", "contributeur_client", "lecteur_client", "conseiller", name="role_adhesion",
+                    create_type=False)
 StatutEtude = ENUM("brouillon", "emise", name="statut_etude", create_type=False)
 Periodicite = ENUM("mensuel", "annuel", name="periodicite_salaire", create_type=False)
 Fondement = ENUM("accord_entreprise", "contrat_travail", "usage", "decision_direction",
@@ -78,6 +79,7 @@ class Adhesion(Base):
     utilisateur_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"), primary_key=True)
     organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"), primary_key=True)
     role: Mapped[str] = mapped_column(RoleAdhesion)
+    fonction: Mapped[str | None] = mapped_column(Text)            # libre : DRH, DG, DAF…
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 

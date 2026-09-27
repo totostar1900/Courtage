@@ -15,14 +15,14 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.financement import Offre, Scenario
-from courtage.services import alertes, analyse, cycle, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
+from courtage.services import alertes, analyse, cycle, equipe, notes_regime, catalogue, contrats, dossiers, etudes, extractions, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, remuneration, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
 
 routeur = APIRouter()
 
-CLIENT = ("admin_client", "conseiller")      # déposer, lancer une étude, décrire un régime
+CLIENT = ("admin_client", "contributeur_client", "conseiller")   # déposer, préparer : études, régimes en brouillon
 ENTREPRISE = ("admin_client",)               # adopter son régime : l'entreprise est souveraine
 CONSEIL = ("conseiller",)                    # émettre, fixer la rémunération
 TOUS: tuple[str, ...] = ()                   # lire
@@ -113,9 +113,12 @@ def changer_cycle(corps: ChangementEtat, a: Acces = Depends(acces(*CONSEIL))):
     return cycle.en_clair(a.session, a.organisation)
 
 
+Droits = Literal["admin_client", "contributeur_client", "lecteur_client", "conseiller"]
+
+
 class NouvelleAdhesion(_Corps):
     utilisateur_id: uuid.UUID
-    role: Literal["admin_client", "lecteur_client", "conseiller"]
+    role: Droits
 
 
 @routeur.post("/organisations/{organisation_id}/adhesions", status_code=201)
@@ -136,46 +139,58 @@ def ajouter_adhesion(organisation_id: uuid.UUID, corps: NouvelleAdhesion, sessio
     return adhesion
 
 
+def _role_de(session: Session, utilisateur: Utilisateur, organisation_id: uuid.UUID) -> str | None:
+    return session.scalar(select(Adhesion.role).where(
+        Adhesion.utilisateur_id == utilisateur.id, Adhesion.organisation_id == organisation_id))
+
+
 @routeur.get("/organisations/{organisation_id}/equipe")
-def equipe(a: Acces = Depends(acces(*TOUS))):
-    """Qui suit le dossier : le client voit son conseiller, et le conseiller ses interlocuteurs."""
-    rangs = a.session.execute(select(Utilisateur, Adhesion.role).join(Adhesion, Adhesion.utilisateur_id == Utilisateur.id)
-                              .where(Adhesion.organisation_id == a.organisation.id)).all()
-    return [{"id": str(u.id), "nom": u.nom_affiche or u.email or u.telephone, "email": u.email,
-             "telephone": u.telephone, "role": r} for u, r in rangs]
+def lire_equipe(a: Acces = Depends(acces(*TOUS))):
+    """Qui suit le dossier, ce que l'appelant peut y changer, et les droits qu'il peut donner."""
+    return equipe.lister(a.session, a.organisation, a.utilisateur, a.role)
 
 
 class NouveauMembre(_Corps):
     telephone: str = Field(min_length=1, max_length=30)
     nom_affiche: str = Field(min_length=1)
-    role: Literal["admin_client", "lecteur_client", "conseiller"]
+    role: Droits
+    fonction: str | None = Field(default=None, max_length=80)
 
 
 @routeur.post("/organisations/{organisation_id}/membres", status_code=201)
 def inscrire_membre(organisation_id: uuid.UUID, corps: NouveauMembre, session: Session = Depends(session_db, scope="function"),
                     utilisateur: Utilisateur = Depends(identite)):
-    """Inscrire quelqu'un par son numéro : il se connectera avec le code qu'il recevra."""
-    role_appelant = session.scalar(select(Adhesion.role).where(
-        Adhesion.utilisateur_id == utilisateur.id, Adhesion.organisation_id == organisation_id))
-    if not (utilisateur.admin_plateforme or role_appelant == "conseiller"):
-        raise ErreurMetier("acces_refuse", "Seuls la plateforme et le conseiller du dossier inscrivent un membre.", 403)
-    if session.get(Organisation, organisation_id) is None:
+    """Inscrire quelqu'un par son numéro : le conseiller (ou la plateforme) tout le monde, l'administrateur de
+    l'entreprise ses collègues."""
+    org = session.get(Organisation, organisation_id)
+    if org is None:
         raise ErreurMetier("introuvable", "Organisation introuvable.", 404)
-    try:
-        telephone = normaliser(corps.telephone)
-    except ValueError:
-        raise ErreurMetier("telephone_invalide", "Numéro de téléphone invalide.", 422) from None
-    membre = session.scalars(select(Utilisateur).where(Utilisateur.telephone == telephone)).first()
-    if membre is None:
-        membre = Utilisateur(telephone=telephone, nom_affiche=corps.nom_affiche.strip())
-        session.add(membre)
-        session.flush()
-    if session.get(Adhesion, (membre.id, organisation_id)) is not None:
-        raise ErreurMetier("deja_membre", "Cette personne est déjà membre du dossier.", 409)
-    session.add(Adhesion(utilisateur_id=membre.id, organisation_id=organisation_id, role=corps.role))
+    role = _role_de(session, utilisateur, organisation_id)
+    if not (utilisateur.admin_plateforme or role):
+        raise ErreurMetier("acces_refuse", "Vous n'êtes pas membre de cette organisation.", 403)
+    cycle.exiger_ecriture(org)
     contexte(session.connection(), organisation_id)
-    journaliser(session, organisation_id, utilisateur.id, "membre.inscrit", membre.id, {"role": corps.role})
-    return {"utilisateur_id": str(membre.id), "telephone": telephone, "role": corps.role}
+    return equipe.inscrire(session, org, utilisateur, role, telephone=corps.telephone, nom_affiche=corps.nom_affiche,
+                           role=corps.role, fonction=corps.fonction)
+
+
+class ModificationMembre(_Corps):
+    nom_affiche: str | None = Field(default=None, max_length=120)
+    fonction: str | None = Field(default=None, max_length=80)
+    role: Droits | None = None
+
+
+@routeur.patch("/organisations/{organisation_id}/membres/{utilisateur_id}")
+def modifier_membre(utilisateur_id: uuid.UUID, corps: ModificationMembre, a: Acces = Depends(acces(*TOUS))):
+    equipe.modifier(a.session, a.organisation, a.utilisateur, a.role, utilisateur_id, **corps.model_dump())
+    return equipe.lister(a.session, a.organisation, a.utilisateur, a.role)
+
+
+@routeur.delete("/organisations/{organisation_id}/membres/{utilisateur_id}")
+def retirer_membre(utilisateur_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
+    """Le membre quitte le dossier ; ce qu'il a fait reste au journal, sous son nom."""
+    equipe.retirer(a.session, a.organisation, a.utilisateur, a.role, utilisateur_id)
+    return equipe.lister(a.session, a.organisation, a.utilisateur, a.role)
 
 
 # --- Rémunération -------------------------------------------------------------
@@ -572,7 +587,8 @@ def dupliquer_version(version_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT)))
 
 
 @routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/notes/{nature}")
-def emettre_note(version_id: uuid.UUID, nature: str, request: Request, a: Acces = Depends(acces(*CLIENT))):
+def emettre_note(version_id: uuid.UUID, nature: str, request: Request,
+                 a: Acces = Depends(acces("admin_client", "conseiller"))):
     """La note aux salariés ou aux assureurs d'une version adoptée : scellée à la première demande, la même ensuite."""
     d = notes_regime.emettre(a.session, a.organisation, regimes.obtenir_version(a.session, version_id), nature,
                              a.utilisateur.id, request.app.state.sceau, date.today())

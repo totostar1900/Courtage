@@ -215,10 +215,15 @@ def test_le_conseiller_inscrit_la_drh_par_son_numero(client, azito, bases, boite
     assert [o["role"] for o in web.get(f"{V1}/moi").json()["organisations"]] == ["lecteur_client"]
 
 
-def test_la_drh_n_inscrit_personne(client, azito):
-    r = client.post(f"{V1}/organisations/{azito['org']}/membres", headers=en_tant_que(azito["drh"]),
-                    json={"telephone": "+237 6 77 11 22 34", "nom_affiche": "X", "role": "admin_client"})
-    assert r.status_code == 403
+def test_l_administrateur_de_l_entreprise_inscrit_ses_collegues_jamais_un_conseiller(client, azito):
+    corps = {"telephone": "+237 6 77 11 22 34", "nom_affiche": "X"}
+    h = en_tant_que(azito["drh"])
+    assert client.post(f"{V1}/organisations/{azito['org']}/membres", headers=h,
+                       json={**corps, "role": "conseiller"}).status_code == 403
+    assert client.post(f"{V1}/organisations/{azito['org']}/membres", headers=h,
+                       json={**corps, "role": "lecteur_client"}).status_code == 201
+    assert client.post(f"{V1}/organisations/{azito['org']}/membres", headers=en_tant_que(azito["etranger"]),
+                       json={**corps, "telephone": "+237 6 77 11 22 35", "role": "lecteur_client"}).status_code == 403
 
 
 # --- Production ---------------------------------------------------------------------

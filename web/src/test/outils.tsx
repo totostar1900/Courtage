@@ -44,7 +44,7 @@ export function dossier(role: "admin_client" | "conseiller" | "lecteur_client", 
     [`/organisations/${ORG}/regimes`]: [],
     [`/organisations/${ORG}/etudes`]: [{ id: "e1", statut: "brouillon", date_evaluation: "2019-12-31", convention_code: "CI_CCI", dette: 60130415, emise_le: null }],
     [`/organisations/${ORG}/fiches`]: [],
-    [`/organisations/${ORG}/equipe`]: [{ id: "c", nom: "Awa Nkoulou", email: "awa@x.cm", telephone: null, role: "conseiller" }],
+    [`/organisations/${ORG}/equipe`]: equipe(role),
     "/referentiel/hypotheses": CATALOGUE,
     [`/organisations/${ORG}/cycle`]: cycle("ouvert"),
     ...extra,
@@ -81,5 +81,25 @@ export function cycle(etat: "ouvert" | "suspendu" | "cloture", extra: Record<str
       motif_code: etat === "suspendu" ? "impaye" : "fin_mandat", motif_libelle: etat === "suspendu" ? "Impayé" : "Fin du mandat",
       motif: null, par: "Awa Nkoulou", le: "2026-09-20T10:00:00+00:00" }],
     ...extra,
+  };
+}
+
+/** L'équipe telle que la voit `role` : le conseiller, la DRH, et ce que l'appelant peut gérer. */
+export function equipe(role: string) {
+  const gere = (cible: string) => role === "conseiller" || (role === "admin_client" && cible !== "conseiller");
+  const membre = (id: string, nom: string, r: string, fonction: string | null, extra: object = {}) => ({
+    id, nom, email: null, telephone: "+237690000000", role: r, droits: r, fonction, moi: false,
+    modifiable: gere(r), retirable: gere(r), raison_retrait: null, ...extra });
+  return {
+    membres: [
+      membre("c", "Awa Nkoulou", "conseiller", null, { email: "awa@x.cm", telephone: null, retirable: false,
+        raison_retrait: gere("conseiller") ? "Le dernier conseiller du dossier reste." : null }),
+      membre("u", "Mme DRH", "admin_client", "DRH", { moi: role === "admin_client", retirable: false,
+        raison_retrait: gere("admin_client") ? "Le dernier administrateur de l'entreprise du dossier reste." : null }),
+    ],
+    droits_attribuables: role === "conseiller"
+      ? ["admin_client", "contributeur_client", "lecteur_client", "conseiller"].map((r) => ({ role: r, libelle: r }))
+      : role === "admin_client" ? ["admin_client", "contributeur_client", "lecteur_client"].map((r) => ({ role: r, libelle: r })) : [],
+    fonctions: ["DRH", "DG", "DAF"],
   };
 }

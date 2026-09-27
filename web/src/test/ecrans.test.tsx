@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { cycle, dossier, etude, ORG, ouvrir, simulerApi } from "./outils";
+import { cycle, dossier, equipe, etude, ORG, ouvrir, simulerApi } from "./outils";
 
 const NON_CONNECTE = () => new Response(JSON.stringify({ code: "non_authentifie", message: "Connectez-vous." }),
   { status: 401, headers: { "content-type": "application/json" } });
@@ -660,12 +660,13 @@ describe("une plateforme neuve", () => {
       [`POST /organisations/${ORG}/membres`]: { utilisateur_id: "d", telephone: "+237699001122", role: "admin_client" } });
     ouvrir(`/dossier/${ORG}/equipe`);
     expect(await screen.findByRole("heading", { name: "Équipe du dossier" })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Inscrire quelqu'un" }));
     await userEvent.type(screen.getByLabelText("Nom"), "Mme DRH");
     await userEvent.type(screen.getByLabelText("Téléphone"), "699001122");
     await userEvent.click(screen.getByRole("button", { name: "Inscrire" }));
     await waitFor(() => expect(appels.some((a) => a.chemin === `/organisations/${ORG}/membres`)).toBe(true));
     const envoi = appels.find((a) => a.chemin === `/organisations/${ORG}/membres`)!;
-    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", telephone: "699001122", role: "admin_client" });
+    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", fonction: "", telephone: "699001122", role: "admin_client" });
   });
 });
 
@@ -1242,5 +1243,51 @@ describe("les versions du régime", () => {
     await userEvent.click(screen.getByRole("button", { name: "Supprimer 1 version et 1 brouillon" }));
     await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
     expect(await screen.findByText(/1 version supprimée, avec 1 étude en brouillon/)).toBeInTheDocument();
+  });
+});
+
+describe("l'équipe du dossier", () => {
+  it("le client voit ses collègues, son conseiller à part ; il inscrit un collègue, jamais un conseiller", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`POST /organisations/${ORG}/membres`]: { utilisateur_id: "n" } });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    const tableau = within((await screen.findByRole("columnheader", { name: "Fonction" })).closest("table") as HTMLElement);
+    expect(tableau.queryByText("Awa Nkoulou")).toBeNull();
+    expect(document.querySelector(".conseiller-carte")).toHaveTextContent("Awa Nkoulou");
+    expect(tableau.getByText("DRH")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Inscrire quelqu'un" }));
+    const droits = screen.getByLabelText("Droits") as HTMLSelectElement;
+    expect([...droits.options].map((o) => o.value)).toEqual(["admin_client", "contributeur_client", "lecteur_client"]);
+    await userEvent.type(screen.getByLabelText("Nom"), "M. DAF");
+    await userEvent.type(screen.getByLabelText("Fonction"), "DAF");
+    await userEvent.selectOptions(droits, "contributeur_client");
+    await userEvent.type(screen.getByLabelText("Téléphone"), "+237 6 99 00 00 22");
+    await userEvent.click(screen.getByRole("button", { name: "Inscrire" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
+    expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string)).toEqual(
+      { nom_affiche: "M. DAF", fonction: "DAF", role: "contributeur_client", telephone: "+237 6 99 00 00 22" });
+  });
+
+  it("le menu ⋮ d'un membre : modifier ; retirer, grisé avec sa raison pour le dernier administrateur", async () => {
+    const appels = simulerApi({ ...dossier("conseiller"), [`PATCH /organisations/${ORG}/membres/u`]: equipe("conseiller") });
+    ouvrir(`/dossier/${ORG}/equipe`);
+    await userEvent.click(await screen.findByRole("button", { name: "Actions sur Mme DRH" }));
+    const retirer = screen.getByRole("menuitem", { name: /Retirer du dossier/ });
+    expect(retirer).toHaveAttribute("aria-disabled", "true");
+    expect(retirer).toHaveTextContent("Le dernier administrateur de l'entreprise du dossier reste.");
+    await userEvent.click(screen.getByRole("menuitem", { name: /Modifier/ }));
+    const fonction = screen.getByLabelText("Fonction");
+    await userEvent.clear(fonction);
+    await userEvent.type(fonction, "DG");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "PATCH")).toBe(true));
+    expect(JSON.parse(appels.find((a) => a.init?.method === "PATCH")!.init!.body as string).fonction).toBe("DG");
+  });
+
+  it("la lecture seule n'a ni menu ni inscription", async () => {
+    simulerApi(dossier("lecteur_client"));
+    ouvrir(`/dossier/${ORG}/equipe`);
+    await screen.findByRole("columnheader", { name: "Fonction" });
+    expect(screen.queryByRole("button", { name: /Actions sur/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Inscrire quelqu'un" })).toBeNull();
   });
 });

@@ -9,10 +9,9 @@ import Visite, { lancerVisite } from "../composants/Visite";
 import { VISITE_DOSSIER } from "../guide/visite";
 import { etapes, type EtatDossier } from "../parcours";
 import { noterReprise } from "../reprise";
-import type { EtatCycle, EtudeResume, Fiche, Fichier, Moi, Regime, Role } from "../types";
+import type { Equipe, EtatCycle, EtudeResume, Fiche, Fichier, Membre, Moi, Regime, Role } from "../types";
 import { BandeauCycle } from "../composants/CycleDossier";
 
-interface Membre { id: string; nom: string; email: string | null; telephone: string | null; role: Role }
 
 export interface ContexteDossier {
   org: { id: string; nom: string; pays: string; etat?: EtatCycle; etat_depuis?: string };
@@ -43,7 +42,7 @@ export default function Dossier() {
       api.get<Regime[]>(`/organisations/${org}/regimes`),
       api.get<EtudeResume[]>(`/organisations/${org}/etudes`),
       api.get<Fiche[]>(`/organisations/${org}/fiches`),
-      api.get<Membre[]>(`/organisations/${org}/equipe`),
+      api.get<Equipe>(`/organisations/${org}/equipe`).then((e) => e.membres),
     ]);
     const o = moi.organisations.find((x) => x.id === org)!;
     const versions = regimes.flatMap((r) => r.versions);
