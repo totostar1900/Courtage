@@ -5,6 +5,7 @@ import { ErreurApi } from "../api";
 import type { Anomalie, Constat } from "../types";
 import type { CleTerme } from "../guide/glossaire";
 import { Terme } from "./Terme";
+import { t } from "../i18n";
 
 /** Charge une donnée, garde l'erreur, sait recharger. */
 export function useCharge<T>(charger: () => Promise<T>, deps: unknown[]) {
@@ -30,7 +31,7 @@ export function Erreur({ erreur }: { erreur: unknown }) {
   return (
     <div className="erreur" role="alert">
       {message}
-      {motifs && <div className="discret">Motifs : {motifs.map(libelleMotif).join(" · ")}</div>}
+      {motifs && <div className="discret">{t("Motifs : ", "Reasons: ")}{motifs.map(libelleMotif).join(" · ")}</div>}
     </div>
   );
 }
@@ -46,16 +47,17 @@ export function Cle({ etiquette, valeur, sous, terme }:
   );
 }
 
-const NIVEAUX: Record<string, { libelle: string; classe: string }> = {
-  bloque: { libelle: "Bloquant", classe: "grave" },
-  bloquant: { libelle: "Bloquant", classe: "grave" },
-  avertit: { libelle: "Attention", classe: "attention" },
-  avertissement: { libelle: "Attention", classe: "attention" },
-  informe: { libelle: "Bon à savoir", classe: "neutre" },
-};
+const niveaux = (): Record<string, { libelle: string; classe: string }> => ({
+  bloque: { libelle: t("Bloquant", "Blocking"), classe: "grave" },
+  bloquant: { libelle: t("Bloquant", "Blocking"), classe: "grave" },
+  avertit: { libelle: t("Attention", "Warning"), classe: "attention" },
+  avertissement: { libelle: t("Attention", "Warning"), classe: "attention" },
+  informe: { libelle: t("Bon à savoir", "Good to know"), classe: "neutre" },
+});
 
-export function Constats({ constats, vide = "Rien à signaler." }: { constats: Constat[]; vide?: string }) {
-  if (!constats.length) return <p className="discret">{vide}</p>;
+export function Constats({ constats, vide }: { constats: Constat[]; vide?: string }) {
+  if (!constats.length) return <p className="discret">{vide ?? t("Rien à signaler.", "Nothing to report.")}</p>;
+  const NIVEAUX = niveaux();
   return (
     <div>
       {constats.map((c, i) => (
@@ -66,7 +68,7 @@ export function Constats({ constats, vide = "Rien à signaler." }: { constats: C
           </div>
           <p>{c.message}</p>
           {!!c.sources?.length && (
-            <p className="discret">Sources : {c.sources.map((s) => s.titre).join(" ; ")}</p>
+            <p className="discret">{t("Sources : ", "Sources: ")}{c.sources.map((s) => s.titre).join(" ; ")}</p>
           )}
         </div>
       ))}
@@ -77,11 +79,11 @@ export function Constats({ constats, vide = "Rien à signaler." }: { constats: C
 export function Anomalies({ anomalies }: { anomalies: Anomalie[] }) {
   return (
     <Constats
-      vide="Aucune anomalie."
+      vide={t("Aucune anomalie.", "No anomalies.")}
       constats={anomalies.map((a) => ({
         niveau: a.niveau === "bloquant" ? "bloque" : "avertit",
         code: a.code,
-        titre: libelleMotif(a.code) + (a.ligne ? ` — ligne ${a.ligne}` : ""),
+        titre: libelleMotif(a.code) + (a.ligne ? t(` — ligne ${a.ligne}`, ` — row ${a.ligne}`) : ""),
         message: a.message,
       }))}
     />
@@ -90,56 +92,57 @@ export function Anomalies({ anomalies }: { anomalies: Anomalie[] }) {
 
 export { Echeancier } from "./Echeancier";
 
-const MOTIFS: Record<string, string> = {
-  pays_different: "convention d'un autre pays",
-  convention_a_valider: "convention à valider",
-  hors_vigueur: "convention hors vigueur à la date",
-  dossier_suspendu: "dossier suspendu : rien ne s'émet avant sa reprise",
-  dossier_cloture: "dossier clôturé : il ne se modifie plus",
-  donnees_trop_anciennes: "données de plus de 12 mois",
-  matricule_double: "matricule en double",
-  regime_non_adopte: "version du régime encore en projet : l'entreprise l'adopte d'abord",
-  regime_hors_vigueur: "une autre version du régime est en vigueur",
-  non_conformite: "régime sous la convention",
-  sous_le_plancher: "sous la convention collective",
-  au_dela_de_la_retraite: "au-delà de l'âge de retraite",
-  poids_excessif: "un salarié pèse lourd",
-  base_salaire_approchee: "base de salaire approchée",
-  evenements_non_evalues: "événements non chiffrés",
-  ecart_etude_precedente: "écart avec l'étude précédente",
-  champ_manquant: "champ manquant",
-  date_illisible: "date illisible",
-  dates_estimees: "dates probablement estimées",
-  verse_sous_le_du: "versé sous le dû",
-  verse_au_dela_du_du: "versé au-delà du dû",
-  fonds_demande_au_dela_du_verse: "demande au fonds supérieure au versé",
-  fonds_paye_au_dela_demande: "fonds payé au-delà de la demande",
-  encore_present: "encore présent dans le personnel",
-  motif_inconnu: "motif inconnu",
-  depart_en_double: "départ en double",
-  depart_avant_embauche: "départ avant l'embauche",
-  deja_enregistree: "départ déjà enregistré",
-  date_paiement_requise: "paiement sans date",
-  montant_illisible: "montant illisible",
-  colonnes_introuvables: "colonnes introuvables",
-  categorie_inconnue: "catégorie sans règle",
-  convention_requise: "convention à préciser",
-  a_relire: "à relire",
-  non_trouve: "non trouvé dans le texte",
-  hors_cemac: "hors CEMAC",
-  autre_pays: "un autre pays",
-  citation_introuvable: "passage introuvable",
-  texte_illisible: "texte illisible",
-  bareme_absent: "barème absent",
-  derniere_tranche_ouverte: "dernière tranche à vérifier",
-  rien_a_reprendre: "rien à reprendre",
-  sans_categorie_generale: "pas de catégorie générale",
-};
+/** Le libellé de chaque code de motif. Une fonction : la langue se lit à l'appel, jamais à l'import. */
+const motifs = (): Record<string, string> => ({
+  pays_different: t("convention d'un autre pays", "agreement from another country"),
+  convention_a_valider: t("convention à valider", "agreement to be validated"),
+  hors_vigueur: t("convention hors vigueur à la date", "agreement not in force at that date"),
+  dossier_suspendu: t("dossier suspendu : rien ne s'émet avant sa reprise", "file suspended: nothing is issued until it resumes"),
+  dossier_cloture: t("dossier clôturé : il ne se modifie plus", "file closed: it can no longer be changed"),
+  donnees_trop_anciennes: t("données de plus de 12 mois", "data more than 12 months old"),
+  matricule_double: t("matricule en double", "duplicate employee number"),
+  regime_non_adopte: t("version du régime encore en projet : l'entreprise l'adopte d'abord", "plan version still a draft: the company adopts it first"),
+  regime_hors_vigueur: t("une autre version du régime est en vigueur", "another plan version is in force"),
+  non_conformite: t("régime sous la convention", "plan below the agreement"),
+  sous_le_plancher: t("sous la convention collective", "below the collective agreement"),
+  au_dela_de_la_retraite: t("au-delà de l'âge de retraite", "beyond retirement age"),
+  poids_excessif: t("un salarié pèse lourd", "one employee weighs heavily"),
+  base_salaire_approchee: t("base de salaire approchée", "approximate salary base"),
+  evenements_non_evalues: t("événements non chiffrés", "events not costed"),
+  ecart_etude_precedente: t("écart avec l'étude précédente", "gap with the previous study"),
+  champ_manquant: t("champ manquant", "missing field"),
+  date_illisible: t("date illisible", "unreadable date"),
+  dates_estimees: t("dates probablement estimées", "dates probably estimated"),
+  verse_sous_le_du: t("versé sous le dû", "paid below the amount due"),
+  verse_au_dela_du_du: t("versé au-delà du dû", "paid above the amount due"),
+  fonds_demande_au_dela_du_verse: t("demande au fonds supérieure au versé", "fund claim above the amount paid in"),
+  fonds_paye_au_dela_demande: t("fonds payé au-delà de la demande", "fund paid above the claim"),
+  encore_present: t("encore présent dans le personnel", "still on the workforce"),
+  motif_inconnu: t("motif inconnu", "unknown reason"),
+  depart_en_double: t("départ en double", "duplicate departure"),
+  depart_avant_embauche: t("départ avant l'embauche", "departure before hire"),
+  deja_enregistree: t("départ déjà enregistré", "departure already recorded"),
+  date_paiement_requise: t("paiement sans date", "payment without a date"),
+  montant_illisible: t("montant illisible", "unreadable amount"),
+  colonnes_introuvables: t("colonnes introuvables", "columns not found"),
+  categorie_inconnue: t("catégorie sans règle", "category without a rule"),
+  convention_requise: t("convention à préciser", "agreement to be specified"),
+  a_relire: t("à relire", "to review"),
+  non_trouve: t("non trouvé dans le texte", "not found in the text"),
+  hors_cemac: t("hors CEMAC", "outside CEMAC"),
+  autre_pays: t("un autre pays", "another country"),
+  citation_introuvable: t("passage introuvable", "passage not found"),
+  texte_illisible: t("texte illisible", "unreadable text"),
+  bareme_absent: t("barème absent", "scale missing"),
+  derniere_tranche_ouverte: t("dernière tranche à vérifier", "last band to check"),
+  rien_a_reprendre: t("rien à reprendre", "nothing to import"),
+  sans_categorie_generale: t("pas de catégorie générale", "no general category"),
+});
 
-const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+const majuscule = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 
 export function libelleMotif(code: string): string {
-  return MOTIFS[code] ?? code.replace(/_/g, " ");
+  return motifs()[code] ?? code.replace(/_/g, " ");
 }
 
 /** Un panneau qui s'ouvre sur la page (résultats, formulaire, détail) et se referme : une croix en haut,
@@ -173,7 +176,7 @@ export function Volet({ titre, onFermer, children, className = "" }:
     <section ref={ref} className={tiroir ? "volet dans-tiroir" : `carte volet ${className}`}>
       <div className="volet-tete">
         <h2>{titre}</h2>
-        <button type="button" className="fermer-volet" onClick={onFermer} aria-label="Fermer" title="Fermer">×</button>
+        <button type="button" className="fermer-volet" onClick={onFermer} aria-label={t("Fermer", "Close")} title={t("Fermer", "Close")}>×</button>
       </div>
       {children}
     </section>

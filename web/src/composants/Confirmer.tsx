@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { Erreur } from "./communs";
+import { t } from "../i18n";
 
 export interface Demande {
   titre: string;
@@ -56,15 +57,15 @@ function Fenetre({ demande, onFermer }: { demande: Demande; onFermer: () => void
         <h2 id={titre}>{demande.titre}</h2>
         <div>{demande.message}</div>
         {demande.mot && (
-          <label>Pour confirmer, écrire <code>{demande.mot}</code>
-            <input ref={champ} aria-label="Confirmation" value={saisie} autoComplete="off"
+          <label>{t("Pour confirmer, écrire ", "To confirm, type ")}<code>{demande.mot}</code>
+            <input ref={champ} aria-label={t("Confirmation", "Confirmation")} value={saisie} autoComplete="off"
                    onChange={(e) => setSaisie(e.target.value)} />
           </label>
         )}
         <Erreur erreur={erreur} />
         <div className="actions">
-          <button ref={bouton} className="danger" disabled={!pret || enCours}>{demande.bouton ?? "Supprimer"}</button>
-          <button type="button" onClick={onFermer}>Annuler</button>
+          <button ref={bouton} className="danger" disabled={!pret || enCours}>{demande.bouton ?? t("Supprimer", "Delete")}</button>
+          <button type="button" onClick={onFermer}>{t("Annuler", "Cancel")}</button>
         </div>
       </form>
     </div>,

@@ -12,6 +12,7 @@ import { Icone } from "../composants/Icones";
 import { noterReprise } from "../reprise";
 import type { Equipe, EtatCycle, EtudeResume, Fiche, Fichier, Membre, Moi, Regime, Role } from "../types";
 import { BandeauCycle } from "../composants/CycleDossier";
+import { t } from "../i18n";
 
 
 export interface ContexteDossier {
@@ -68,7 +69,7 @@ export default function Dossier() {
   }, [donnee, pathname]);
 
   if (erreur) return <Erreur erreur={erreur} />;
-  if (!donnee) return <p className="discret">Chargement du dossier…</p>;
+  if (!donnee) return <p className="discret">{t("Chargement du dossier…", "Loading the file…")}</p>;
   const contexte: ContexteDossier = { ...donnee, recharger };
   const conseiller = donnee.equipe.find((m) => m.role === "conseiller");
 
@@ -81,42 +82,42 @@ export default function Dossier() {
               <NavLink to="." end className="discret" style={{ textDecoration: "none" }}>
                 <h2 style={{ marginBottom: 2 }}>{donnee.org.nom}</h2>
               </NavLink>
-              <div className="discret" style={{ marginBottom: 12 }}>Tableau de bord du dossier</div>
+              <div className="discret" style={{ marginBottom: 12 }}>{t("Tableau de bord du dossier", "File dashboard")}</div>
             </div>
             <button type="button" className="bouton-menu" aria-expanded={menu} aria-controls="menu-dossier"
-                    onClick={() => setMenu(!menu)}>{menu ? "Fermer" : "Menu"}</button>
+                    onClick={() => setMenu(!menu)}>{menu ? t("Fermer", "Close") : t("Menu", "Menu")}</button>
           </div>
           <div id="menu-dossier" className="dossier-menu" data-ouvert={menu}>
           <BoutonAller />
           <ol className="parcours" data-visite="parcours">
             <li><NavLink to="." end className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="tableau" />Tableau de bord</NavLink></li>
+              <Icone nom="tableau" />{t("Tableau de bord", "Dashboard")}</NavLink></li>
             {etapes(donnee.etat).map((e) => (
               <li key={e.cle} className={e.suivant ? "suivant" : ""}>
                 <NavLink to={e.cle} className={({ isActive }) => (isActive ? "actif" : "")}
-                         title={e.suivant ? `Étape suivante : ${e.aide}` : undefined}>
+                         title={e.suivant ? t(`Étape suivante : ${e.aide}`, `Next step: ${e.aide}`) : undefined}>
                   <Icone nom={e.cle} />{e.libelle}
-                  {e.suivant && <span className="point-suivant" aria-label="étape suivante" />}
+                  {e.suivant && <span className="point-suivant" aria-label={t("étape suivante", "next step")} />}
                 </NavLink>
               </li>
             ))}
           </ol>
           <ol className="parcours" style={{ marginTop: 14 }} data-visite="outils">
             <li><NavLink to="simulation" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="simulation" />Simuler</NavLink></li>
+              <Icone nom="simulation" />{t("Simuler", "Simulate")}</NavLink></li>
             <li><NavLink to="accompagnement" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="accompagnement" />Accompagnement</NavLink></li>
+              <Icone nom="accompagnement" />{t("Accompagnement", "Support")}</NavLink></li>
             <li><NavLink to="contrat" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="contrat" />Contrat</NavLink></li>
+              <Icone nom="contrat" />{t("Contrat", "Contract")}</NavLink></li>
             <li><NavLink to="departs" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="departs" />Départs</NavLink></li>
+              <Icone nom="departs" />{t("Départs", "Departures")}</NavLink></li>
             <li><NavLink to="equipe" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="equipe" />Équipe</NavLink></li>
+              <Icone nom="equipe" />{t("Équipe", "Team")}</NavLink></li>
           </ol>
           {conseiller && (
             <div className="carte" style={{ marginTop: 20 }} data-visite="conseiller">
               <div className="discret" style={{ marginBottom: 8 }}>
-                {donnee.role === "conseiller" ? "Vous suivez ce dossier" : "Votre conseiller"}
+                {donnee.role === "conseiller" ? t("Vous suivez ce dossier", "You follow this file") : t("Votre conseiller", "Your adviser")}
               </div>
               <div className="conseiller">
                 <div className="avatar">{conseiller.nom.slice(0, 1)}</div>
@@ -128,8 +129,8 @@ export default function Dossier() {
             </div>
           )}
           <div className="actions" style={{ marginTop: 16 }}>
-            <button type="button" className="lien" onClick={lancerVisite}>Visite guidée</button>
-            <NavLink to="/guide">Le guide</NavLink>
+            <button type="button" className="lien" onClick={lancerVisite}>{t("Visite guidée", "Guided tour")}</button>
+            <NavLink to="/guide">{t("Le guide", "The guide")}</NavLink>
           </div>
           </div>
         </aside>

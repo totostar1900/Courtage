@@ -3,9 +3,13 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { bilan, categorieParlante, categories, confondues, couleur, courbe, ecartRelatif, EGAL, GAIN, MESURES,
   nomsCourts, PERTE, type Mesure, type Variante } from "../comparatif";
 import { millions, montant, pct } from "../format";
+import { langue, t } from "../i18n";
 import { Segments } from "./Echeancier";
 
-const LIBELLE_CATEGORIE = (c: string, n: number) => (c === "*" ? (n === 1 ? "Tout le personnel" : "Autres salariés") : c);
+const LIBELLE_CATEGORIE = (c: string, n: number) =>
+  (c === "*" ? (n === 1 ? t("Tout le personnel", "All staff") : t("Autres salariés", "Other employees")) : c);
+const nombre = (x: number, chiffres: number) =>
+  x.toLocaleString(langue() === "en" ? "en-GB" : "fr-FR", { maximumFractionDigits: chiffres });
 const signe = (v: number, f: (x: number) => string) => (v > 0 ? `+${f(v)}` : v < 0 ? `−${f(-v)}` : f(0));
 
 /** Les régimes simulés, comparés : les chiffres côte à côte, la courbe des mois versés, qui gagne et qui perd.
@@ -16,11 +20,11 @@ export function Comparatif({ variantes }: { variantes: Variante[] }) {
   return (
     <div className="comparatif">
       <div className="actions" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
-        <h2 style={{ margin: 0 }}>Comparer les régimes</h2>
+        <h2 style={{ margin: 0 }}>{t("Comparer les régimes", "Compare plans")}</h2>
         <button type="button" className="lien" onClick={() => setTableau(!tableau)}>
-          {tableau ? "Voir les graphiques" : "Voir le tableau"}</button>
+          {tableau ? t("Voir les graphiques", "View the charts") : t("Voir le tableau", "View the table")}</button>
       </div>
-      <ul className="legende" aria-label="Légende">
+      <ul className="legende" aria-label={t("Légende", "Legend")}>
         {variantes.map((v, i) => (
           <li key={v.nom}><span className={`cle${i === 0 ? " reference" : ""}`} style={{ background: couleur(i) }} />{v.nom}</li>
         ))}
@@ -42,8 +46,8 @@ function Chiffres({ variantes }: { variantes: Variante[] }) {
   const courts = nomsCourts(variantes.map((v) => v.nom));
   return (
     <div className="carte section">
-      <h3>Les chiffres côte à côte</h3>
-      <p className="discret">L'écart se lit contre la convention seule.</p>
+      <h3>{t("Les chiffres côte à côte", "The figures side by side")}</h3>
+      <p className="discret">{t("L'écart se lit contre la convention seule.", "The difference is read against the collective agreement alone.")}</p>
       <div className="petits-multiples">
         {mesures.map((m) => {
           const valeurs = variantes.map(MESURES[m].lire);
@@ -56,7 +60,7 @@ function Chiffres({ variantes }: { variantes: Variante[] }) {
                 const e = ecartRelatif(valeurs[i], valeurs[0]);
                 return (
                   <div key={v.nom} className={`rangee${actif === cle ? " active" : ""}`} tabIndex={0}
-                       aria-label={`${v.nom} : ${montant(valeurs[i])}`}
+                       aria-label={t(`${v.nom} : ${montant(valeurs[i])}`, `${v.nom}: ${montant(valeurs[i])}`)}
                        onMouseEnter={() => setActif(cle)} onMouseLeave={() => setActif(null)}
                        onFocus={() => setActif(cle)} onBlur={() => setActif(null)}>
                     <span className="rangee-nom" title={v.nom}>{courts[i]}</span>
@@ -71,8 +75,8 @@ function Chiffres({ variantes }: { variantes: Variante[] }) {
                         <div>{v.nom} · {MESURES[m].libelle.toLowerCase()}</div>
                         {i > 0 && (
                           <dl>
-                            <dt>Écart</dt><dd>{signe(valeurs[i] - valeurs[0], montant)}{e !== null ? ` (${signe(e, (x) => pct(x))})` : ""}</dd>
-                            <dt>Convention seule</dt><dd>{montant(valeurs[0])}</dd>
+                            <dt>{t("Écart", "Difference")}</dt><dd>{signe(valeurs[i] - valeurs[0], montant)}{e !== null ? ` (${signe(e, (x) => pct(x))})` : ""}</dd>
+                            <dt>{t("Convention seule", "Collective agreement alone")}</dt><dd>{montant(valeurs[0])}</dd>
                           </dl>
                         )}
                       </div>
@@ -125,22 +129,26 @@ function Courbes({ variantes }: { variantes: Variante[] }) {
 
   return (
     <div className="carte section">
-      <h3>Ce que chaque régime verse au départ</h3>
-      <p className="discret">En mois de salaire, selon l'ancienneté à la retraite ; la convention seule en tirets.</p>
+      <h3>{t("Ce que chaque régime verse au départ", "What each plan pays on departure")}</h3>
+      <p className="discret">{t("En mois de salaire, selon l'ancienneté à la retraite ; la convention seule en tirets.",
+        "In months of salary, by length of service at retirement; the collective agreement alone is dashed.")}</p>
       {cats.length > 1 && (
         <div className="reglages">
-          <Segments nom="Catégorie" valeur={categorie} onChange={setCategorie}
+          <Segments nom={t("Catégorie", "Category")} valeur={categorie} onChange={setCategorie}
                     options={cats.map((c) => [c, LIBELLE_CATEGORIE(c, cats.length)] as [string, string])} />
         </div>
       )}
       {memes.length > 0 && (
-        <p className="discret">{memes.length === variantes.length - 1 ? "Tous les régimes versent" : `${memes.join(", ")} ${memes.length > 1 ? "versent" : "verse"}`}{" "}
-          à cette catégorie exactement ce que verse la convention : les courbes se recouvrent.</p>
+        <p className="discret">{memes.length === variantes.length - 1 ? t("Tous les régimes versent", "All plans pay")
+          : t(`${memes.join(", ")} ${memes.length > 1 ? "versent" : "verse"}`, `${memes.join(", ")} ${memes.length > 1 ? "pay" : "pays"}`)}{" "}
+          {t("à cette catégorie exactement ce que verse la convention : les courbes se recouvrent.",
+            "this category exactly what the collective agreement pays: the curves overlap.")}</p>
       )}
       <div className="trace-courbes" ref={cadre}>
         <svg ref={zone} viewBox={`0 0 ${L} ${H}`} width={L} height={H} role="img" onPointerMove={survol} onPointerDown={survol}
              onPointerLeave={(e) => e.pointerType === "mouse" && setN(null)}
-             aria-label={`Mois de salaire versés selon l'ancienneté, ${LIBELLE_CATEGORIE(categorie, cats.length)}`}>
+             aria-label={t(`Mois de salaire versés selon l'ancienneté, ${LIBELLE_CATEGORIE(categorie, cats.length)}`,
+               `Months of salary paid by length of service, ${LIBELLE_CATEGORIE(categorie, cats.length)}`)}>
           {[0, yMax / 2, yMax].map((g) => (
             <g key={g}>
               <line x1={G} x2={L - D} y1={py(g)} y2={py(g)} className="grille-ligne" />
@@ -150,7 +158,7 @@ function Courbes({ variantes }: { variantes: Variante[] }) {
           {Array.from({ length: Math.floor(nMax / (L < 480 ? 10 : 5)) + 1 }, (_, k) => k * (L < 480 ? 10 : 5)).map((a) => (
             <text key={a} x={px(a)} y={H - BAS + 16} textAnchor="middle" className="axe-texte">{a}</text>
           ))}
-          <text x={(G + L - D) / 2} y={H - 2} textAnchor="middle" className="axe-texte">ancienneté (années)</text>
+          <text x={(G + L - D) / 2} y={H - 2} textAnchor="middle" className="axe-texte">{t("ancienneté (années)", "length of service (years)")}</text>
           {n !== null && <line x1={px(n)} x2={px(n)} y1={HAUT} y2={H - BAS} className="reticule" />}
           {series.map((s) => (
             <path key={s.nom} fill="none" stroke={couleur(s.rang)} strokeWidth={2} strokeLinejoin="round"
@@ -170,12 +178,12 @@ function Courbes({ variantes }: { variantes: Variante[] }) {
         {n !== null && (
           <div role="tooltip" className={`bulle-barre bulle-courbe${L < 480 ? " sous" : ""}`}
                style={{ left: `clamp(0px, ${px(n) < (G + L - D) / 2 ? `${px(n) + 16}px` : `${px(n) - 286}px`}, calc(100% - 270px))` }}>
-            <strong>{n} an{n > 1 ? "s" : ""} d'ancienneté</strong>
+            <strong>{t(`${n} an${n > 1 ? "s" : ""} d'ancienneté`, `${n} year${n === 1 ? "" : "s"} of service`)}</strong>
             <div>{LIBELLE_CATEGORIE(categorie, cats.length)}</div>
             <ul className="parts">
               {series.map((s) => (
                 <li key={s.nom}><span className="trait" style={{ background: couleur(s.rang) }} />
-                  <span>{s.nom}</span><b>{(s.pts[n] ?? 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} mois</b></li>
+                  <span>{s.nom}</span><b>{nombre(s.pts[n] ?? 0, 2)} {t("mois", "months")}</b></li>
               ))}
             </ul>
           </div>
@@ -192,19 +200,20 @@ function GagnantsPerdants({ variantes }: { variantes: Variante[] }) {
   const reference = variantes[ref];
   return (
     <div className="carte section">
-      <h3>Qui gagne, qui perd</h3>
-      <p className="discret">Salarié par salarié, l'indemnité qu'il toucherait à son départ, d'un régime à l'autre.</p>
+      <h3>{t("Qui gagne, qui perd", "Who gains, who loses")}</h3>
+      <p className="discret">{t("Salarié par salarié, l'indemnité qu'il toucherait à son départ, d'un régime à l'autre.",
+        "Employee by employee, the benefit they would receive on departure, from one plan to the other.")}</p>
       <div className="reglages">
-        <Segments nom="Comparer à" valeur={ref} onChange={setRef} options={variantes.map((v, i) => [i, v.nom] as [number, string])} />
+        <Segments nom={t("Comparer à", "Compare with")} valeur={ref} onChange={setRef} options={variantes.map((v, i) => [i, v.nom] as [number, string])} />
         {cats.length > 1 && (
-          <Segments nom="Parmi" valeur={categorie} onChange={setCategorie}
-                    options={[["", "Tout le personnel"], ...cats.map((c) => [c, LIBELLE_CATEGORIE(c, cats.length)] as [string, string])]} />
+          <Segments nom={t("Parmi", "Among")} valeur={categorie} onChange={setCategorie}
+                    options={[["", t("Tout le personnel", "All staff")], ...cats.map((c) => [c, LIBELLE_CATEGORIE(c, cats.length)] as [string, string])]} />
         )}
       </div>
-      <ul className="legende" aria-label="Légende des écarts">
-        <li><span className="cle" style={{ background: GAIN }} />gagnent</li>
-        <li><span className="cle" style={{ background: EGAL }} />inchangés</li>
-        <li><span className="cle" style={{ background: PERTE }} />perdent</li>
+      <ul className="legende" aria-label={t("Légende des écarts", "Legend of differences")}>
+        <li><span className="cle" style={{ background: GAIN }} />{t("gagnent", "gain")}</li>
+        <li><span className="cle" style={{ background: EGAL }} />{t("inchangés", "unchanged")}</li>
+        <li><span className="cle" style={{ background: PERTE }} />{t("perdent", "lose")}</li>
       </ul>
       <div className="bilans">
         {variantes.map((v, i) => {
@@ -215,22 +224,28 @@ function GagnantsPerdants({ variantes }: { variantes: Variante[] }) {
           return (
             <div key={v.nom} className="bilan">
               <div className="bilan-tete"><span className="cle" style={{ background: couleur(i) }} /><b>{v.nom}</b>
-                <span className="discret">face à {reference.nom}</span></div>
+                <span className="discret">{t(`face à ${reference.nom}`, `against ${reference.nom}`)}</span></div>
               <div className="barre-bilan" role="img"
-                   aria-label={`${b.gagnent} gagnent, ${b.inchanges} inchangés, ${b.perdent} perdent`}>
+                   aria-label={t(`${b.gagnent} gagnent, ${b.inchanges} inchangés, ${b.perdent} perdent`,
+                                 `${b.gagnent} gain, ${b.inchanges} unchanged, ${b.perdent} lose`)}>
                 {b.perdent > 0 && <span style={{ width: part(b.perdent), background: PERTE }} />}
                 {b.inchanges > 0 && <span style={{ width: part(b.inchanges), background: EGAL }} />}
                 {b.gagnent > 0 && <span style={{ width: part(b.gagnent), background: GAIN }} />}
               </div>
               <p className="bilan-texte">
-                <b>{b.gagnent}</b> gagne{b.gagnent > 1 ? "nt" : ""}{b.gagnent > 0 && <> ({signe(b.gainMoyen, montant)} en moyenne)</>}
-                {" · "}<b>{b.inchanges}</b> inchangé{b.inchanges > 1 ? "s" : ""}
-                {" · "}<b>{b.perdent}</b> perd{b.perdent > 1 ? "ent" : ""}{b.perdent > 0 && <> ({signe(b.perteMoyenne, montant)} en moyenne)</>}
+                <b>{b.gagnent}</b> {t(`gagne${b.gagnent > 1 ? "nt" : ""}`, b.gagnent === 1 ? "gains" : "gain")}
+                {b.gagnent > 0 && <> ({signe(b.gainMoyen, montant)} {t("en moyenne", "on average")})</>}
+                {" · "}<b>{b.inchanges}</b> {t(`inchangé${b.inchanges > 1 ? "s" : ""}`, "unchanged")}
+                {" · "}<b>{b.perdent}</b> {t(`perd${b.perdent > 1 ? "ent" : ""}`, b.perdent === 1 ? "loses" : "lose")}
+                {b.perdent > 0 && <> ({signe(b.perteMoyenne, montant)} {t("en moyenne", "on average")})</>}
               </p>
               <p className="discret bilan-texte">
-                Au total, {signe(b.ecartTotal, montant)} d'indemnités au départ.
-                {b.plusGrosGain && <> Plus gros gain : {b.plusGrosGain.matricule}, {signe(b.plusGrosGain.montant, montant)}.</>}
-                {b.plusGrossePerte && <> Plus grosse perte : {b.plusGrossePerte.matricule}, {signe(b.plusGrossePerte.montant, montant)}.</>}
+                {t(`Au total, ${signe(b.ecartTotal, montant)} d'indemnités au départ.`,
+                  `In total, ${signe(b.ecartTotal, montant)} in departure benefits.`)}
+                {b.plusGrosGain && t(` Plus gros gain : ${b.plusGrosGain.matricule}, ${signe(b.plusGrosGain.montant, montant)}.`,
+                  ` Largest gain: ${b.plusGrosGain.matricule}, ${signe(b.plusGrosGain.montant, montant)}.`)}
+                {b.plusGrossePerte && t(` Plus grosse perte : ${b.plusGrossePerte.matricule}, ${signe(b.plusGrossePerte.montant, montant)}.`,
+                  ` Largest loss: ${b.plusGrossePerte.matricule}, ${signe(b.plusGrossePerte.montant, montant)}.`)}
               </p>
             </div>
           );
@@ -251,16 +266,16 @@ function Tableau({ variantes }: { variantes: Variante[] }) {
             <tr key={m}><td>{MESURES[m].libelle}</td>
               {variantes.map((v) => <td key={v.nom} className="n">{montant(MESURES[m].lire(v))}</td>)}</tr>
           ))}
-          <tr><td>Au-delà de la convention</td>{variantes.map((v) => <td key={v.nom} className="n">{montant(v.ecart_convention)}</td>)}</tr>
-          <tr><td>Mois versés à 10 / 20 / 30 ans (première catégorie)</td>
+          <tr><td>{t("Au-delà de la convention", "Above the collective agreement")}</td>{variantes.map((v) => <td key={v.nom} className="n">{montant(v.ecart_convention)}</td>)}</tr>
+          <tr><td>{t("Mois versés à 10 / 20 / 30 ans (première catégorie)", "Months paid at 10 / 20 / 30 years (first category)")}</td>
             {variantes.map((v) => {
               const c = courbe(v, categories(variantes[0])[0]);
-              return <td key={v.nom} className="n">{[10, 20, 30].map((a) => (c[a] ?? 0).toLocaleString("fr-FR", { maximumFractionDigits: 1 })).join(" / ")}</td>;
+              return <td key={v.nom} className="n">{[10, 20, 30].map((a) => nombre(c[a] ?? 0, 1)).join(" / ")}</td>;
             })}</tr>
           {variantes.slice(1).map((v, i) => {
             const b = bilan(variantes[0], v);
-            return <tr key={v.nom}><td>{v.nom} face à la convention seule</td>
-              {variantes.map((_, j) => <td key={j} className="n">{j === i + 1 ? `${b.gagnent} gagnent, ${b.perdent} perdent` : ""}</td>)}</tr>;
+            return <tr key={v.nom}><td>{t(`${v.nom} face à la convention seule`, `${v.nom} against the collective agreement alone`)}</td>
+              {variantes.map((_, j) => <td key={j} className="n">{j === i + 1 ? t(`${b.gagnent} gagnent, ${b.perdent} perdent`, `${b.gagnent} gain, ${b.perdent} lose`) : ""}</td>)}</tr>;
           })}
         </tbody>
       </table>

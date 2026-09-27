@@ -6,12 +6,16 @@ import { dateFr } from "../format";
 import { CHAPITRES } from "../guide/chapitres";
 import type { ContexteDossier } from "../pages/Dossier";
 import { lancerVisite } from "./Visite";
+import { t } from "../i18n";
 
-const PAGES: Record<string, string> = {
-  "": "Tableau de bord", personnel: "Personnel", regime: "Régime", simulation: "Simuler", etudes: "Études",
-  financement: "Financement", cahier: "Cahier des charges", contrat: "Contrat", accompagnement: "Accompagnement",
-  departs: "Départs", equipe: "Équipe", dossiers: "Départs",
-};
+/** Les pages du dossier, par segment d'adresse. Une fonction : la langue se lit au rendu. */
+const pages = (): Record<string, string> => ({
+  "": t("Tableau de bord", "Dashboard"), personnel: t("Personnel", "Workforce"), regime: t("Régime", "Plan"),
+  simulation: t("Simuler", "Simulate"), etudes: t("Études", "Studies"), financement: t("Financement", "Funding"),
+  cahier: t("Cahier des charges", "Specifications"), contrat: t("Contrat", "Contract"),
+  accompagnement: t("Accompagnement", "Support"), departs: t("Départs", "Departures"), equipe: t("Équipe", "Team"),
+  dossiers: t("Départs", "Departures"),
+});
 
 export interface Niveau { libelle: string; vers?: string }
 
@@ -19,15 +23,17 @@ export interface Niveau { libelle: string; vers?: string }
 export function niveauxDe(pathname: string, d: Pick<ContexteDossier, "org" | "etudes">): Niveau[] {
   const base = `/dossier/${d.org.id}`;
   const [page, detail, suite] = pathname.slice(base.length).split("/").filter(Boolean);
-  const niveaux: Niveau[] = [{ libelle: "Vos dossiers", vers: "/" }, { libelle: d.org.nom, vers: page ? base : undefined }];
+  const PAGES = pages();
+  const niveaux: Niveau[] = [{ libelle: t("Vos dossiers", "Your files"), vers: "/" }, { libelle: d.org.nom, vers: page ? base : undefined }];
   if (page) {
     const vers = page === "dossiers" ? `${base}/departs` : `${base}/${page}`;
     niveaux.push({ libelle: PAGES[page] ?? page, vers: detail ? vers : undefined });
   }
   if (detail) {
     const etude = page === "etudes" ? d.etudes.find((e) => e.id === detail) : undefined;
-    const libelle = etude ? `Étude au ${dateFr(etude.date_evaluation)}`
-      : page === "cahier" ? "Réponses des assureurs" : page === "dossiers" ? "Dossier de prise en charge" : "Détail";
+    const libelle = etude ? t(`Étude au ${dateFr(etude.date_evaluation)}`, `Study as at ${dateFr(etude.date_evaluation)}`)
+      : page === "cahier" ? t("Réponses des assureurs", "Insurers' responses")
+      : page === "dossiers" ? t("Dossier de prise en charge", "Claim file") : t("Détail", "Detail");
     niveaux.push({ libelle, vers: suite ? `${base}/${page}/${detail}` : undefined });
     if (suite) niveaux.push({ libelle: PAGES[suite] ?? suite });
   }
@@ -39,7 +45,7 @@ export function FilAriane({ d }: { d: Pick<ContexteDossier, "org" | "etudes"> })
   const { pathname } = useLocation();
   const niveaux = niveauxDe(pathname, d);
   return (
-    <nav className="fil-ariane" aria-label="Fil d'Ariane">
+    <nav className="fil-ariane" aria-label={t("Fil d'Ariane", "Breadcrumb")}>
       <ol>
         {niveaux.map((n, i) => (
           <li key={i}>{n.vers ? <Link to={n.vers}>{n.libelle}</Link> : <span aria-current="page">{n.libelle}</span>}</li>
@@ -51,7 +57,7 @@ export function FilAriane({ d }: { d: Pick<ContexteDossier, "org" | "etudes"> })
 
 interface Commande { id: string; groupe: string; libelle: string; indice?: string; agir: () => void }
 
-const normaliser = (t: string) => t.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const normaliser = (x: string) => x.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** « Aller à… » : Ctrl+K (⌘K) ouvre une recherche sur tout ce qu'on peut atteindre depuis le dossier. */
 export function PaletteAller({ d }: { d: Pick<ContexteDossier, "org" | "etudes"> }) {
@@ -76,15 +82,17 @@ export function PaletteAller({ d }: { d: Pick<ContexteDossier, "org" | "etudes">
   const commandes: Commande[] = useMemo(() => {
     const fermer = (f: () => void) => () => { setOuverte(false); f(); };
     return [
-      ...Object.entries(PAGES).filter(([k]) => k !== "dossiers").map(([k, l]) => ({
-        id: `page-${k}`, groupe: "Pages du dossier", libelle: l, agir: fermer(() => aller(k ? `${base}/${k}` : base)) })),
+      ...Object.entries(pages()).filter(([k]) => k !== "dossiers").map(([k, l]) => ({
+        id: `page-${k}`, groupe: t("Pages du dossier", "File pages"), libelle: l, agir: fermer(() => aller(k ? `${base}/${k}` : base)) })),
       ...d.etudes.map((e) => ({
-        id: `etude-${e.id}`, groupe: "Études", libelle: `Étude au ${dateFr(e.date_evaluation)}`,
-        indice: e.statut === "emise" ? "émise" : "brouillon", agir: fermer(() => aller(`${base}/etudes/${e.id}`)) })),
-      { id: "canevas", groupe: "Actions", libelle: "Télécharger le canevas du personnel",
+        id: `etude-${e.id}`, groupe: t("Études", "Studies"),
+        libelle: t(`Étude au ${dateFr(e.date_evaluation)}`, `Study as at ${dateFr(e.date_evaluation)}`),
+        indice: e.statut === "emise" ? t("émise", "issued") : t("brouillon", "draft"), agir: fermer(() => aller(`${base}/etudes/${e.id}`)) })),
+      { id: "canevas", groupe: t("Actions", "Actions"),
+        libelle: t("Télécharger le canevas du personnel", "Download the workforce template"),
         agir: fermer(() => { api.telecharger("/referentiel/canevas-personnel", "canevas-personnel.xlsx").catch(() => undefined); }) },
-      { id: "visite", groupe: "Actions", libelle: "Lancer la visite guidée", agir: fermer(lancerVisite) },
-      ...CHAPITRES.map((c) => ({ id: `guide-${c.id}`, groupe: "Guide", libelle: c.titre, indice: c.groupe,
+      { id: "visite", groupe: t("Actions", "Actions"), libelle: t("Lancer la visite guidée", "Start the guided tour"), agir: fermer(lancerVisite) },
+      ...CHAPITRES.map((c) => ({ id: `guide-${c.id}`, groupe: t("Guide", "Guide"), libelle: c.titre, indice: c.groupe,
                                  agir: fermer(() => aller(`/guide/${c.id}`)) })),
     ];
   }, [d.etudes, base, aller]);
@@ -96,9 +104,9 @@ export function PaletteAller({ d }: { d: Pick<ContexteDossier, "org" | "etudes">
   if (!ouverte) return null;
   return (
     <div className="palette-fond" onMouseDown={(e) => e.target === e.currentTarget && setOuverte(false)}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Aller à">
-        <input ref={champ} value={texte} placeholder="Aller à… une page, une étude, un chapitre du guide"
-               aria-label="Rechercher" aria-controls="palette-liste" aria-activedescendant={trouvees[actif]?.id}
+      <div className="palette" role="dialog" aria-modal="true" aria-label={t("Aller à", "Go to")}>
+        <input ref={champ} value={texte} placeholder={t("Aller à… une page, une étude, un chapitre du guide", "Go to… a page, a study, a guide chapter")}
+               aria-label={t("Rechercher", "Search")} aria-controls="palette-liste" aria-activedescendant={trouvees[actif]?.id}
                onChange={(e) => { setTexte(e.target.value); setChoix(0); }}
                onKeyDown={(e) => {
                  if (e.key === "Escape") setOuverte(false);
@@ -106,8 +114,8 @@ export function PaletteAller({ d }: { d: Pick<ContexteDossier, "org" | "etudes">
                  else if (e.key === "ArrowUp") { e.preventDefault(); setChoix(Math.max(actif - 1, 0)); }
                  else if (e.key === "Enter" && trouvees[actif]) trouvees[actif].agir();
                }} />
-        <ul id="palette-liste" role="listbox" aria-label="Résultats">
-          {trouvees.length === 0 && <li className="vide">Rien ne correspond.</li>}
+        <ul id="palette-liste" role="listbox" aria-label={t("Résultats", "Results")}>
+          {trouvees.length === 0 && <li className="vide">{t("Rien ne correspond.", "No match.")}</li>}
           {trouvees.map((c, i) => (
             <li key={c.id} id={c.id} role="option" aria-selected={i === actif} className={i === actif ? "actif" : ""}
                 onMouseEnter={() => setChoix(i)} onMouseDown={(e) => { e.preventDefault(); c.agir(); }}>
@@ -115,7 +123,7 @@ export function PaletteAller({ d }: { d: Pick<ContexteDossier, "org" | "etudes">
             </li>
           ))}
         </ul>
-        <div className="palette-pied"><kbd>↑</kbd><kbd>↓</kbd> choisir · <kbd>Entrée</kbd> ouvrir · <kbd>Échap</kbd> fermer</div>
+        <div className="palette-pied"><kbd>↑</kbd><kbd>↓</kbd> {t("choisir", "select")} · <kbd>{t("Entrée", "Enter")}</kbd> {t("ouvrir", "open")} · <kbd>{t("Échap", "Esc")}</kbd> {t("fermer", "close")}</div>
       </div>
     </div>
   );
@@ -126,7 +134,7 @@ export function BoutonAller() {
   const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <button type="button" className="bouton-aller" onClick={() => window.dispatchEvent(new Event("courtage:aller"))}>
-      <span>Aller à…</span><kbd>{mac ? "⌘" : "Ctrl"} K</kbd>
+      <span>{t("Aller à…", "Go to…")}</span><kbd>{mac ? "⌘" : "Ctrl"} K</kbd>
     </button>
   );
 }
@@ -137,13 +145,13 @@ export function BarreMobile({ d }: { d: Pick<ContexteDossier, "org" | "etudes"> 
   const etude = d.etudes.find((e) => e.statut === "emise") ?? d.etudes[0];
   const actif = ({ isActive }: { isActive: boolean }) => (isActive ? "actif" : "");
   return (
-    <nav className="barre-mobile" aria-label="Accès rapides">
-      <NavLink to={base} end className={actif}><span aria-hidden="true">◧</span>Tableau</NavLink>
+    <nav className="barre-mobile" aria-label={t("Accès rapides", "Quick access")}>
+      <NavLink to={base} end className={actif}><span aria-hidden="true">◧</span>{t("Tableau", "Dashboard")}</NavLink>
       <NavLink to={etude ? `${base}/etudes/${etude.id}` : `${base}/etudes`} className={actif}>
-        <span aria-hidden="true">∑</span>Étude</NavLink>
-      <NavLink to={`${base}/personnel`} className={actif}><span aria-hidden="true">☰</span>Personnel</NavLink>
+        <span aria-hidden="true">∑</span>{t("Étude", "Study")}</NavLink>
+      <NavLink to={`${base}/personnel`} className={actif}><span aria-hidden="true">☰</span>{t("Personnel", "Workforce")}</NavLink>
       <button type="button" onClick={() => window.dispatchEvent(new Event("courtage:aller"))}>
-        <span aria-hidden="true">⌕</span>Aller à…</button>
+        <span aria-hidden="true">⌕</span>{t("Aller à…", "Go to…")}</button>
     </nav>
   );
 }

@@ -1396,6 +1396,21 @@ describe("l'accompagnement en courtage", () => {
   });
 });
 
+describe("la bascule FR/EN", () => {
+  it("l'interface passe en anglais, et s'en souvient", async () => {
+    simulerApi({ ...dossier("admin_client") });
+    ouvrir(`/dossier/${ORG}/etudes`);
+    await screen.findByRole("heading", { name: "Évaluer votre engagement" });
+    await userEvent.click(screen.getByRole("button", { name: "EN" }));
+    expect(await screen.findByRole("button", { name: "Sign out" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
+    expect(localStorage.getItem("courtage:langue")).toBe("en");
+    expect(document.documentElement.lang).toBe("en");
+    await userEvent.click(screen.getByRole("button", { name: "FR" }));
+    expect(await screen.findByRole("button", { name: "Se déconnecter" })).toBeInTheDocument();
+  });
+});
+
 describe("nettoyer le dossier", () => {
   const inventaire = { fichiers: { total: 2, actifs: 2, lignes: 46 }, brouillons: { etudes: 1, versions: 1 },
     etudes_emises: { total: 2, supprimables: 1, citees_par_un_cahier: 1 }, documents: 3, confirmation: "NETTOYER" };

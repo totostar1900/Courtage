@@ -1,6 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 
+import { t } from "../i18n";
+
 /** Une entrée du menu ⋮. `raison` : l'action existe mais n'est pas possible ici — elle reste visible, grisée, avec
  *  pourquoi, plutôt que de disparaître sans explication. */
 export interface Action {
@@ -13,7 +15,8 @@ export interface Action {
 
 /** Le menu ⋮ commun : toujours le même ordre — ouvrir ou télécharger, modifier, dupliquer, l'acte propre à l'objet,
  *  supprimer (en dernier, en rouge). Clavier : Entrée ou Espace ouvre, Échap ferme, flèches pour se déplacer. */
-export function MenuActions({ actions, libelle = "Actions" }: { actions: Action[]; libelle?: string }) {
+export function MenuActions({ actions, libelle: donne }: { actions: Action[]; libelle?: string }) {
+  const libelle = donne ?? t("Actions", "Actions");
   const [ouvert, setOuvert] = useState(false);
   const racine = useRef<HTMLDivElement>(null);
   const liste = useRef<HTMLUListElement>(null);

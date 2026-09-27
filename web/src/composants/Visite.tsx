@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 
 import { CLE_VISITE_FAITE, type EtapeVisite } from "../guide/visite";
+import { t } from "../i18n";
 
 const lire = (cle: string) => { try { return localStorage.getItem(cle); } catch { return null; } };
 const ecrire = (cle: string, v: string) => { try { localStorage.setItem(cle, v); } catch { /* navigation privée */ } };
@@ -23,7 +24,7 @@ export default function Visite({ etapes, auto = false }: { etapes: EtapeVisite[]
 
   useEffect(() => {
     window.addEventListener("courtage:visite", demarrer);
-    if (auto && !lire(CLE_VISITE_FAITE)) { const t = setTimeout(demarrer, 400); return () => { clearTimeout(t); window.removeEventListener("courtage:visite", demarrer); }; }
+    if (auto && !lire(CLE_VISITE_FAITE)) { const minuterie = setTimeout(demarrer, 400); return () => { clearTimeout(minuterie); window.removeEventListener("courtage:visite", demarrer); }; }
     return () => window.removeEventListener("courtage:visite", demarrer);
   }, [auto, demarrer]);
 
@@ -34,9 +35,9 @@ export default function Visite({ etapes, auto = false }: { etapes: EtapeVisite[]
     el?.scrollIntoView?.({ block: "center", behavior: "smooth" });
     const mesurer = () => setCadre(el ? el.getBoundingClientRect() : null);
     mesurer();
-    const t = setTimeout(mesurer, 350);
+    const minuterie = setTimeout(mesurer, 350);
     window.addEventListener("resize", mesurer); window.addEventListener("scroll", mesurer, true);
-    return () => { clearTimeout(t); window.removeEventListener("resize", mesurer); window.removeEventListener("scroll", mesurer, true); };
+    return () => { clearTimeout(minuterie); window.removeEventListener("resize", mesurer); window.removeEventListener("scroll", mesurer, true); };
   }, [etape]);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function Visite({ etapes, auto = false }: { etapes: EtapeVisite[]
   const gauche = Math.min(Math.max(12, cadre?.left ?? 12), window.innerWidth - 392);
   const derniere = i === presentes.length - 1;
   return (
-    <div className="visite" role="dialog" aria-modal="true" aria-label={`Visite guidée : ${etape.titre}`}>
+    <div className="visite" role="dialog" aria-modal="true" aria-label={t(`Visite guidée : ${etape.titre}`, `Guided tour: ${etape.titre}`)}>
       {cadre && <div className="visite-halo" style={{ top: cadre.top - marge, left: cadre.left - marge,
         width: cadre.width + 2 * marge, height: cadre.height + 2 * marge }} />}
       <div className="visite-bulle" style={{ top: haut, left: gauche }}>
@@ -66,11 +67,11 @@ export default function Visite({ etapes, auto = false }: { etapes: EtapeVisite[]
         <h3>{etape.titre}</h3>
         <p>{etape.texte}</p>
         <div className="actions">
-          <button type="button" onClick={finir}>Passer la visite</button>
+          <button type="button" onClick={finir}>{t("Passer la visite", "Skip the tour")}</button>
           <span style={{ flex: 1 }} />
-          {i > 0 && <button type="button" onClick={() => setI(i - 1)}>Précédent</button>}
+          {i > 0 && <button type="button" onClick={() => setI(i - 1)}>{t("Précédent", "Previous")}</button>}
           <button type="button" className="principal" onClick={() => (derniere ? finir() : setI(i + 1))}>
-            {derniere ? "Terminer" : "Suivant"}</button>
+            {derniere ? t("Terminer", "Finish") : t("Suivant", "Next")}</button>
         </div>
       </div>
     </div>

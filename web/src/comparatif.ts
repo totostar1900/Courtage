@@ -1,6 +1,7 @@
 /** La comparaison des régimes simulés : des chiffres côte à côte, ce que chaque barème verse selon l'ancienneté,
  *  et qui gagne ou perd d'une variante à l'autre. Pur, sans rendu. */
 import { COULEURS } from "./echeancier";
+import { t } from "./i18n";
 import type { Totaux } from "./types";
 
 export interface Variante {
@@ -24,12 +25,15 @@ export function couleur(rang: number): string {
   return rang === 0 ? NEUTRE : COULEURS[(rang - 1) % COULEURS.length];
 }
 
+/** `libelle` est un accesseur : lu au rendu, il suit la langue choisie. */
 export const MESURES = {
-  dette: { libelle: "Dette actuarielle", lire: (v: Variante) => v.totaux.dette },
-  charge: { libelle: "Charge annuelle", lire: (v: Variante) => v.totaux.charge },
-  cotisation: { libelle: "Cotisation initiale", lire: (v: Variante) => v.cotisation_initiale },
-  dette_par_salarie: { libelle: "Dette par salarié", lire: (v: Variante) => v.totaux.dette / (v.totaux.effectif || 1) },
-  charge_par_salarie: { libelle: "Charge par salarié", lire: (v: Variante) => v.totaux.charge / (v.totaux.effectif || 1) },
+  dette: { get libelle() { return t("Dette actuarielle", "Actuarial liability"); }, lire: (v: Variante) => v.totaux.dette },
+  charge: { get libelle() { return t("Charge annuelle", "Annual cost"); }, lire: (v: Variante) => v.totaux.charge },
+  cotisation: { get libelle() { return t("Cotisation initiale", "Initial contribution"); }, lire: (v: Variante) => v.cotisation_initiale },
+  dette_par_salarie: { get libelle() { return t("Dette par salarié", "Liability per employee"); },
+                       lire: (v: Variante) => v.totaux.dette / (v.totaux.effectif || 1) },
+  charge_par_salarie: { get libelle() { return t("Charge par salarié", "Cost per employee"); },
+                        lire: (v: Variante) => v.totaux.charge / (v.totaux.effectif || 1) },
 } as const;
 export type Mesure = keyof typeof MESURES;
 

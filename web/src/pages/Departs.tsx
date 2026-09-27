@@ -5,15 +5,18 @@ import { api } from "../api";
 import { Anomalies, Cle, Constats, Erreur, Tiroir, useCharge, Volet } from "../composants/communs";
 import { Terme } from "../composants/Terme";
 import { dateFr, millions, montant } from "../format";
+import { t } from "../i18n";
 import { ExpliquerCalcul } from "../composants/Calcul";
 import type { ApercuImport, CalculPrestation, Constat, ContratsDossier, MotifDepart, Prestation, Prestations } from "../types";
 import { useDossier } from "./Dossier";
 import { DemandePriseEnCharge, EtatDossier } from "./DossierPEC";
 import { OrientationAssureur } from "./Orientation";
 
-export const MOTIFS: Record<MotifDepart, string> = {
-  retraite: "Retraite", demission: "Démission", licenciement: "Licenciement", deces: "Décès", autre: "Autre",
-};
+/** Les libellés des motifs, lus au rendu (la langue peut changer). */
+export const motifs = (): Record<MotifDepart, string> => ({
+  retraite: t("Retraite", "Retirement"), demission: t("Démission", "Resignation"), licenciement: t("Licenciement", "Dismissal"),
+  deces: t("Décès", "Death"), autre: t("Autre", "Other"),
+});
 
 /** Les départs : ceux qui arrivent, ceux d'avant. Un matricule, jamais un nom. */
 export default function Departs() {
@@ -27,39 +30,41 @@ export default function Departs() {
   const fait = () => { setVolet(null); recharger(); };
 
   if (erreur) return <Erreur erreur={erreur} />;
-  if (!donnee) return <p className="discret">Chargement…</p>;
-  const t = donnee.totaux;
+  if (!donnee) return <p className="discret">{t("Chargement…", "Loading…")}</p>;
+  const tot = donnee.totaux;
+  const MOTIFS = motifs();
 
   return (
     <>
-      <h1>Départs et prestations</h1>
-      <p>Chaque départ de l'entreprise, par matricule — jamais par nom. La plateforme recalcule le montant dû selon la
-        règle en vigueur ce jour-là ; vous déclarez ce qui a été versé. Les départs hors retraite ne coûtent pas d'IFC
-        mais mesurent la <Terme cle="turnover">rotation réelle</Terme>.</p>
+      <h1>{t("Départs et prestations", "Departures and benefit payments")}</h1>
+      <p>{t("Chaque départ de l'entreprise, par matricule — jamais par nom. La plateforme recalcule le montant dû selon la règle en vigueur ce jour-là ; vous déclarez ce qui a été versé. Les départs hors retraite ne coûtent pas d'IFC mais mesurent la",
+        "Every departure from the company, by staff number — never by name. The platform recalculates the amount due under the rule in force on that day; you report what was paid. Departures other than retirement cost no IFC but measure the")}{" "}
+        <Terme cle="turnover">{t("rotation réelle", "actual turnover")}</Terme>.</p>
       {contrat && (
         <p className="discret">
           {contrat.service === "courtage"
-            ? "En courtage, nous porterons la prise en charge auprès de votre assureur."
-            : "En comparaison, la prise en charge se demande directement à votre assureur."}{" "}
-          <Link to="../contrat">Votre contrat</Link>
+            ? t("En courtage, nous porterons la prise en charge auprès de votre assureur.", "Under brokerage, we will handle the benefit payment with your insurer.")
+            : t("En comparaison, la prise en charge se demande directement à votre assureur.", "Under comparison, the benefit payment is requested directly from your insurer.")}{" "}
+          <Link to="../contrat">{t("Votre contrat", "Your contract")}</Link>
         </p>
       )}
 
       <div className="grille g4 section">
-        <Cle etiquette="Départs enregistrés" valeur={String(t.nombre)} sous={`${t.retraites} en retraite · ${t.autres_departs} autres`} />
-        <Cle etiquette="Dû selon le régime" valeur={millions(t.du)} sous={montant(t.du)} />
-        <Cle etiquette="Versé aux salariés" valeur={millions(t.verse)} sous={montant(t.verse)} />
-        <Cle etiquette="Payé par le fonds" valeur={millions(t.part_fonds_payee)} sous={montant(t.part_fonds_payee)} terme="fonds" />
+        <Cle etiquette={t("Départs enregistrés", "Departures recorded")} valeur={String(tot.nombre)}
+             sous={t(`${tot.retraites} en retraite · ${tot.autres_departs} autres`, `${tot.retraites} retirements · ${tot.autres_departs} other`)} />
+        <Cle etiquette={t("Dû selon le régime", "Due under the scheme")} valeur={millions(tot.du)} sous={montant(tot.du)} />
+        <Cle etiquette={t("Versé aux salariés", "Paid to employees")} valeur={millions(tot.verse)} sous={montant(tot.verse)} />
+        <Cle etiquette={t("Payé par le fonds", "Paid by the fund")} valeur={millions(tot.part_fonds_payee)} sous={montant(tot.part_fonds_payee)} terme="fonds" />
       </div>
 
       {peutEcrire && (
         <div className="actions section">
-          <button className="principal" onClick={() => { setOuverte(null); setVolet("declarer"); }}>Déclarer un départ</button>
-          <button onClick={() => { setOuverte(null); setVolet("importer"); }}>Reprendre l'historique (tableur)</button>
+          <button className="principal" onClick={() => { setOuverte(null); setVolet("declarer"); }}>{t("Déclarer un départ", "Report a departure")}</button>
+          <button onClick={() => { setOuverte(null); setVolet("importer"); }}>{t("Reprendre l'historique (tableur)", "Import past departures (spreadsheet)")}</button>
         </div>
       )}
       {volet && (
-        <Tiroir etiquette="Départs" onFermer={() => setVolet(null)}>
+        <Tiroir etiquette={t("Départs", "Departures")} onFermer={() => setVolet(null)}>
           {volet === "declarer" && <FormulaireDepart onFermer={() => setVolet(null)} onFait={fait} />}
           {volet === "importer" && <ImportHistorique onFermer={() => setVolet(null)} onFait={fait} />}
           {typeof volet === "object" && "corriger" in volet && (
@@ -74,8 +79,8 @@ export default function Departs() {
         </Tiroir>
       )}
       {detail && !volet && (
-        <Tiroir etiquette={`Départ du matricule ${detail.matricule}`} onFermer={() => setOuverte(null)}>
-          <Volet titre={`Départ du matricule ${detail.matricule}`} onFermer={() => setOuverte(null)}>
+        <Tiroir etiquette={t(`Départ du matricule ${detail.matricule}`, `Departure of staff number ${detail.matricule}`)} onFermer={() => setOuverte(null)}>
+          <Volet titre={t(`Départ du matricule ${detail.matricule}`, `Departure of staff number ${detail.matricule}`)} onFermer={() => setOuverte(null)}>
             <Detail p={detail} />
             <PriseEnCharge p={detail} role={d.role} onDemander={() => setVolet({ demander: detail })}
               onOrienter={() => setVolet({ orienter: detail })} />
@@ -85,19 +90,19 @@ export default function Departs() {
       )}
 
       <div className="section">
-        <h2>Départs</h2>
-        {donnee.prestations.length === 0 ? <p className="discret">Aucun départ enregistré.</p> : (
+        <h2>{t("Départs", "Departures")}</h2>
+        {donnee.prestations.length === 0 ? <p className="discret">{t("Aucun départ enregistré.", "No departures recorded.")}</p> : (
           <div className="defile">
             <table>
-              <thead><tr><th>Départ</th><th>Matricule</th><th>Motif</th><th className="n">Ancienneté</th>
-                <th className="n">Dû</th><th className="n">Versé</th><th className="n">Fonds</th><th>À regarder</th></tr></thead>
+              <thead><tr><th>{t("Départ", "Departure")}</th><th>{t("Matricule", "Staff number")}</th><th>{t("Motif", "Reason")}</th><th className="n">{t("Ancienneté", "Length of service")}</th>
+                <th className="n">{t("Dû", "Due")}</th><th className="n">{t("Versé", "Paid")}</th><th className="n">{t("Fonds", "Fund")}</th><th>{t("À regarder", "To check")}</th></tr></thead>
               <tbody>
                 {donnee.prestations.map((p) => (
                   <tr key={p.id} className={`cliquable${ouverte === p.id ? " choisie" : ""}`} aria-selected={ouverte === p.id} data-prestation={p.matricule} onClick={() => { setVolet(null); setOuverte(ouverte === p.id ? null : p.id); }}>
                       <td>{dateFr(p.date_depart)}</td>
                       <td>{p.matricule}{p.categorie && <div className="discret">{p.categorie}</div>}</td>
-                      <td>{MOTIFS[p.motif]}{p.soldee && <div className="discret">soldé</div>}</td>
-                      <td className="n">{String(p.calcul.anciennete).replace(".", ",")} ans</td>
+                      <td>{MOTIFS[p.motif]}{p.soldee && <div className="discret">{t("soldé", "settled")}</div>}</td>
+                      <td className="n">{t(`${String(p.calcul.anciennete).replace(".", ",")} ans`, `${p.calcul.anciennete} years`)}</td>
                       <td className="n">{montant(p.du)}</td>
                       <td className="n">{montant(p.verse)}</td>
                       <td className="n">{montant(p.part_fonds_payee)}</td>
@@ -118,28 +123,28 @@ function PriseEnCharge({ p, role, onDemander, onOrienter }:
   { p: Prestation; role: string; onDemander: () => void; onOrienter: () => void }) {
   if (p.motif !== "retraite") return null;
   if (p.dossier) {
-    return <p>Prise en charge : <EtatDossier statut={p.dossier.statut} />{p.dossier.numero && <> · {p.dossier.numero}</>}{" "}
-      <Link to={`../dossiers/${p.dossier.id}`}>Ouvrir le dossier</Link></p>;
+    return <p>{t("Prise en charge :", "Benefit payment:")} <EtatDossier statut={p.dossier.statut} />{p.dossier.numero && <> · {p.dossier.numero}</>}{" "}
+      <Link to={`../dossiers/${p.dossier.id}`}>{t("Ouvrir le dossier", "Open the claim file")}</Link></p>;
   }
   if (p.service === "courtage") {
     return role === "admin_client"
-      ? <div className="actions"><button className="principal" onClick={onDemander}>Demander la prise en charge</button></div>
-      : <p className="discret">En courtage : l'entreprise ouvre le dossier de prise en charge, le conseiller le vérifie et le transmet.</p>;
+      ? <div className="actions"><button className="principal" onClick={onDemander}>{t("Demander la prise en charge", "Request the benefit payment")}</button></div>
+      : <p className="discret">{t("En courtage : l'entreprise ouvre le dossier de prise en charge, le conseiller le vérifie et le transmet.", "Under brokerage: the company opens the claim file, the adviser checks it and sends it on.")}</p>;
   }
   return (
     <div>
-      <p className="discret">Au jour de ce départ, le service était la comparaison : la prise en charge se demande
-        directement à votre assureur. Aucune identité n'est recueillie ici.</p>
+      <p className="discret">{t("Au jour de ce départ, le service était la comparaison : la prise en charge se demande directement à votre assureur. Aucune identité n'est recueillie ici.",
+        "On the day of this departure, the service was comparison: the benefit payment is requested directly from your insurer. No identity is collected here.")}</p>
       <div className="actions"><button className="principal" onClick={onOrienter}>
-        {p.part_fonds_payee !== null ? "Revoir la demande à l'assureur" : "Préparer la demande à l'assureur"}</button></div>
+        {p.part_fonds_payee !== null ? t("Revoir la demande à l'assureur", "Review the request to the insurer") : t("Préparer la demande à l'assureur", "Prepare the request to the insurer")}</button></div>
     </div>
   );
 }
 
 function Pastilles({ constats }: { constats: Constat[] }) {
-  if (!constats.length) return <span className="etat bien">RAS</span>;
+  if (!constats.length) return <span className="etat bien">{t("RAS", "OK")}</span>;
   const graves = constats.filter((c) => c.niveau !== "informe").length;
-  return <span className={`etat ${graves ? "attention" : "neutre"}`}>{constats.length} point{constats.length > 1 ? "s" : ""}</span>;
+  return <span className={`etat ${graves ? "attention" : "neutre"}`}>{t(`${constats.length} point${constats.length > 1 ? "s" : ""}`, `${constats.length} issue${constats.length > 1 ? "s" : ""}`)}</span>;
 }
 
 function Detail({ p }: { p: Prestation }) {
@@ -147,16 +152,16 @@ function Detail({ p }: { p: Prestation }) {
     <div>
       <ExpliquerCalcul calcul={p.calcul} du={p.du} salaire={p.salaire_mensuel_reference} />
       <div className="lignes-offre">
-        <div><span>Embauche · départ</span><span>{dateFr(p.date_embauche)} · {dateFr(p.date_depart)}</span></div>
-        <div><span>Salaire mensuel de référence</span><span>{montant(p.salaire_mensuel_reference)}</span></div>
-        {p.part_fonds_demandee !== null && <div><span>Demandé au fonds</span><span>{montant(p.part_fonds_demandee)}</span></div>}
-        {p.payee_le && <div><span>Payé par le fonds le</span><span>{dateFr(p.payee_le)}</span></div>}
-        <div><span>Service au jour du départ</span><span>{p.service === "courtage" ? "Courtage" : "Comparaison"}</span></div>
-        <div><span>Origine</span><span>{p.origine === "import" ? "Reprise d'historique (tableur)" : "Saisie"}</span></div>
-        {p.motif_correction && <div><span>Corrige une ligne précédente</span><span>{p.motif_correction}</span></div>}
-        {p.note && <div><span>Note</span><span>{p.note}</span></div>}
+        <div><span>{t("Embauche · départ", "Hired · left")}</span><span>{dateFr(p.date_embauche)} · {dateFr(p.date_depart)}</span></div>
+        <div><span>{t("Salaire mensuel de référence", "Reference monthly salary")}</span><span>{montant(p.salaire_mensuel_reference)}</span></div>
+        {p.part_fonds_demandee !== null && <div><span>{t("Demandé au fonds", "Requested from the fund")}</span><span>{montant(p.part_fonds_demandee)}</span></div>}
+        {p.payee_le && <div><span>{t("Payé par le fonds le", "Paid by the fund on")}</span><span>{dateFr(p.payee_le)}</span></div>}
+        <div><span>{t("Service au jour du départ", "Service on the day of departure")}</span><span>{p.service === "courtage" ? t("Courtage", "Brokerage") : t("Comparaison", "Comparison")}</span></div>
+        <div><span>{t("Origine", "Source")}</span><span>{p.origine === "import" ? t("Reprise d'historique (tableur)", "Imported history (spreadsheet)") : t("Saisie", "Entered by hand")}</span></div>
+        {p.motif_correction && <div><span>{t("Corrige une ligne précédente", "Corrects an earlier line")}</span><span>{p.motif_correction}</span></div>}
+        {p.note && <div><span>{t("Note", "Note")}</span><span>{p.note}</span></div>}
       </div>
-      <div className="section"><Constats constats={p.constats} vide="Rien à signaler." /></div>
+      <div className="section"><Constats constats={p.constats} vide={t("Rien à signaler.", "Nothing to report.")} /></div>
     </div>
   );
 }
@@ -168,19 +173,19 @@ function Actions({ p, onCorriger, onFait }: { p: Prestation; onCorriger: () => v
   const [erreur, setErreur] = useState<unknown>(null);
   return (
     <div className="actions">
-      <button onClick={onCorriger}>Corriger</button>
-      {!annuler ? <button onClick={() => setAnnuler(true)}>Annuler cette ligne</button> : (
+      <button onClick={onCorriger}>{t("Corriger", "Correct")}</button>
+      {!annuler ? <button onClick={() => setAnnuler(true)}>{t("Annuler cette ligne", "Cancel this line")}</button> : (
         <>
-          <input aria-label="Motif de l'annulation" placeholder="Pourquoi ? (doublon, erreur…)" value={motif}
+          <input aria-label={t("Motif de l'annulation", "Reason for cancelling")} placeholder={t("Pourquoi ? (doublon, erreur…)", "Why? (duplicate, error…)")} value={motif}
                  onChange={(e) => setMotif(e.target.value)} />
           <button className="principal" disabled={!motif.trim()} onClick={async () => {
             setErreur(null);
             try { await api.post(`/organisations/${d.org.id}/prestations/${p.id}/annulation`, { motif_correction: motif }); onFait(); }
             catch (e) { setErreur(e); }
-          }}>Confirmer l'annulation</button>
+          }}>{t("Confirmer l'annulation", "Confirm the cancellation")}</button>
         </>
       )}
-      <span className="discret">Rien ne s'efface : une correction ou une annulation ajoute une ligne qui dit pourquoi.</span>
+      <span className="discret">{t("Rien ne s'efface : une correction ou une annulation ajoute une ligne qui dit pourquoi.", "Nothing is erased: a correction or a cancellation adds a line that says why.")}</span>
       <Erreur erreur={erreur} />
     </div>
   );
@@ -196,13 +201,13 @@ function FormulaireDepart({ onFermer, onFait, corriger }: { onFermer: () => void
 
   function corps(f: FormData) {
     const n = (k: string) => (String(f.get(k) ?? "").trim() === "" ? null : Number(f.get(k)));
-    const t = (k: string) => String(f.get(k) ?? "").trim() || null;
+    const s = (k: string) => String(f.get(k) ?? "").trim() || null;
     return {
-      matricule: t("matricule"), motif: f.get("motif"), date_embauche: t("date_embauche"), date_depart: t("date_depart"),
-      salaire_mensuel_reference: n("salaire_mensuel_reference") ?? 0, categorie: t("categorie"),
-      date_naissance: t("date_naissance"), verse: n("verse"), part_fonds_demandee: n("part_fonds_demandee"),
-      part_fonds_payee: n("part_fonds_payee"), payee_le: t("payee_le"), soldee: f.get("soldee") === "on",
-      note: t("note"), convention_code: t("convention_code"),
+      matricule: s("matricule"), motif: f.get("motif"), date_embauche: s("date_embauche"), date_depart: s("date_depart"),
+      salaire_mensuel_reference: n("salaire_mensuel_reference") ?? 0, categorie: s("categorie"),
+      date_naissance: s("date_naissance"), verse: n("verse"), part_fonds_demandee: n("part_fonds_demandee"),
+      part_fonds_payee: n("part_fonds_payee"), payee_le: s("payee_le"), soldee: f.get("soldee") === "on",
+      note: s("note"), convention_code: s("convention_code"),
     };
   }
   async function calculer(form: HTMLFormElement) {
@@ -227,39 +232,39 @@ function FormulaireDepart({ onFermer, onFait, corriger }: { onFermer: () => void
   }
 
   return (
-    <Volet titre={c ? `Corriger le départ du matricule ${c.matricule}` : "Déclarer un départ"} onFermer={onFermer} className="section">
+    <Volet titre={c ? t(`Corriger le départ du matricule ${c.matricule}`, `Correct the departure of staff number ${c.matricule}`) : t("Déclarer un départ", "Report a departure")} onFermer={onFermer} className="section">
       <form className="formulaire" onSubmit={enregistrer} onChange={() => setApercu(null)}>
-        <p className="discret">Aucun nom : le matricule suffit, comme dans le fichier du personnel.</p>
+        <p className="discret">{t("Aucun nom : le matricule suffit, comme dans le fichier du personnel.", "No names: the staff number is enough, as in the staff file.")}</p>
         <div className="grille g3">
-          <label>Matricule<input name="matricule" required defaultValue={c?.matricule} /></label>
-          <label>Motif<select name="motif" defaultValue={c?.motif ?? "retraite"}>
-            {Object.entries(MOTIFS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
-          <label>Catégorie (facultatif)<input name="categorie" defaultValue={c?.categorie ?? ""} /></label>
-          <label>Date d'embauche<input name="date_embauche" type="date" required defaultValue={c?.date_embauche} /></label>
-          <label>Date de départ<input name="date_depart" type="date" required defaultValue={c?.date_depart} /></label>
-          <label>Date de naissance (facultatif)<input name="date_naissance" type="date" defaultValue={c?.date_naissance ?? ""} /></label>
-          <label>Salaire mensuel de référence (F)<input name="salaire_mensuel_reference" type="number" min={0} required
+          <label>{t("Matricule", "Staff number")}<input name="matricule" required defaultValue={c?.matricule} /></label>
+          <label>{t("Motif", "Reason")}<select name="motif" defaultValue={c?.motif ?? "retraite"}>
+            {Object.entries(motifs()).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+          <label>{t("Catégorie (facultatif)", "Category (optional)")}<input name="categorie" defaultValue={c?.categorie ?? ""} /></label>
+          <label>{t("Date d'embauche", "Hiring date")}<input name="date_embauche" type="date" required defaultValue={c?.date_embauche} /></label>
+          <label>{t("Date de départ", "Departure date")}<input name="date_depart" type="date" required defaultValue={c?.date_depart} /></label>
+          <label>{t("Date de naissance (facultatif)", "Date of birth (optional)")}<input name="date_naissance" type="date" defaultValue={c?.date_naissance ?? ""} /></label>
+          <label>{t("Salaire mensuel de référence (F)", "Reference monthly salary (F)")}<input name="salaire_mensuel_reference" type="number" min={0} required
                  defaultValue={c?.salaire_mensuel_reference} /></label>
-          <label>Montant versé au salarié (F)<input name="verse" type="number" min={0} defaultValue={c?.verse ?? ""} /></label>
-          <label>Convention (sans régime adopté)<input name="convention_code" placeholder="par défaut : celle de la dernière étude"
+          <label>{t("Montant versé au salarié (F)", "Amount paid to the employee (F)")}<input name="verse" type="number" min={0} defaultValue={c?.verse ?? ""} /></label>
+          <label>{t("Convention (sans régime adopté)", "Collective agreement (if no scheme adopted)")}<input name="convention_code" placeholder={t("par défaut : celle de la dernière étude", "default: the one from the latest study")}
                  defaultValue={c?.calcul.source?.type === "convention" ? c.calcul.source.convention_code : ""} /></label>
-          <label>Demandé au fonds (F)<input name="part_fonds_demandee" type="number" min={0} defaultValue={c?.part_fonds_demandee ?? ""} /></label>
-          <label>Payé par le fonds (F)<input name="part_fonds_payee" type="number" min={0} defaultValue={c?.part_fonds_payee ?? ""} /></label>
-          <label>Payé le<input name="payee_le" type="date" defaultValue={c?.payee_le ?? ""} /></label>
+          <label>{t("Demandé au fonds (F)", "Requested from the fund (F)")}<input name="part_fonds_demandee" type="number" min={0} defaultValue={c?.part_fonds_demandee ?? ""} /></label>
+          <label>{t("Payé par le fonds (F)", "Paid by the fund (F)")}<input name="part_fonds_payee" type="number" min={0} defaultValue={c?.part_fonds_payee ?? ""} /></label>
+          <label>{t("Payé le", "Paid on")}<input name="payee_le" type="date" defaultValue={c?.payee_le ?? ""} /></label>
         </div>
         <label style={{ display: "flex", gap: 8, fontWeight: 400 }}>
-          <input type="checkbox" name="soldee" defaultChecked={c?.soldee} /> Départ déjà réglé (rien ne reste à payer)</label>
-        <label>Note<input name="note" defaultValue={c?.note ?? ""} /></label>
-        {c && <label>Pourquoi cette correction ?<input name="motif_correction" required /></label>}
+          <input type="checkbox" name="soldee" defaultChecked={c?.soldee} /> {t("Départ déjà réglé (rien ne reste à payer)", "Departure already settled (nothing left to pay)")}</label>
+        <label>{t("Note", "Note")}<input name="note" defaultValue={c?.note ?? ""} /></label>
+        {c && <label>{t("Pourquoi cette correction ?", "Why this correction?")}<input name="motif_correction" required /></label>}
         {apercu && (
           <div className="carte section" data-apercu>
             <ExpliquerCalcul calcul={apercu.calcul} du={apercu.du} salaire={apercu.salaire} />
-            <Constats constats={apercu.constats} vide="Rien à signaler." />
+            <Constats constats={apercu.constats} vide={t("Rien à signaler.", "Nothing to report.")} />
           </div>
         )}
         <div className="actions">
-          <button type="button" onClick={(e) => calculer(e.currentTarget.form!)}>Calculer le dû</button>
-          <button className="principal">{c ? "Enregistrer la correction" : "Enregistrer le départ"}</button>
+          <button type="button" onClick={(e) => calculer(e.currentTarget.form!)}>{t("Calculer le dû", "Calculate the amount due")}</button>
+          <button className="principal">{c ? t("Enregistrer la correction", "Save the correction") : t("Enregistrer le départ", "Save the departure")}</button>
         </div>
         <Erreur erreur={erreur} />
       </form>
@@ -291,31 +296,30 @@ function ImportHistorique({ onFermer, onFait }: { onFermer: () => void; onFait: 
   const bloquants = apercu?.anomalies.filter((a) => a.niveau === "bloquant").length ?? 0;
 
   return (
-    <Volet titre="Reprendre l'historique des départs" onFermer={onFermer} className="section">
-      <p>Un tableur, une ligne par départ : matricule, date d'embauche, date de départ, motif, salaire mensuel de
-        référence ; et si vous les avez, le montant versé, ce que le fonds a payé et quand. Cinq ans suffisent.
-        Une colonne de noms est ignorée.</p>
+    <Volet titre={t("Reprendre l'historique des départs", "Import past departures")} onFermer={onFermer} className="section">
+      <p>{t("Un tableur, une ligne par départ : matricule, date d'embauche, date de départ, motif, salaire mensuel de référence ; et si vous les avez, le montant versé, ce que le fonds a payé et quand. Cinq ans suffisent. Une colonne de noms est ignorée.",
+        "A spreadsheet, one line per departure: staff number, hiring date, departure date, reason, reference monthly salary; and if you have them, the amount paid, what the fund paid and when. Five years is enough. A column of names is ignored.")}</p>
       <div className="grille g3" style={{ alignItems: "end" }}>
-        <label>Fichier (xlsx ou csv)<input type="file" accept=".xlsx,.csv" onChange={(e) => { setFichier(e.target.files?.[0] ?? null); setApercu(null); }} /></label>
-        <label>Convention (sans régime adopté)<input value={convention} onChange={(e) => setConvention(e.target.value)} placeholder="celle de la dernière étude" /></label>
-        <div className="actions"><button type="button" disabled={!fichier} onClick={() => envoyer(false)}>Lire le fichier</button></div>
+        <label>{t("Fichier (xlsx ou csv)", "File (xlsx or csv)")}<input type="file" accept=".xlsx,.csv" onChange={(e) => { setFichier(e.target.files?.[0] ?? null); setApercu(null); }} /></label>
+        <label>{t("Convention (sans régime adopté)", "Collective agreement (if no scheme adopted)")}<input value={convention} onChange={(e) => setConvention(e.target.value)} placeholder={t("celle de la dernière étude", "the one from the latest study")} /></label>
+        <div className="actions"><button type="button" disabled={!fichier} onClick={() => envoyer(false)}>{t("Lire le fichier", "Read the file")}</button></div>
       </div>
       <Erreur erreur={erreur} />
       {apercu && (
         <div className="section">
-          {apercu.colonnes_ignorees.length > 0 && <p className="discret">Colonnes ignorées : {apercu.colonnes_ignorees.join(", ")}.</p>}
+          {apercu.colonnes_ignorees.length > 0 && <p className="discret">{t(`Colonnes ignorées : ${apercu.colonnes_ignorees.join(", ")}.`, `Columns ignored: ${apercu.colonnes_ignorees.join(", ")}.`)}</p>}
           <Anomalies anomalies={apercu.anomalies} />
           <div className="defile"><table>
-            <thead><tr><th>Ligne</th><th>Matricule</th><th>Départ</th><th>Motif</th><th className="n">Dû</th><th className="n">Versé</th><th>À regarder</th></tr></thead>
+            <thead><tr><th>{t("Ligne", "Line")}</th><th>{t("Matricule", "Staff number")}</th><th>{t("Départ", "Departure")}</th><th>{t("Motif", "Reason")}</th><th className="n">{t("Dû", "Due")}</th><th className="n">{t("Versé", "Paid")}</th><th>{t("À regarder", "To check")}</th></tr></thead>
             <tbody>{apercu.lignes.map((l) => (
-              <tr key={l.numero}><td>{l.numero}</td><td>{l.matricule}</td><td>{dateFr(l.date_depart)}</td><td>{MOTIFS[l.motif]}</td>
+              <tr key={l.numero}><td>{l.numero}</td><td>{l.matricule}</td><td>{dateFr(l.date_depart)}</td><td>{motifs()[l.motif]}</td>
                 <td className="n">{montant(l.du)}</td><td className="n">{montant(l.verse)}</td><td><Pastilles constats={l.constats} /></td></tr>
             ))}</tbody>
           </table></div>
           <div className="actions">
             <button className="principal" disabled={bloquants > 0 || apercu.lignes.length === 0} onClick={() => envoyer(true)}>
-              Enregistrer les {apercu.lignes.length} départs</button>
-            {bloquants > 0 && <span className="etat grave">{bloquants} point(s) bloquant(s) : corrigez le fichier, rien n'est enregistré</span>}
+              {t(`Enregistrer les ${apercu.lignes.length} départs`, `Save the ${apercu.lignes.length} departures`)}</button>
+            {bloquants > 0 && <span className="etat grave">{t(`${bloquants} point(s) bloquant(s) : corrigez le fichier, rien n'est enregistré`, `${bloquants} blocking issue(s): correct the file, nothing is saved`)}</span>}
           </div>
         </div>
       )}
