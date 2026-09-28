@@ -15,7 +15,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.financement import Offre, Scenario
-from courtage.services import activation, alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, mandats, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, simulation
+from courtage.services import activation, alertes, messages, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, mandats, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -52,6 +52,48 @@ def moi(session: Session = Depends(session_db, scope="function"), utilisateur: U
 def lire_activation(a: Acces = Depends(acces(*TOUS))):
     """Où en est l'inscription, et ce que chaque capacité attend encore."""
     return activation.en_clair(a.session, a.organisation, date.today())
+
+
+@routeur.post("/organisations/{organisation_id}/justificatifs", status_code=201)
+async def deposer_justificatif(fichier: UploadFile = File(...), a: Acces = Depends(acces("admin_client", "contributeur_client"))):
+    """Le document RCCM, pour que le courtier confirme l'inscription."""
+    j = activation.deposer_rccm(a.session, a.organisation, a.utilisateur.id, await fichier.read(),
+                                fichier.filename or "rccm", fichier.content_type or "")
+    return {"id": str(j.id), "nom_fichier": j.nom_fichier}
+
+
+@routeur.get("/organisations/{organisation_id}/justificatifs")
+def lister_justificatifs(a: Acces = Depends(acces(*TOUS))):
+    return activation.justificatifs(a.session)
+
+
+@routeur.delete("/organisations/{organisation_id}/inscription")
+def supprimer_inscription(confirmation: str = "", a: Acces = Depends(acces(*ENTREPRISE))):
+    """Tant qu'elle attend (ou si elle a été refusée), l'entreprise retire son inscription : tout part."""
+    if confirmation.strip().upper() not in ("SUPPRIMER", "DELETE"):
+        raise ErreurMetier("confirmation_requise", "Écrire « SUPPRIMER » pour confirmer.", 422)
+    return activation.effacer(a.session, a.organisation, a.utilisateur.id, "retirée par l'entreprise")
+
+
+class NouveauMessage(_Corps):
+    texte: str = Field(min_length=1, max_length=4000)
+
+
+@routeur.get("/organisations/{organisation_id}/messages")
+def lire_messages(a: Acces = Depends(acces(*TOUS))):
+    return messages.lire(a.session, messages.cote_de(a.role, a.utilisateur.admin_plateforme))
+
+
+@routeur.get("/organisations/{organisation_id}/messages/non-lus")
+def messages_non_lus(a: Acces = Depends(acces(*TOUS))):
+    return {"non_lus": messages.non_lus(a.session, messages.cote_de(a.role, a.utilisateur.admin_plateforme))}
+
+
+@routeur.post("/organisations/{organisation_id}/messages", status_code=201)
+def envoyer_message(corps: NouveauMessage, a: Acces = Depends(acces(*TOUS))):
+    messages.envoyer(a.session, a.organisation.id, a.utilisateur.id,
+                     messages.cote_de(a.role, a.utilisateur.admin_plateforme), corps.texte)
+    return messages.lire(a.session, messages.cote_de(a.role, a.utilisateur.admin_plateforme))
 
 
 @routeur.get("/alertes")

@@ -55,3 +55,49 @@ def expediteur_depuis_environnement(env) -> object | None:
         return ExpediteurTwilio(env["TWILIO_COMPTE"], env["TWILIO_JETON"], env["TWILIO_EMETTEUR"],
                                 env.get("TWILIO_CANAL", "sms"))
     return None
+
+
+# --- Courriel ---------------------------------------------------------------------
+# Le code de vérification d'une adresse à l'inscription. Tout fournisseur SMTP convient (celui de l'hébergeur,
+# Brevo, Mailgun, SES…) : `COURTAGE_SMTP_URL` = smtp[s]://utilisateur:mot-de-passe@hôte:port, et
+# `COURTAGE_COURRIEL_EXPEDITEUR` = l'adresse d'envoi.
+
+@dataclass
+class CourrielJournal:
+    """Développement et tests : garde les courriels et les écrit dans le journal."""
+    envoyes: list[Message] = field(default_factory=list)
+
+    def envoyer(self, adresse: str, sujet: str, texte: str) -> None:
+        self.envoyes.append(Message(adresse, texte))
+        journal.warning("[développement] courriel pour %s : %s — %s", adresse, sujet, texte)
+
+
+@dataclass
+class CourrielSMTP:
+    url: str
+    expediteur: str
+
+    def envoyer(self, adresse: str, sujet: str, texte: str) -> None:
+        import smtplib
+        from email.message import EmailMessage
+        from urllib.parse import unquote, urlparse
+        u = urlparse(self.url)
+        m = EmailMessage()
+        m["From"], m["To"], m["Subject"] = self.expediteur, adresse, sujet
+        m.set_content(texte)
+        classe = smtplib.SMTP_SSL if u.scheme == "smtps" else smtplib.SMTP
+        try:
+            with classe(u.hostname, u.port or (465 if u.scheme == "smtps" else 587), timeout=10) as s:
+                if u.scheme != "smtps":
+                    s.starttls()
+                if u.username:
+                    s.login(unquote(u.username), unquote(u.password or ""))
+                s.send_message(m)
+        except (OSError, smtplib.SMTPException) as e:
+            raise ErreurEnvoi(f"Envoi du courriel impossible ({type(e).__name__})") from None
+
+
+def courriel_depuis_environnement(env) -> object | None:
+    if env.get("COURTAGE_SMTP_URL") and env.get("COURTAGE_COURRIEL_EXPEDITEUR"):
+        return CourrielSMTP(env["COURTAGE_SMTP_URL"], env["COURTAGE_COURRIEL_EXPEDITEUR"])
+    return None

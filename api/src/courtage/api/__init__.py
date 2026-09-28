@@ -43,7 +43,7 @@ _SANS_ECRITURE = ("/simulations", "/financement", "/cycle")
 def creer_app(moteur: Engine, authentification: ModeAuthentification = "session",
               cle_sceau: bytes | None = None, url_publique: str | None = None,
               expediteur=None, cle_auth: bytes | None = None, dossier_web: Path | str | None = None,
-              extracteur=None) -> FastAPI:
+              extracteur=None, courriel=None) -> FastAPI:
     """`dossier_web` : l'interface construite (`web/dist`), servie par la même application — une
     seule origine, donc un cookie de session sans CORS ni domaine tiers."""
     production = os.environ.get("COURTAGE_ENV") == "production"
@@ -59,6 +59,8 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     app.state.authentification = authentification
     app.state.sceau = ConfigSceau.depuis(cle_sceau, url_publique)
     app.state.expediteur = expediteur or ExpediteurJournal()
+    from courtage.messagerie import CourrielJournal
+    app.state.courriel = courriel or CourrielJournal()
     app.state.cle_auth = cle_auth or auth.CLE_DE_DEVELOPPEMENT
     from courtage.extraction.regles import ExtracteurRegles
     app.state.extracteur = extracteur or ExtracteurRegles()
@@ -68,6 +70,8 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
         "verification": Limiteur(30, 60),        # la vérification publique : 30 par minute et par adresse
         "demande_code": Limiteur(10, 15 * 60),   # des codes pour 10 numéros par quart d'heure et par adresse
         "essai_code": Limiteur(30, 15 * 60),
+        "inscription": Limiteur(5, 60 * 60),     # 5 inscriptions par heure et par adresse
+        "essai": Limiteur(20, 60 * 60),          # l'essai sans compte : 20 calculs par heure et par adresse
     }
 
     @app.exception_handler(ErreurMetier)
@@ -75,12 +79,14 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
         return JSONResponse({"code": e.code, "message": e.message, "details": e.details}, status_code=e.statut)
 
     from .connexion import routeur_connexion
+    from .inscription import routeur_inscription
     from .routes import routeur
     from .referentiel import routeur_referentiel
     from .sante import routeur_sante
     app.include_router(routeur_sante, prefix="/api/v1")
     app.include_router(routeur_referentiel, prefix="/api/v1")
     app.include_router(routeur_connexion, prefix="/api/v1/auth")
+    app.include_router(routeur_inscription, prefix="/api/v1")
     app.include_router(routeur, prefix="/api/v1")
     if authentification == "entete_dev":
         from .dev import routeur_dev

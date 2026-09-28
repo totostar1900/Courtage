@@ -36,6 +36,10 @@ services:
         generateValue: true
       - key: COURTAGE_URL_PUBLIQUE
         value: https://courtage.purposecapital.africa
+      - key: COURTAGE_SMTP_URL              # le code de vérification du courriel à l'inscription (DEPLOY.md)
+        sync: false
+      - key: COURTAGE_COURRIEL_EXPEDITEUR
+        sync: false
       - key: COURTAGE_COURTIER_NOM          # l'identité du cabinet sur le mandat de courtage (DEPLOY.md)
         sync: false
       - key: COURTAGE_COURTIER_AGREMENT

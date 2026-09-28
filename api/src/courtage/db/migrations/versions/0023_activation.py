@@ -8,6 +8,9 @@
 - `codes_verification` : les codes à usage unique de l'inscription, pour un téléphone ou un courriel encore inconnus
   (hors RLS : aucune organisation n'existe encore).
 - `messages_dossier` : le fil entre l'entreprise et son conseiller (sous RLS, append-only).
+- L'effacement d'une inscription jamais confirmée (30 jours, ou à la demande du client) : les départs, les lectures
+  de textes et les demandes de mandat, qui ne s'effacent jamais d'ordinaire, s'effacent ALORS seulement — un
+  déclencheur refuse tout effacement dans un dossier confirmé.
 
 Conception : docs/specs/2026-09-28-inscription-et-courtage-seul-design.md.
 
@@ -84,6 +87,21 @@ ALTER TABLE messages_dossier ENABLE ROW LEVEL SECURITY;
 CREATE POLICY messages_dossier_organisation ON messages_dossier USING (organisation_id = organisation_courante());
 -- Un message ne se modifie pas ; seul « lu le » se pose, par l'autre côté. Il part avec le dossier effacé.
 GRANT SELECT, INSERT, UPDATE (lu_le), DELETE ON messages_dossier TO courtage_app;
+
+CREATE FUNCTION effacement_d_inscription() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF (SELECT activation FROM organisations WHERE id = OLD.organisation_id) = 'confirmee' THEN
+    RAISE EXCEPTION 'effacement_refuse: % d''un dossier confirmé ne s''efface pas', TG_TABLE_NAME;
+  END IF;
+  RETURN OLD;
+END $$;
+GRANT DELETE ON prestations, extractions, mandats_courtage TO courtage_app;
+CREATE TRIGGER prestations_effacement BEFORE DELETE ON prestations
+  FOR EACH ROW EXECUTE FUNCTION effacement_d_inscription();
+CREATE TRIGGER extractions_effacement BEFORE DELETE ON extractions
+  FOR EACH ROW EXECUTE FUNCTION effacement_d_inscription();
+CREATE TRIGGER mandats_courtage_effacement BEFORE DELETE ON mandats_courtage
+  FOR EACH ROW EXECUTE FUNCTION effacement_d_inscription();
 """
 
 
