@@ -9,6 +9,7 @@ import CatalogueRegimes from "../composants/CatalogueRegimes";
 import { MenuActions, type Action } from "../composants/MenuActions";
 import ModelesTypes from "../composants/ModelesTypes";
 import PartageCatalogue from "../composants/PartageCatalogue";
+import { raisonActivation } from "../activation";
 import { dateFr } from "../format";
 import { t } from "../i18n";
 import { ordonner, periode, STATUTS, zone, ZONES } from "../regimes";
@@ -135,7 +136,8 @@ function CarteVersion({ version: v }: { version: Version }) {
     catch (e) { setErreur(e); }
   }
   const pourNote = (nature: "salaries" | "assureurs") =>
-    !v.notes?.[nature] && !redacteur ? t("Pas encore émise.", "Not issued yet.") : null;
+    !v.notes?.[nature] && !redacteur ? t("Pas encore émise.", "Not issued yet.")
+      : !v.notes?.[nature] ? raisonActivation(d.activation, "notes_regime") : null;
   const actions: Action[] = brouillon ? [
     { libelle: t("Modifier", "Edit"), agir: () => setActe("modifier"), cache: !redacteur },
     { libelle: t("Dupliquer", "Duplicate"), agir: dupliquer, cache: !redacteur },

@@ -142,3 +142,17 @@ def test_le_fil_entre_l_entreprise_et_le_courtier(client, personnes):
     client.post(f"{V1}/inscriptions/{org}/messages", json={"texte": "Demain à 10 h."}, headers=admin)
     assert client.get(f"{V1}/organisations/{org}/messages/non-lus", headers=en_tant_que(drh)).json() == {"non_lus": 1}
     assert client.post(f"{V1}/organisations/{org}/messages", json={"texte": " "}, headers=en_tant_que(drh)).status_code == 422
+
+
+def test_l_essai_se_reprend_dans_le_dossier(client):
+    """Ce que fait l'écran après l'inscription : le fichier de l'essai, puis le modèle type en version à l'analyse."""
+    corps = inscrire(client).json()
+    org, h = corps["organisation_id"], en_tant_que(corps["utilisateur"]["id"])
+    f = client.post(f"{V1}/organisations/{org}/fichiers", headers=h, data={"date_donnees": "2025-12-31"},
+                    files={"fichier": ("personnel.xlsx", fichier_azito())})
+    assert f.status_code == 201, f.text
+    modele = client.get(f"{V1}/referentiel/modeles", params={"pays": "CM"}).json()["modeles"][0]
+    r = client.post(f"{V1}/organisations/{org}/regimes", headers=h, json={"nom": modele["titre"]}).json()
+    v = client.post(f"{V1}/organisations/{org}/regimes/{r['id']}/versions", headers=h,
+                    json={**modele["version"], "en_vigueur_du": "2025-12-31"})
+    assert v.status_code == 201, v.text

@@ -8,6 +8,7 @@ import { dateFr } from "../format";
 import { t } from "../i18n";
 import type { Mandat, Mandats } from "../types";
 import { useDossier } from "./Dossier";
+import { raisonActivation } from "../activation";
 
 // Lu au rendu : la langue peut changer.
 const statuts = (): Record<Mandat["statut"], [string, string]> => ({
@@ -150,6 +151,7 @@ function Demande({ orgId, besoins, onFait }: { orgId: string; besoins: Mandats["
 }
 
 function Proposer({ orgId, m, perimetre, onFait }: { orgId: string; m: Mandat; perimetre: Mandats["perimetre"]; onFait: () => void }) {
+  const attente = raisonActivation(useDossier().activation, "mandat");
   const [ouvert, setOuvert] = useState(m.statut === "demande");
   const [erreur, setErreur] = useState<unknown>(null);
   const p = m.proposition;
@@ -190,8 +192,10 @@ function Proposer({ orgId, m, perimetre, onFait }: { orgId: string; m: Mandat; p
       <label>{t("Conditions particulières (facultatif)", "Special conditions (optional)")}<textarea name="conditions" rows={2} maxLength={3000} defaultValue={p?.conditions ?? ""} /></label>
       <p className="discret">{t("Le texte du mandat se compose de ces choix ; l'entreprise le lit ici avant de signer.", "The text of the mandate is built from these choices; the company reads it here before signing.")}</p>
       <div className="actions">
-        <button className="principal">{p ? t("Mettre à jour la proposition", "Update the proposal") : t("Proposer le mandat", "Propose the mandate")}</button>
+        <button className="principal" disabled={!!attente} title={attente ?? undefined}>
+          {p ? t("Mettre à jour la proposition", "Update the proposal") : t("Proposer le mandat", "Propose the mandate")}</button>
         {p && <button type="button" onClick={() => setOuvert(false)}>{t("Annuler", "Cancel")}</button>}
+        {attente && <span className="discret">{attente}</span>}
       </div>
       <Erreur erreur={erreur} />
     </form>
@@ -215,6 +219,7 @@ function TexteMandat({ m }: { m: Mandat }) {
 }
 
 function Signer({ orgId, m, nom, onFait }: { orgId: string; m: Mandat; nom: string; onFait: () => void }) {
+  const attente = raisonActivation(useDossier().activation, "mandat");
   const [accepte, setAccepte] = useState(false);
   const [erreur, setErreur] = useState<unknown>(null);
   async function signer(ev: FormEvent<HTMLFormElement>) {
@@ -239,7 +244,9 @@ function Signer({ orgId, m, nom, onFait }: { orgId: string; m: Mandat; nom: stri
         {" "}{t("J'ai lu ce mandat et je l'accepte au nom de l'entreprise.", "I have read this mandate and accept it on behalf of the company.")}</label>
       <p className="discret">{t("La signature porte sur le texte ci-dessus, tel qu'il est affiché. Le mandat signé est scellé, vérifiable par son numéro, et le contrat « courtage » prend effet à sa date.",
         "The signature covers the text above, exactly as displayed. The signed mandate is sealed, verifiable by its number, and the brokerage contract takes effect on its date.")}</p>
-      <div className="actions"><button className="principal" disabled={!accepte}>{t("Signer le mandat", "Sign the mandate")}</button></div>
+      <div className="actions"><button className="principal" disabled={!accepte || !!attente} title={attente ?? undefined}>
+        {t("Signer le mandat", "Sign the mandate")}</button>
+        {attente && <span className="discret">{attente}</span>}</div>
       <Erreur erreur={erreur} />
     </form>
   );

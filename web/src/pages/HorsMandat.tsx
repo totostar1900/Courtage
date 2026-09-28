@@ -7,6 +7,7 @@ import { t } from "../i18n";
 import type { Prestation } from "../types";
 import { ExpliquerCalcul } from "../composants/Calcul";
 import { useDossier } from "./Dossier";
+import { raisonActivation } from "../activation";
 
 /** Un départ sans mandat au jour du départ : l'entreprise a traité avec son assureur. La plateforme en garde le
  *  calcul (fiche scellée) et ce que l'assureur a payé, déclaré sans nom, pour l'expérience réelle. */
@@ -15,6 +16,7 @@ export function DepartHorsMandat({ p, onFermer, onFait }: { p: Prestation; onFer
   const base = `/organisations/${d.org.id}/prestations/${p.id}`;
   const [erreurPaiement, setErreurPaiement] = useState<unknown>(null);
   const ecrit = d.role !== "lecteur_client";
+  const attenteFiche = raisonActivation(d.activation, "fiche_de_calcul");
 
   async function declarer(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
@@ -34,8 +36,10 @@ export function DepartHorsMandat({ p, onFermer, onFait }: { p: Prestation; onFer
         "On the day of this departure, no brokerage mandate was in force: the company dealt with its insurer.")}</p>
       <div className="section"><ExpliquerCalcul calcul={p.calcul} du={p.du} salaire={p.salaire_mensuel_reference} /></div>
       {ecrit && (
-        <p><button className="lien" onClick={() => api.ouvrir(`${base}/fiche-de-calcul`)}>
-          {t("Télécharger la fiche de calcul scellée", "Download the sealed calculation sheet")}</button></p>
+        <p><button className="lien" onClick={() => api.ouvrir(`${base}/fiche-de-calcul`)} disabled={!!attenteFiche}
+                   title={attenteFiche ?? undefined}>
+          {t("Télécharger la fiche de calcul scellée", "Download the sealed calculation sheet")}</button>
+          {attenteFiche && <span className="discret"> — {attenteFiche}</span>}</p>
       )}
       <>
           {p.part_fonds_payee !== null && (

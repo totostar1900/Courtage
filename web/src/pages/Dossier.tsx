@@ -12,6 +12,7 @@ import { Icone } from "../composants/Icones";
 import { noterReprise } from "../reprise";
 import type { Equipe, EtatCycle, EtudeResume, Fiche, Fichier, Membre, Moi, Regime, Role } from "../types";
 import { BandeauCycle } from "../composants/CycleDossier";
+import { BandeauActivation } from "../composants/BandeauActivation";
 import { t } from "../i18n";
 import { CONFIRMEE, type Activation } from "../activation";
 
@@ -80,7 +81,10 @@ export default function Dossier() {
 
   return (
     <Contexte.Provider value={contexte}>
-      <div className="dossier">
+      <div className={donnee.activation.etat !== "confirmee" ? "dossier non-confirmee" : "dossier"}
+           data-impression={donnee.activation.etat !== "confirmee"
+             ? t("L'impression s'ouvre après confirmation de votre inscription", "Printing opens once your sign-up is confirmed")
+             : undefined}>
         <aside>
           <div className="dossier-tete">
             <div>
@@ -145,6 +149,7 @@ export default function Dossier() {
         <section>
           <div className="entete-page"><FilAriane d={donnee} /><AidePage base={`/dossier/${donnee.org.id}`} /></div>
           <BandeauCycle org={donnee.org} />
+          <BandeauActivation orgId={donnee.org.id} activation={donnee.activation} role={donnee.role} />
           <Outlet />
         </section>
         <PaletteAller d={donnee} />

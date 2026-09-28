@@ -16,8 +16,8 @@ Spécification : `docs/specs/2026-09-28-inscription-et-courtage-seul-design.md`.
    désigné, vérification tracée) ou refuser (motif) ; dépôt du RCCM par le client ; effacement à 30 jours (tâche
    `purge`) ; suppression par le client.
 6. [x] **Messages.** Fil par dossier, non lus, rail.
-7. [ ] **Écran.** Page d'inscription, bandeau d'attente, actions grisées avec leur raison, filigrane et impression
+7. [x] **Écran.** Page d'inscription, bandeau d'attente, actions grisées avec leur raison, filigrane et impression
    neutralisée pendant l'attente, file du courtier sur l'accueil de l'administrateur.
-8. [ ] **Essai visiteur.** Routes `/essai/*` sans état (fichier, étude), limite de débit, 300 salariés ; page d'essai
+8. [x] **Essai visiteur.** Routes `/essai/*` sans état (fichier, étude), limite de débit, 300 salariés ; page d'essai
    (personnel, fonds, régime, résultat) filigranée, sans impression ; reprise à l'inscription.
-9. [ ] Guide, démonstration, captures ; suite complète verte, `tsc` propre.
+9. [x] Guide, démonstration, captures ; suite complète verte, `tsc` propre.

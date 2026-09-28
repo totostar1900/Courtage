@@ -33,6 +33,7 @@ export interface Inscription {
   id: string; nom: string; pays: string; secteur: string | null; rccm: string; taille: string; adresse: string | null;
   ville: string | null; demandee_le: string; echeance: string; en_retard: boolean; rccm_depose: boolean;
   expire_le: string; messages_non_lus: number;
+  justificatifs?: { id: string; nom_fichier: string; depose_le: string }[];
   demandeur: { nom: string | null; fonction: string | null; telephone: string | null; courriel: string | null } | null;
 }
 

@@ -7,11 +7,13 @@ import { Erreur } from "../composants/communs";
 import { dateFr, millions } from "../format";
 import { t } from "../i18n";
 import { useDossier } from "./Dossier";
+import { raisonActivation } from "../activation";
 
 export default function Cahier() {
   const d = useDossier();
   const emises = d.etudes.filter((e) => e.statut === "emise");
   const [erreur, setErreur] = useState<unknown>(null);
+  const attente = raisonActivation(d.activation, "cahier");
   const dansUnMois = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
 
   async function emettre(ev: FormEvent<HTMLFormElement>) {
@@ -63,7 +65,9 @@ export default function Cahier() {
             <label>{t("Délai de paiement max (jours)", "Max. payment period (days)")}<input name="delai_paiement_jours_maximum" type="number" defaultValue={30} /></label>
           </div>
           <label>{t("Note aux assureurs", "Note to insurers")}<textarea name="note" rows={2} /></label>
-          <div className="actions"><button className="principal">{t("Émettre et sceller le cahier des charges", "Issue and seal the tender specifications")}</button></div>
+          <div className="actions"><button className="principal" disabled={!!attente} title={attente ?? undefined}>
+            {t("Émettre et sceller le cahier des charges", "Issue and seal the tender specifications")}</button>
+            {attente && <span className="discret">{attente}</span>}</div>
           <Erreur erreur={erreur} />
         </form>
       )}

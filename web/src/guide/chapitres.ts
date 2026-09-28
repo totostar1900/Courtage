@@ -37,6 +37,21 @@ export const CHAPITRES: Chapitre[] = [
     termes: ["ifc", "convention", "regime"],
   },
   {
+    id: "inscription", groupe: "Commencer", titre: "Essayer, s'inscrire, être confirmé",
+    resume: "Voir ses chiffres sans compte ; s'inscrire en quelques minutes ; tout travailler en attendant la confirmation.",
+    sections: [
+      { titre: "Essayer sans compte", texte: [
+        "« Essayer sans compte » calcule votre engagement à l'écran : votre personnel (300 salariés au plus), votre fonds, la convention seule ou un modèle type.",
+        "Rien n'est gardé sur la plateforme ; l'estimation n'est ni scellée ni imprimable. « Enregistrer mes résultats » mène à l'inscription, qui reprend votre saisie." ] },
+      { titre: "S'inscrire", texte: [
+        "Votre téléphone et votre adresse électronique sont vérifiés par un code chacun. Vous indiquez votre nom, votre fonction et l'entreprise : raison sociale, pays, numéro RCCM (obligatoire), taille, secteur, adresse.",
+        "Le document RCCM peut suivre : déposez-le depuis le bandeau de votre dossier. Une entreprise n'a qu'un dossier : un numéro RCCM déjà inscrit renvoie vers son administrateur." ] },
+      { titre: "En attendant la confirmation", texte: [
+        "Votre conseiller vous contacte sous deux jours ouvrés, vérifie l'entreprise et confirme l'inscription. D'ici là, tout le travail est ouvert : personnel, régime, simulations, études à l'écran, départs, messages à votre conseiller.",
+        "Ce qui sort de la plateforme attend la confirmation : rapports scellés, exports, notes, invitation de collègues, catalogue anonyme, mandat. Une inscription non confirmée est effacée au bout de 30 jours ; vous pouvez aussi la retirer vous-même." ] },
+    ],
+  },
+  {
     id: "connexion", groupe: "Commencer", titre: "Se connecter",
     resume: "Votre numéro de téléphone, un code reçu par message. Pas de mot de passe.",
     sections: [

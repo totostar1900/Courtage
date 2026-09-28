@@ -20,6 +20,10 @@ class Categorie(BaseModel):
     bareme: dict
     anciennete_minimale: int = Field(default=0, ge=0, le=40)
     plafond_mois: float | None = Field(default=None, gt=0)
+    arrondi: str = "annees"
+    base_salaire: str = "dernier"
+    avec_primes: bool = False
+    evenements: list[str] = ["retraite"]
 
 
 class Parametres(BaseModel):
@@ -41,7 +45,7 @@ async def etude_d_essai(fichier: UploadFile = File(...), parametres: str = Form(
     except (ValueError, ValidationError):
         raise ErreurMetier("parametres_invalides", "Paramètres de l'essai invalides.", 422) from None
     categories = None if not p.categories else [
-        regimes.SaisieCategorie(**c.model_dump()) for c in p.categories]
+        regimes.SaisieCategorie(**{**c.model_dump(), "evenements": tuple(c.evenements)}) for c in p.categories]
     return essai.evaluer_essai(contenu=contenu, nom_fichier=fichier.filename or "personnel.xlsx", pays=p.pays,
                                date_evaluation=p.date_evaluation, fonds_disponible=p.fonds_disponible,
                                convention_code=p.convention_code, categories=categories)

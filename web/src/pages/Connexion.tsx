@@ -69,6 +69,9 @@ export default function Connexion() {
           <Erreur erreur={erreur} />
         </div>
       )}
+      <p className="section">{t("Pas encore de compte ? ", "No account yet? ")}
+        <Link to="/inscription">{t("Créer votre compte", "Create your account")}</Link>
+        {" · "}<Link to="/essai">{t("Essayer sans compte", "Try without an account")}</Link></p>
       {choixPersonne && <ChoixPersonne demo={mode?.mode === "demonstration"} />}
       <p className="section discret">{t("Première fois ? ", "First time? ")}
         <Link to="/guide">{t("Découvrez la plateforme dans le guide", "Discover the platform in the guide")}</Link>
