@@ -7,10 +7,12 @@ import { dateFr } from "../format";
 import { t } from "../i18n";
 import { useDossier } from "./Dossier";
 
-/** L'heure d'un message, à côté de sa date : « 28/09/2026 · 14:05 ». */
+/** L'heure d'un message, à côté de sa date, à l'heure de celui qui lit : « 28/09/2026 · 14:05 ». */
 function quand(iso: string): string {
-  const h = iso.slice(11, 16);
-  return h ? `${dateFr(iso)} · ${h}` : dateFr(iso);
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return dateFr(iso);
+  const deux = (n: number) => String(n).padStart(2, "0");
+  return `${deux(d.getDate())}/${deux(d.getMonth() + 1)}/${d.getFullYear()} · ${deux(d.getHours())}:${deux(d.getMinutes())}`;
 }
 
 /** Un fil de messages, lu et écrit à `chemin` (GET le fil, POST {texte} rend le fil). Lire le fil marque lu ce que
