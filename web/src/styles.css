@@ -536,3 +536,6 @@ tr.choisie > td { background: var(--indigo-doux); }
 .langues { display: inline-flex; border: 1px solid rgb(255 255 255 / .35); border-radius: 999px; overflow: hidden; }
 .langues button { background: transparent; color: #c9cfee; border: 0; border-radius: 0; padding: 3px 9px; font-size: 12px; font-weight: 600; min-height: 0; }
 .langues button[aria-pressed="true"] { background: #fff; color: var(--indigo); }
+
+/* Le nombre de messages non lus, dans le rail. */
+.pastille-rail { margin-left: auto; background: var(--grave); color: #fff; font-size: 11px; font-weight: 700; min-width: 18px; padding: 1px 6px; border-radius: 99px; text-align: center; }

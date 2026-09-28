@@ -13,7 +13,7 @@ const pages = (): Record<string, string> => ({
   "": t("Tableau de bord", "Dashboard"), personnel: t("Personnel", "Workforce"), regime: t("Régime", "Plan"),
   simulation: t("Simuler", "Simulate"), etudes: t("Études", "Studies"), financement: t("Financement", "Funding"),
   cahier: t("Cahier des charges", "Specifications"), contrat: t("Contrat", "Contract"),
-  accompagnement: t("Accompagnement", "Support"), departs: t("Départs", "Departures"), equipe: t("Équipe", "Team"),
+  accompagnement: t("Accompagnement", "Support"), messages: t("Messages", "Messages"), departs: t("Départs", "Departures"), equipe: t("Équipe", "Team"),
   dossiers: t("Départs", "Departures"),
 });
 
