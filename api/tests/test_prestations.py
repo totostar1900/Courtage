@@ -5,7 +5,7 @@ from datetime import datetime
 import openpyxl
 import pytest
 from sqlalchemy import text
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import DBAPIError, ProgrammingError
 
 from courtage.db import contexte
 from tests.outils import V1, en_tant_que, etude
@@ -151,11 +151,15 @@ def test_une_annulation_retire_la_ligne(client, azito):
 
 def test_une_prestation_ne_se_modifie_pas(client, azito, bases):
     enregistrer(client, azito)
-    for instruction in ("UPDATE prestations SET du = 0", "DELETE FROM prestations"):
-        with pytest.raises(ProgrammingError, match="permission"):
-            with bases[1].begin() as c:
-                contexte(c, azito["org"])
-                c.execute(text(instruction))
+    with pytest.raises(ProgrammingError, match="permission"):
+        with bases[1].begin() as c:
+            contexte(c, azito["org"])
+            c.execute(text("UPDATE prestations SET du = 0"))
+    # L'effacement n'est permis que pour une inscription jamais confirmée ; un dossier confirmé le refuse.
+    with pytest.raises(DBAPIError, match="effacement_refuse"):
+        with bases[1].begin() as c:
+            contexte(c, azito["org"])
+            c.execute(text("DELETE FROM prestations"))
 
 
 def test_les_totaux(client, azito):

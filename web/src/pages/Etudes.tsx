@@ -13,6 +13,7 @@ import { enCours, libelleVersion, ordonner } from "../regimes";
 import type { CatalogueHypotheses, Etude } from "../types";
 import { demandeSuppression, raisonDeNePasSupprimer } from "../suppressionEtude";
 import { useDossier } from "./Dossier";
+import { raisonActivation } from "../activation";
 
 export default function Etudes() {
   const d = useDossier();
@@ -118,7 +119,7 @@ export default function Etudes() {
                       { libelle: t("Ouvrir", "Open"), agir: () => naviguer(e.id) },
                       { libelle: t("Rapport PDF", "PDF report"), cache: e.statut !== "emise",
                         agir: () => api.ouvrir(`/organisations/${d.org.id}/etudes/${e.id}/rapport`) },
-                      { libelle: t("Exporter en Excel", "Export to Excel"), agir: () => { setErreur(null);
+                      { libelle: t("Exporter en Excel", "Export to Excel"), raison: raisonActivation(d.activation, "export_etude"), agir: () => { setErreur(null);
                         api.telecharger(`/organisations/${d.org.id}/etudes/${e.id}/export`, `etude-ifc-${e.date_evaluation}.xlsx`).catch(setErreur); } },
                       { libelle: e.statut === "emise" ? t("Supprimer l'étude", "Delete the study") : t("Supprimer ce brouillon", "Delete this draft"), danger: true,
                         raison: raisonDeNePasSupprimer(e, d.role) ?? undefined,

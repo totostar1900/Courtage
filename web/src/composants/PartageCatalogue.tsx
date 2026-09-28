@@ -5,6 +5,7 @@ import { t } from "../i18n";
 import { useDossier } from "../pages/Dossier";
 import type { Catalogue, PartageDossier, Version } from "../types";
 import { Erreur, useCharge, Volet } from "./communs";
+import { raisonActivation } from "../activation";
 
 const taillePour = (effectif: number | undefined) =>
   effectif === undefined ? "50_a_250" : effectif < 50 ? "moins_de_50" : effectif <= 250 ? "50_a_250" : "plus_de_250";
@@ -19,6 +20,7 @@ export default function PartageCatalogue({ version }: { version: Version }) {
   if (!partages) return null;
   const actif = partages.find((p) => p.actif);
   const celuiCi = actif?.version_id === version.id ? actif : null;
+  const attente = raisonActivation(d.activation, "catalogue");
 
   async function retirer() {
     setErreur(null);
@@ -41,8 +43,9 @@ export default function PartageCatalogue({ version }: { version: Version }) {
       ) : d.role === "admin_client" ? (
         !ouvert && (
           <div className="actions" style={{ marginTop: 0 }}>
-            <button type="button" onClick={() => setOuvert(true)}>{t("Partager anonymement", "Share anonymously")}</button>
-            <span className="discret">{t("Aider d'autres entreprises à écrire le leur, sans qu'elles sachent qui vous êtes.",
+            <button type="button" onClick={() => setOuvert(true)} disabled={!!attente} title={attente ?? undefined}>
+              {t("Partager anonymement", "Share anonymously")}</button>
+            <span className="discret">{attente ?? t("Aider d'autres entreprises à écrire le leur, sans qu'elles sachent qui vous êtes.",
               "Help other companies write theirs, without them knowing who you are.")}</span>
           </div>
         )

@@ -82,7 +82,7 @@ def main(url: str, sortie: Path) -> None:
     for qui in ("drh", "conseiller"):
         capter("/moi", qui=qui, cle=f"GET /moi@{ids[qui]}")
     base = f"/organisations/{org}"
-    for chemin in ("/fichiers", "/regimes", "/regimes/partages", "/alertes", "/cycle", "/regimes/menage", "/nettoyage", "/etudes", "/fiches", "/equipe", "/mandats", "/contrats", "/prestations", "/dossiers", f"/dossiers/{dossier['id']}",
+    for chemin in ("/fichiers", "/regimes", "/regimes/partages", "/alertes", "/cycle", "/regimes/menage", "/nettoyage", "/etudes", "/fiches", "/equipe", "/mandats", "/activation", "/messages", "/messages/non-lus", "/justificatifs", "/contrats", "/prestations", "/dossiers", f"/dossiers/{dossier['id']}",
                    f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}", f"/fiches/{fiche['id']}/reponses"):
         capter(base + chemin)
     for v in (version["id"], projet["id"]):
@@ -100,11 +100,10 @@ def main(url: str, sortie: Path) -> None:
             {"nom": "Assureur B", "taux_garanti": 0.02, "participation_benefices": 0.9, "frais_sur_cotisations": 0.02,
              "frais_sur_encours": 0.005}]})
 
-    # L'orientation (comparaison) et la fiche de calcul scellée de chaque départ en retraite d'avant le mandat.
+    # La fiche de calcul scellée de chaque départ en retraite d'avant le mandat.
     fiches_de_calcul = []
     for p in reponses[f"GET {base}/prestations"]["prestations"]:
         if p["motif"] == "retraite" and p["service"] == "comparaison":
-            capter(f"{base}/prestations/{p['id']}/orientation")
             fiches_de_calcul.append(f"{base}/prestations/{p['id']}/fiche-de-calcul")
     # L'extraction assistée, par le moteur à règles (aucun appel externe) sur un accord FICTIF de la Société Démo.
     accord = ("ACCORD D'ENTREPRISE — INDEMNITÉ DE DÉPART À LA RETRAITE\nSociété Démo SA, Douala, Cameroun\n"

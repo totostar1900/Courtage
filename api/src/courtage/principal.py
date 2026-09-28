@@ -20,7 +20,7 @@ from sqlalchemy import create_engine
 
 from courtage.api import creer_app
 from courtage.deploiement import url_applicative
-from courtage.messagerie import expediteur_depuis_environnement
+from courtage.messagerie import courriel_depuis_environnement, expediteur_depuis_environnement
 
 
 def _octets(nom: str) -> bytes | None:
@@ -40,6 +40,7 @@ app = creer_app(create_engine(url_applicative(os.environ), pool_pre_ping=True),
                 cle_sceau=_octets("COURTAGE_CLE_SCEAU"),
                 url_publique=os.environ.get("COURTAGE_URL_PUBLIQUE") or os.environ.get("RENDER_EXTERNAL_URL"),
                 expediteur=expediteur_depuis_environnement(os.environ),
+                courriel=courriel_depuis_environnement(os.environ),
                 cle_auth=_octets("COURTAGE_CLE_AUTH"),
                 dossier_web=os.environ.get("COURTAGE_WEB") or None,
                 extracteur=_extracteur())

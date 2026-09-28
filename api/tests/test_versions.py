@@ -147,5 +147,5 @@ def test_un_fichier_se_supprime_ou_s_allege_selon_ce_qui_le_cite(client, azito):
 
 def test_un_contrat_saisi_par_erreur_se_supprime(client, azito):
     org, h = azito["org"], en_tant_que(azito["conseiller"])
-    k = client.post(f"{V1}/organisations/{org}/contrats", headers=h, json={"en_vigueur_du": "2031-01-01", "service": "comparaison"}).json()
+    k = client.post(f"{V1}/organisations/{org}/contrats", headers=h, json={"en_vigueur_du": "2031-01-01", "service": "courtage", "mandat_reference": "Mandat test"}).json()
     assert client.delete(f"{V1}/organisations/{org}/contrats/{k['id']}", headers=h).json() == {"supprime": True}

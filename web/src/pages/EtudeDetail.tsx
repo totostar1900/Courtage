@@ -11,6 +11,7 @@ import { demandeSuppression, raisonDeNePasSupprimer } from "../suppressionEtude"
 import { useDossier } from "./Dossier";
 import Experience from "../composants/Experience";
 import Rapprochement, { sousCotisation } from "../composants/Rapprochement";
+import { raisonActivation } from "../activation";
 
 const sensibilites = (): Record<string, string> => ({
   taux_actualisation_moins_1pt: t("Taux d'actualisation − 1 point", "Discount rate − 1 point"),
@@ -40,6 +41,8 @@ export default function EtudeDetail() {
     catch (x) { setErreurAction(x); }
   }
 
+  const attenteEmission = raisonActivation(d.activation, "rapport_scelle");
+  const attenteExport = raisonActivation(d.activation, "export_etude");
   const retenue = raisonDeNePasSupprimer({ statut: e.statut, raison_de_garder: e.suppression?.raison_de_garder }, d.role);
   return (
     <>
@@ -53,7 +56,8 @@ export default function EtudeDetail() {
         {e.regime ? `${e.regime.nom}, version ${e.regime.numero}` : e.convention.libelle} · {e.totaux.effectif} {t("salariés", "employees")}
       </p>
 
-      <div className="grille g4 section">
+      <div className={`grille g4 section${e.statut === "brouillon" ? " resultats-brouillon" : ""}`}
+           data-filigrane={t("Estimation — non scellée", "Estimate — not sealed")}>
         <Cle etiquette={t("Dette actuarielle", "Actuarial liability")} terme="dette" valeur={millions(e.totaux.dette)} sous={montant(e.totaux.dette)} />
         <Cle etiquette={t("Charge annuelle", "Annual cost")} terme="charge" valeur={millions(e.totaux.charge)} sous={montant(e.totaux.charge)} />
         <Cle etiquette={t("Fonds constitué", "Accumulated fund")} terme="fonds" valeur={millions(e.fonds_disponible)} sous={montant(e.fonds_disponible)} />
@@ -77,7 +81,8 @@ export default function EtudeDetail() {
         )}
         <div className="actions">
           {e.statut === "brouillon" && d.role === "conseiller" && (
-            <button className="principal" onClick={emettre} disabled={!e.emission.possible}>{t("Émettre et sceller le rapport", "Issue and seal the report")}</button>
+            <button className="principal" onClick={emettre} disabled={!e.emission.possible || !!attenteEmission}
+                    title={attenteEmission ?? undefined}>{t("Émettre et sceller le rapport", "Issue and seal the report")}</button>
           )}
           {e.statut === "brouillon" && d.role !== "conseiller" && (
             <span className="discret">{t("Votre conseiller relit puis émet le rapport.", "Your adviser reviews and then issues the report.")}</span>
@@ -85,7 +90,7 @@ export default function EtudeDetail() {
           {e.rapport && (
             <button onClick={() => api.ouvrir(`/organisations/${d.org.id}/etudes/${e.id}/rapport`)}>{t("Ouvrir le rapport PDF", "Open the PDF report")}</button>
           )}
-          <button onClick={() => { setErreurAction(null);
+          <button disabled={!!attenteExport} title={attenteExport ?? undefined} onClick={() => { setErreurAction(null);
             api.telecharger(`/organisations/${d.org.id}/etudes/${e.id}/export`, `etude-ifc-${e.date_evaluation}.xlsx`)
               .catch(setErreurAction); }}>{t("Exporter en Excel", "Export to Excel")}</button>
           {d.role !== "lecteur_client" && (
@@ -95,6 +100,9 @@ export default function EtudeDetail() {
           )}
           <Link to="financement"><button>{t("Financer cet engagement", "Fund this liability")}</button></Link>
         </div>
+        {(attenteExport || (attenteEmission && e.statut === "brouillon" && d.role === "conseiller")) && (
+          <p className="discret">{t("Émission et export Excel — ", "Issuing and Excel export — ")}{attenteExport ?? attenteEmission}</p>
+        )}
         <Erreur erreur={erreurAction} />
       </div>
 

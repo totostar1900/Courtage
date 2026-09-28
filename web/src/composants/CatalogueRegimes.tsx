@@ -7,13 +7,14 @@ import { useDossier } from "../pages/Dossier";
 import type { Catalogue, GroupeCatalogue, RegimeCatalogue, VersionProposee } from "../types";
 import { Erreur, useCharge } from "./communs";
 import { CONVENTION_PAR_PAYS } from "./EditeurCategories";
+import { raisonActivation } from "../activation";
 
 /** Partir du régime d'une autre entreprise, sans savoir laquelle : des groupes d'au moins cinq. */
 export default function CatalogueRegimes({ onReprendre }: { onReprendre: (v: VersionProposee) => void }) {
   const d = useDossier();
   const [ouvert, setOuvert] = useState(false);
   const { donnee, erreur } = useCharge(
-    () => (ouvert ? api.get<Catalogue>("/catalogue/regimes") : Promise.resolve(null)), [ouvert]);
+    () => (ouvert && !raisonActivation(d.activation, "catalogue") ? api.get<Catalogue>("/catalogue/regimes") : Promise.resolve(null)), [ouvert]);
 
   function reprendre(g: GroupeCatalogue, r: RegimeCatalogue) {
     // La convention reste si elle est visible et du même pays ; sinon, celle du pays de l'entreprise.
@@ -24,11 +25,13 @@ export default function CatalogueRegimes({ onReprendre }: { onReprendre: (v: Ver
     setOuvert(false);
   }
 
-  if (!ouvert) {
+  const attente = raisonActivation(d.activation, "catalogue");
+  if (!ouvert || attente) {
     return (
       <div className="actions" style={{ marginTop: 0, marginBottom: 14 }}>
-        <button type="button" onClick={() => setOuvert(true)}>{t("Partir du catalogue anonyme", "Start from the anonymous catalogue")}</button>
-        <span className="discret">{t("Les régimes que d'autres entreprises ont partagés, sans leur nom.",
+        <button type="button" onClick={() => setOuvert(true)} disabled={!!attente} title={attente ?? undefined}>
+          {t("Partir du catalogue anonyme", "Start from the anonymous catalogue")}</button>
+        <span className="discret">{attente ?? t("Les régimes que d'autres entreprises ont partagés, sans leur nom.",
           "Plans that other companies have shared, without their name.")}</span>
       </div>
     );

@@ -10,6 +10,7 @@ import type { Equipe as DonneesEquipe, Membre, Role } from "../types";
 import { useConfirmation } from "../composants/Confirmer";
 import { useDossier } from "./Dossier";
 import { langue, t } from "../i18n";
+import { raisonActivation } from "../activation";
 
 // Lus au rendu (la langue peut changer) : des fonctions, pas des constantes figées à l'import.
 export const libellesRoles = (): Record<Role, string> => ({
@@ -42,6 +43,8 @@ export default function Equipe() {
   // Un dossier neuf, sans personne de l'entreprise : le formulaire s'ouvre de lui-même pour le conseiller.
   const inscrire = inscrireDemande ?? (conseil && ouvert && !e.membres.some((m) => m.role !== "conseiller"));
   const rafraichir = () => { recharger(); d.recharger(); };
+  // En attente de confirmation : ni invitation, ni droits ; chacun garde la main sur sa propre fonction.
+  const attente = raisonActivation(d.activation, "equipe");
 
   function retirer(m: Membre) {
     demander({
@@ -82,7 +85,8 @@ export default function Equipe() {
               <td>{m.telephone ?? m.email ?? "—"}</td>
               <td className="n">
                 <MenuActions libelle={t(`Actions sur ${m.nom}`, `Actions on ${m.nom}`)} actions={[
-                  { libelle: t("Modifier : nom, fonction, droits", "Edit: name, job title, access rights"), agir: () => setModifier(m), cache: !m.modifiable || !ouvert },
+                  { libelle: t("Modifier : nom, fonction, droits", "Edit: name, job title, access rights"), agir: () => setModifier(m), cache: !m.modifiable || !ouvert,
+                    raison: m.moi ? null : attente },
                   { libelle: m.moi ? t("Me retirer du dossier", "Remove me from the file") : t("Retirer du dossier", "Remove from the file"), agir: () => retirer(m), danger: true,
                     cache: !m.modifiable || !ouvert, raison: m.retirable ? null : m.raison_retrait },
                 ]} />
@@ -94,11 +98,13 @@ export default function Equipe() {
       <p className="discret">{t("Droits :", "Access rights:")} {(Object.keys(DEFINITIONS) as Role[]).filter((r) => conseil || r !== "conseiller")
         .map((r) => `${LIBELLES_ROLES[r]}, ${DEFINITIONS[r]}`).join(" · ")}. {t("Pour changer un numéro de téléphone : retirer la personne, puis l'inscrire avec le nouveau.",
         "To change a phone number: remove the person, then add them again with the new one.")}</p>
-      {e.droits_attribuables.length > 0 && ouvert && !inscrire && (
-        <div className="actions"><button type="button" className="principal" onClick={() => setInscrire(true)}>
-          {t("Inscrire quelqu'un", "Add someone")}</button></div>
+      {e.droits_attribuables.length > 0 && ouvert && (!inscrire || attente) && (
+        <div className="actions"><button type="button" className="principal" onClick={() => setInscrire(true)}
+                                         disabled={!!attente} title={attente ?? undefined}>
+          {t("Inscrire quelqu'un", "Add someone")}</button>
+          {attente && <span className="discret">{attente}</span>}</div>
       )}
-      {inscrire && <FormulaireMembre equipe={e} onFermer={() => setInscrire(false)}
+      {inscrire && !attente && <FormulaireMembre equipe={e} onFermer={() => setInscrire(false)}
                                      onFait={() => { setInscrire(false); rafraichir(); }} />}
       {modifier && <FormulaireMembre equipe={e} membre={modifier} onFermer={() => setModifier(null)}
                                      onFait={() => { setModifier(null); rafraichir(); }} />}
@@ -114,11 +120,13 @@ function FormulaireMembre({ equipe: e, membre, onFermer, onFait }: {
   const d = useDossier();
   const [erreur, setErreur] = useState<unknown>(null);
   const droits = e.droits_attribuables;
+  // Sa propre fiche, inscription en attente : la fonction (et le nom) seulement, sans toucher aux droits.
+  const sansDroits = Boolean(membre?.moi && raisonActivation(d.activation, "equipe"));
   async function valider(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
     const f = new FormData(ev.currentTarget);
     const corps = { nom_affiche: String(f.get("nom") ?? "").trim(), fonction: String(f.get("fonction") ?? "").trim(),
-                    role: f.get("role") };
+                    ...(sansDroits ? {} : { role: f.get("role") }) };
     setErreur(null);
     try {
       if (membre) await api.patch(`/organisations/${d.org.id}/membres/${membre.id}`, corps);
@@ -134,7 +142,8 @@ function FormulaireMembre({ equipe: e, membre, onFermer, onFait }: {
           <label>{t("Fonction", "Job title")}<input name="fonction" list="fonctions-equipe" placeholder={t("DRH, DG, DAF…", "HR director, CEO, CFO…")} maxLength={80}
                                 defaultValue={membre?.fonction ?? ""} /></label>
           <label>{t("Droits", "Access rights")}
-            <select name="role" defaultValue={membre?.role ?? droits.find((r) => r.role !== "conseiller")?.role}>
+            <select name="role" defaultValue={membre?.role ?? droits.find((r) => r.role !== "conseiller")?.role}
+                    disabled={sansDroits} title={sansDroits ? raisonActivation(d.activation, "equipe") ?? undefined : undefined}>
               {droits.map((r) => <option key={r.role} value={r.role}>{r.libelle}</option>)}
             </select>
           </label>

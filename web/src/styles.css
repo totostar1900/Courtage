@@ -536,3 +536,70 @@ tr.choisie > td { background: var(--indigo-doux); }
 .langues { display: inline-flex; border: 1px solid rgb(255 255 255 / .35); border-radius: 999px; overflow: hidden; }
 .langues button { background: transparent; color: #c9cfee; border: 0; border-radius: 0; padding: 3px 9px; font-size: 12px; font-weight: 600; min-height: 0; }
 .langues button[aria-pressed="true"] { background: #fff; color: var(--indigo); }
+
+/* Le nombre de messages non lus, dans le rail. */
+.pastille-rail { margin-left: auto; background: var(--grave); color: #fff; font-size: 11px; font-weight: 700; min-width: 18px; padding: 1px 6px; border-radius: 99px; text-align: center; }
+
+/* --- File des inscriptions (courtier) et fil de messages -------------------------------------- */
+.file-inscriptions { margin-top: 0; margin-bottom: 28px; }
+.file-inscriptions h2 { margin-bottom: 4px; }
+.carte.inscription.en-retard { border-color: var(--grave); }
+.inscription-faits { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 12px 0; font-size: 13px; }
+.inscription-faits dt { color: var(--discret); }
+.inscription-faits dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.echeance-retard { color: var(--grave); font-weight: 700; }
+.tiroir label.case { display: flex; align-items: center; gap: 8px; }
+.conversation { display: grid; gap: 14px; }
+.fil-messages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px;
+  max-height: 60vh; overflow-y: auto; }
+.message { max-width: min(80%, 560px); padding: 10px 14px; border: 1px solid var(--trait); border-radius: var(--rayon);
+  background: var(--fond); }
+.message.mien { align-self: flex-end; background: var(--indigo-doux); border-color: transparent; }
+.message.autre { align-self: flex-start; }
+.message-tete { font-size: 13px; margin-bottom: 4px; }
+.message-texte { white-space: pre-wrap; overflow-wrap: anywhere; }
+.message-pied { font-size: 12px; margin-top: 6px; text-align: right; }
+.message-lu { color: var(--bien); font-weight: 600; }
+.conversation-saisie textarea { width: 100%; resize: vertical; }
+@media (max-width: 700px) { .message { max-width: 92%; } }
+
+/* --- Inscription en attente de confirmation ------------------------------------------------------------------
+   Le bandeau en tête du dossier ; le filigrane « Estimation — non scellée » sur les résultats d'une étude en
+   brouillon ; et l'impression neutralisée tant que le courtier n'a pas confirmé l'inscription (rien ne sort). */
+.bandeau-activation { margin-bottom: 16px; }
+.bandeau-activation .actions { align-items: center; }
+.depot-rccm { margin: 10px 0; }
+.depot-rccm label { display: grid; gap: 4px; max-width: 420px; }
+.depot-rccm ul { margin: 6px 0 0; padding-left: 18px; }
+
+.dossier.non-confirmee .resultats-brouillon { position: relative; overflow: hidden; }
+.dossier.non-confirmee .resultats-brouillon::after {
+  content: attr(data-filigrane); position: absolute; inset: 0; display: grid; place-items: center;
+  transform: rotate(-12deg); pointer-events: none; font-size: clamp(20px, 4vw, 40px); font-weight: 700;
+  letter-spacing: .04em; color: rgb(120 120 140 / .22); white-space: nowrap; }
+
+@media print {
+  .dossier.non-confirmee > * { display: none !important; }
+  .dossier.non-confirmee { display: block; }
+  .dossier.non-confirmee::before { content: attr(data-impression); display: block; padding: 40px 0; font-size: 16px; }
+}
+
+/* L'inscription en libre-service : les étapes, et le ✓ d'un canal vérifié. */
+.inscription-etapes { display: flex; gap: 8px; flex-wrap: wrap; list-style: none; padding: 0; margin: 0 0 16px; }
+.inscription-etapes li { padding: 4px 10px; border-radius: 99px; border: 1px solid var(--trait); font-size: 13px; }
+.inscription-etapes li[aria-current="step"] { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+.verifie { color: var(--bien, green); font-weight: 700; }
+
+/* L'essai sans compte : filigrane sur le résultat, rien à imprimer. */
+.essai-impression { display: none; }
+.resultat-essai { position: relative; }
+.resultat-essai .filigrane { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+  font: 700 clamp(28px, 7vw, 72px)/1 var(--titre); color: rgb(31 45 107 / .07); transform: rotate(-18deg);
+  white-space: nowrap; overflow: hidden; z-index: 1; }
+@media print {
+  .essai > *:not(.essai-impression) { display: none !important; }
+  .essai .essai-impression { display: block; font-size: 16px; }
+}
+/* Une liste déroulante au long libellé reste dans sa colonne. */
+.grille-2 > label { min-width: 0; }
+.grille-2 select { width: 100%; min-width: 0; text-overflow: ellipsis; }

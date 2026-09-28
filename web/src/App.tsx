@@ -14,6 +14,9 @@ import Departs from "./pages/Departs";
 import Dossier from "./pages/Dossier";
 import DossierPriseEnCharge from "./pages/DossierPEC";
 import Equipe from "./pages/Equipe";
+import Essai from "./pages/Essai";
+import Inscription from "./pages/Inscription";
+import Messages from "./pages/Messages";
 import EtudeDetail from "./pages/EtudeDetail";
 import Etudes from "./pages/Etudes";
 import Financement from "./pages/Financement";
@@ -45,6 +48,8 @@ export default function App() {
           <Route path="/verifier/:numero" element={<Verifier />} />
           <Route path="/verifier" element={<Verifier />} />
           <Route path="/connexion" element={<Connexion />} />
+          <Route path="/inscription" element={<Inscription />} />
+          <Route path="/essai" element={<Essai />} />
           <Route path="/guide/*" element={<Guide />} />
           <Route path="/" element={<Protege><Accueil /></Protege>} />
           <Route path="/dossier/:org" element={<Protege><Dossier /></Protege>}>
@@ -62,6 +67,7 @@ export default function App() {
             <Route path="accompagnement" element={<Accompagnement />} />
             <Route path="departs" element={<Departs />} />
             <Route path="equipe" element={<Equipe />} />
+            <Route path="messages" element={<Messages />} />
             <Route path="dossiers/:id" element={<DossierPriseEnCharge />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -82,7 +88,7 @@ function Protege({ children }: { children: React.ReactNode }) {
 function Entete() {
   const naviguer = useNavigate();
   const { pathname } = useLocation();
-  const connecte = !pathname.startsWith("/connexion") && !pathname.startsWith("/verifier") && !pathname.startsWith("/guide");
+  const connecte = !["/connexion", "/verifier", "/guide", "/inscription", "/essai"].some((p) => pathname.startsWith(p));
   return (
     <header className="entete">
       <div className="interieur">

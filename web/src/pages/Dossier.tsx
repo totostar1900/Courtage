@@ -12,7 +12,9 @@ import { Icone } from "../composants/Icones";
 import { noterReprise } from "../reprise";
 import type { Equipe, EtatCycle, EtudeResume, Fiche, Fichier, Membre, Moi, Regime, Role } from "../types";
 import { BandeauCycle } from "../composants/CycleDossier";
+import { BandeauActivation } from "../composants/BandeauActivation";
 import { t } from "../i18n";
+import { CONFIRMEE, type Activation } from "../activation";
 
 
 export interface ContexteDossier {
@@ -24,6 +26,8 @@ export interface ContexteDossier {
   fiches: Fiche[];
   equipe: Membre[];
   etat: EtatDossier;
+  activation: Activation;
+  nonLus: number;
   recharger: () => void;
 }
 
@@ -38,13 +42,15 @@ export function useDossier(): ContexteDossier {
 export default function Dossier() {
   const { org } = useParams();
   const { donnee, erreur, recharger } = useCharge(async () => {
-    const [moi, fichiers, regimes, etudes, fiches, equipe] = await Promise.all([
+    const [moi, fichiers, regimes, etudes, fiches, equipe, activation, nonLus] = await Promise.all([
       api.get<Moi>("/moi"),
       api.get<Fichier[]>(`/organisations/${org}/fichiers`),
       api.get<Regime[]>(`/organisations/${org}/regimes`),
       api.get<EtudeResume[]>(`/organisations/${org}/etudes`),
       api.get<Fiche[]>(`/organisations/${org}/fiches`),
       api.get<Equipe>(`/organisations/${org}/equipe`).then((e) => e.membres),
+      api.get<Activation>(`/organisations/${org}/activation`).catch(() => CONFIRMEE),
+      api.get<{ non_lus: number }>(`/organisations/${org}/messages/non-lus`).then((r) => r.non_lus).catch(() => 0),
     ]);
     const o = moi.organisations.find((x) => x.id === org)!;
     const versions = regimes.flatMap((r) => r.versions);
@@ -55,7 +61,7 @@ export default function Dossier() {
       etudesBrouillon: etudes.filter((e) => e.statut === "brouillon").length,
       fiches: fiches.length,
     };
-    return { org: o, role: o.role, fichiers, regimes, etudes, fiches, equipe, etat, moiId: moi.id };
+    return { org: o, role: o.role, fichiers, regimes, etudes, fiches, equipe, etat, activation, nonLus, moiId: moi.id };
   }, [org]);
 
   const { pathname } = useLocation();
@@ -75,7 +81,10 @@ export default function Dossier() {
 
   return (
     <Contexte.Provider value={contexte}>
-      <div className="dossier">
+      <div className={donnee.activation.etat !== "confirmee" ? "dossier non-confirmee" : "dossier"}
+           data-impression={donnee.activation.etat !== "confirmee"
+             ? t("L'impression s'ouvre après confirmation de votre inscription", "Printing opens once your sign-up is confirmed")
+             : undefined}>
         <aside>
           <div className="dossier-tete">
             <div>
@@ -111,6 +120,9 @@ export default function Dossier() {
               <Icone nom="contrat" />{t("Contrat", "Contract")}</NavLink></li>
             <li><NavLink to="departs" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="departs" />{t("Départs", "Departures")}</NavLink></li>
+            <li><NavLink to="messages" className={({ isActive }) => (isActive ? "actif" : "")}>
+              <Icone nom="messages" />{t("Messages", "Messages")}
+              {donnee.nonLus > 0 && <span className="pastille-rail" aria-label={t(`${donnee.nonLus} non lu(s)`, `${donnee.nonLus} unread`)}>{donnee.nonLus}</span>}</NavLink></li>
             <li><NavLink to="equipe" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="equipe" />{t("Équipe", "Team")}</NavLink></li>
           </ol>
@@ -137,6 +149,7 @@ export default function Dossier() {
         <section>
           <div className="entete-page"><FilAriane d={donnee} /><AidePage base={`/dossier/${donnee.org.id}`} /></div>
           <BandeauCycle org={donnee.org} />
+          <BandeauActivation orgId={donnee.org.id} activation={donnee.activation} role={donnee.role} />
           <Outlet />
         </section>
         <PaletteAller d={donnee} />

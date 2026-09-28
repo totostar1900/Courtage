@@ -85,10 +85,7 @@ def societe_demo(client, h) -> dict:
     for qui, role in (("conseiller", "conseiller"), ("drh", "admin_client")):
         ok(client.post(f"{V1}/organisations/{org}/adhesions", json={"utilisateur_id": ids[qui], "role": role},
                        headers=h("admin")))
-    # Avant le mandat, l'entreprise traitait seule avec son assureur : les départs d'avant 2025 relèvent de la comparaison.
-    ok(client.post(f"{V1}/organisations/{org}/contrats", headers=h("conseiller"), json={
-        "en_vigueur_du": "2020-01-01", "service": "comparaison", "assureur": "Assureur B (fictif)",
-        "numero_police": "IFC-B-2020-17", "date_effet_police": "2020-01-01"}))
+    # Avant le mandat de 2025, le dossier était sans mandat : les départs d'avant relèvent de l'entreprise seule.
     ok(client.post(f"{V1}/organisations/{org}/contrats", headers=h("conseiller"), json={
         "en_vigueur_du": "2025-01-01", "service": "courtage", "assureur": "Assureur A (fictif)",
         "numero_police": "IFC-2025-0042", "date_effet_police": "2025-01-01",

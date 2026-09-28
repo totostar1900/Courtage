@@ -24,7 +24,8 @@ export default function Reponses() {
   const numero = d.fiches.find((f) => f.id === fiche)?.numero;
   if (erreur) return <Erreur erreur={erreur} />;
   if (!x) return <p className="discret">{t("Chargement…", "Loading…")}</p>;
-  const ecrit = d.role !== "lecteur_client" && !x.choix;
+  // Le courtier saisit les réponses des assureurs ; l'entreprise les lit et choisit.
+  const ecrit = d.role === "conseiller" && !x.choix;
 
   return (
     <>

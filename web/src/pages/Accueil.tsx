@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { DecompteAlertes } from "../composants/Alertes";
 import { Erreur, useCharge, Volet } from "../composants/communs";
+import FileInscriptions from "../composants/FileInscriptions";
 import { ilYa, lireReprise } from "../reprise";
 import type { Alerte, Moi } from "../types";
 import { t } from "../i18n";
@@ -22,7 +23,7 @@ export const paysCemac = () => ({
   CF: t("Centrafrique", "Central African Republic"), GQ: t("Guinée équatoriale", "Equatorial Guinea") });
 
 export default function Accueil() {
-  const { donnee: moi, erreur } = useCharge(() => api.get<Moi>("/moi"), []);
+  const { donnee: moi, erreur, recharger: relireMoi } = useCharge(() => api.get<Moi>("/moi"), []);
   const [ouvrir, setOuvrir] = useState(false);
   const { donnee: decomptes } = useCharge(
     () => api.get<Decomptes>("/alertes").catch((): Decomptes => ({})), []);
@@ -37,6 +38,7 @@ export default function Accueil() {
       <Erreur erreur={erreur} />
       {moi && <Reprendre moi={moi} />}
       {ouvrir && <NouveauDossier onFermer={() => setOuvrir(false)} />}
+      {moi?.admin_plateforme && <FileInscriptions onDecision={relireMoi} />}
       {moi && moi.organisations.length === 0 && (
         <p>{t("Aucun dossier pour l'instant.", "No files yet.")}{moi.admin_plateforme
           && t(" En tant que plateforme, vous ouvrez les dossiers des clients : « Ouvrir un dossier client », puis inscrivez la DRH par son numéro.",
