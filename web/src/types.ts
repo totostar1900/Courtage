@@ -288,12 +288,6 @@ export interface DossierPEC {
   identite_effacee: boolean; efface_le: string | null; constats: Constat[];
 }
 
-export interface Orientation {
-  prestation_id: string; service: "courtage" | "comparaison"; qui_s_en_occupe: "plateforme" | "entreprise";
-  assureur: string | null; numero_police: string | null; date_effet_police: string | null;
-  du: number; verse: number | null; montant_a_demander: number; calcul: CalculPrestation;
-  delai_jours: number; delai_exige: boolean; pieces: { nature: string; libelle: string; detail: string }[]; message: string;
-}
 
 export interface CritereConformite {
   critere: string; libelle: string; sens: "min" | "max" | "oui";

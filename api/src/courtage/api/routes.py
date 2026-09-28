@@ -227,7 +227,7 @@ def retirer_membre(utilisateur_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
 
 class NouveauContrat(_Corps):
     en_vigueur_du: date
-    service: Literal["courtage", "comparaison"]
+    service: Literal["courtage"] = "courtage"      # la plateforme ne fait plus que du courtage
     assureur: str | None = Field(default=None, max_length=200)
     numero_police: str | None = Field(default=None, max_length=100)
     date_effet_police: date | None = None
@@ -420,11 +420,6 @@ def corriger_prestation(prestation_id: uuid.UUID, corps: CorrectionPrestation, a
     p = prestations.corriger(a.session, a.organisation, a.utilisateur.id, prestation_id,
                              prestations.Saisie(**donnees), motif)
     return prestations.en_clair(a.session, p)
-
-
-@routeur.get("/organisations/{organisation_id}/prestations/{prestation_id}/orientation")
-def orienter_prestation(prestation_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
-    return orientation.orienter(a.session, prestation_id)
 
 
 @routeur.get("/organisations/{organisation_id}/prestations/{prestation_id}/fiche-de-calcul")
@@ -1049,7 +1044,7 @@ def exporter_reponses(fiche_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
 
 @routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses", status_code=201)
 async def saisir_reponse(fiche_id: uuid.UUID, donnees: str = Form(...), offre: UploadFile | None = File(default=None),
-                         a: Acces = Depends(acces(*CLIENT))):
+                         a: Acces = Depends(acces(*CONSEIL))):
     fiche = reponses.obtenir_fiche(a.session, fiche_id)
     r = reponses.enregistrer(a.session, a.organisation, a.utilisateur.id, fiche, _donnees(donnees, SaisieReponse),
                              offre=await _offre(offre))
@@ -1058,7 +1053,7 @@ async def saisir_reponse(fiche_id: uuid.UUID, donnees: str = Form(...), offre: U
 
 @routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/{reponse_id}/correction", status_code=201)
 async def corriger_reponse(fiche_id: uuid.UUID, reponse_id: uuid.UUID, donnees: str = Form(...),
-                           offre: UploadFile | None = File(default=None), a: Acces = Depends(acces(*CLIENT))):
+                           offre: UploadFile | None = File(default=None), a: Acces = Depends(acces(*CONSEIL))):
     fiche = reponses.obtenir_fiche(a.session, fiche_id)
     d = _donnees(donnees, CorrectionReponse)
     motif = d.pop("motif_correction")
@@ -1068,7 +1063,7 @@ async def corriger_reponse(fiche_id: uuid.UUID, reponse_id: uuid.UUID, donnees: 
 
 
 @routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/{reponse_id}/retrait", status_code=201)
-def retirer_reponse(fiche_id: uuid.UUID, reponse_id: uuid.UUID, corps: Retrait, a: Acces = Depends(acces(*CLIENT))):
+def retirer_reponse(fiche_id: uuid.UUID, reponse_id: uuid.UUID, corps: Retrait, a: Acces = Depends(acces(*CONSEIL))):
     fiche = reponses.obtenir_fiche(a.session, fiche_id)
     r = reponses.retirer(a.session, a.organisation, a.utilisateur.id, fiche, reponse_id, corps.motif_correction)
     return reponses.en_clair(r, fiche)

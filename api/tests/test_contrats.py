@@ -43,10 +43,10 @@ def test_pas_de_courtage_sans_mandat(client, azito):
     assert r.status_code == 201, r.text                                  # l'assureur vient une fois le contrat placé
 
 
-def test_une_comparaison_peut_n_avoir_aucun_assureur(client, azito):
+def test_la_plateforme_ne_fait_plus_que_du_courtage(client, azito):
     r = client.post(url(azito), json={"en_vigueur_du": "2026-01-01", "service": "comparaison"},
                     headers=en_tant_que(azito["conseiller"]))
-    assert r.status_code == 201, r.text
+    assert r.status_code == 422
 
 
 def test_l_entreprise_ne_se_declare_pas_mandante_seule(client, azito):
@@ -55,20 +55,17 @@ def test_l_entreprise_ne_se_declare_pas_mandante_seule(client, azito):
 
 
 def test_le_service_est_celui_en_vigueur_a_la_date(client, azito, bases):
-    client.post(url(azito), json={"en_vigueur_du": "2024-01-01", "service": "comparaison", "assureur": "Assureur B"},
-                headers=en_tant_que(azito["conseiller"]))
     client.post(url(azito), json=COURTAGE, headers=en_tant_que(azito["conseiller"]))
     with Session(bases[1]) as s, s.begin():
         contexte(s.connection(), azito["org"])
-        assert contrats.service_a_la_date(s, date(2023, 12, 31)).service == "comparaison"
-        avant = contrats.service_a_la_date(s, date(2025, 6, 30))
-        assert (avant.service, avant.contrat.assureur) == ("comparaison", "Assureur B")
+        # Avant le mandat : « comparaison » est la valeur interne de l'absence de mandat.
+        assert contrats.service_a_la_date(s, date(2025, 12, 31)) == contrats.ServiceEnVigueur("comparaison", None)
         assert contrats.service_a_la_date(s, date(2026, 1, 1)).service == "courtage"
 
 
 def test_deux_contrats_le_meme_jour(client, azito):
     client.post(url(azito), json=COURTAGE, headers=en_tant_que(azito["conseiller"]))
-    r = client.post(url(azito), json={**COURTAGE, "service": "comparaison"}, headers=en_tant_que(azito["conseiller"]))
+    r = client.post(url(azito), json={**COURTAGE, "assureur": "Assureur C"}, headers=en_tant_que(azito["conseiller"]))
     assert r.status_code == 409 and r.json()["code"] == "contrat_deja_enregistre"
 
 

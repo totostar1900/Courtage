@@ -160,7 +160,7 @@ export const CHAPITRES: Chapitre[] = [
         "Chaque réponse se saisit dans la grille du cahier, avec l'offre de l'assureur en PDF si elle est jointe. Ce que l'assureur n'a pas dit reste vide : c'est signalé, pas deviné.",
         "La plateforme confronte chaque réponse aux conditions demandées, critère par critère — conforme, en écart, ou non renseigné — et signale une réponse arrivée après la date limite.",
         "Les réponses sont classées par leur coût net actualisé, le même calcul que la comparaison d'offres. La recommandée est la moins chère des CONFORMES : une offre moins chère qui impose une pénalité de transfert ne l'est pas.",
-        "L'entreprise choisit. Retenir une autre offre que la recommandée est permis, et se motive : la raison figure au dossier. Un cahier attribué est clos ; le conseiller enregistre alors le contrat." ] },
+        "Votre conseiller rédige le cahier, l'envoie aux assureurs et saisit leurs réponses ; vous les lisez et choisissez. Retenir une autre offre que la recommandée est permis, et se motive : la raison figure au dossier. Un cahier attribué est clos ; le conseiller enregistre alors le contrat." ] },
       { titre: "Changer d'assureur", texte: [
         "Les conditions de transfert (préavis, pénalité) font partie des exigences : c'est ce qui vous permettra de changer d'assureur plus tard sans perdre votre fonds.",
         "Les réponses s'exportent en Excel : le classement, la conformité critère par critère et la projection sous les trois scénarios de rendement." ] },
@@ -168,26 +168,23 @@ export const CHAPITRES: Chapitre[] = [
     termes: ["cahier", "anonymat"],
   },
   {
-    id: "contrat", groupe: "Le parcours", titre: "Courtage ou comparaison", ecran: "contrat",
-    resume: "Deux services ; le vôtre décide qui s'occupe d'une prestation quand un salarié part.",
+    id: "contrat", groupe: "Le parcours", titre: "Le courtage", ecran: "contrat",
+    resume: "La plateforme est votre courtier : mandatée par vous, gratuite pour vous.",
     sections: [
-      { titre: "Deux services", texte: [
-        "En courtage, la plateforme est votre courtier : vous l'avez mandatée, elle place le contrat, puis porte vos prestations auprès de l'assureur.",
-        "En comparaison, elle a éclairé votre choix ; vous avez signé directement avec l'assureur et vous traitez avec lui.",
-        "Le service se lit sur l'écran « Contrat » : il est daté, et un changement de service prend effet à sa date sans effacer l'ancien." ] },
-      { titre: "Quand un salarié part", texte: [
-        "En courtage : vous déclarez le départ, nous montons le dossier, le transmettons et suivons le paiement. Pour ce dossier seulement, nous recueillons l'identité du bénéficiaire.",
-        "En comparaison : vous vous adressez à votre assureur ; nous vous disons à qui, avec quelles pièces, et le montant dû. Nous ne demandons jamais d'identité.",
-        "Dans les deux cas, vous pouvez enregistrer le départ sans nom, pour que vos rapports tiennent compte de l'expérience réelle." ] },
-      { titre: "Sans contrat enregistré", texte: [
-        "Vous êtes en comparaison : la plateforme ne suppose jamais un mandat qu'elle n'a pas." ] },
-      { titre: "Passer en courtage", texte: [
+      { titre: "Un seul service", texte: [
+        "La plateforme est votre courtier : vous la mandatez, elle consulte les assureurs, place votre engagement, puis porte vos prestations auprès de l'assureur retenu.",
+        "Le mandat est gratuit pour l'entreprise : le courtier est rémunéré uniquement par la commission de l'assureur retenu, dont il communique le taux sur simple demande.",
+        "Le contrat de courtage naît de la signature du mandat ; l'écran « Contrat » le montre, avec l'assureur une fois le contrat placé." ] },
+      { titre: "Signer le mandat", texte: [
         "Depuis « Accompagnement », l'entreprise dit ce qu'elle attend : placer son engagement, remettre son contrat en concurrence, faire porter ses départs, être conseillée sur son régime.",
         "Le conseiller propose un mandat de courtage : les missions, la date d'effet, la durée, le préavis, l'exclusivité. Le texte complet s'affiche sur la page.",
-        "L'administrateur le lit et le signe en ligne, sur le texte affiché. Le mandat signé est scellé, vérifiable par son numéro, et le contrat « courtage » prend effet à sa date. Rien n'engage avant la signature.",
-        "Le mandat est gratuit pour l'entreprise : le courtier est rémunéré uniquement par la commission de l'assureur retenu, dont il communique le taux sur simple demande." ] },
+        "L'administrateur le lit et le signe en ligne, sur le texte affiché. Le mandat signé est scellé, vérifiable par son numéro. Rien n'engage avant la signature." ] },
+      { titre: "Quand un salarié part", texte: [
+        "Sous mandat : vous déclarez le départ, nous montons le dossier, le transmettons et suivons le paiement. Pour ce dossier seulement, nous recueillons l'identité du bénéficiaire.",
+        "Sans mandat au jour du départ, la prise en charge s'est faite entre l'entreprise et son assureur : vous gardez la fiche de calcul scellée et déclarez ce qui a été payé, sans nom.",
+        "Dans les deux cas, le départ enregistré sert l'expérience réelle de vos rapports." ] },
     ],
-    termes: ["courtage", "comparaison", "mandat"],
+    termes: ["courtage", "mandat"],
   },
   {
     id: "departs", groupe: "Le parcours", titre: "Les départs et l'historique", ecran: "departs",
@@ -207,20 +204,16 @@ export const CHAPITRES: Chapitre[] = [
         "Sur un départ en retraite, « Demander la prise en charge » ouvre un dossier : le montant demandé au fonds, l'identité du bénéficiaire et son moyen de paiement, puis les pièces (certificat de travail, attestation de départ…).",
         "Votre conseiller le vérifie — ou vous dit ce qui manque —, le scelle (numéro PC-…) et l'envoie à l'assureur. Il note sa réponse : payé, et le paiement s'inscrit sur le départ ; ou refusé, avec le motif, et le dossier peut repartir.",
         "Passé le délai de paiement exigé au cahier des charges (30 jours sinon), le retard de l'assureur est signalé.",
-        "L'identité et les pièces sont effacées douze mois après le paiement. Le numéro du dossier se vérifie toujours : son sceau public ne porte aucune donnée personnelle.",
-        "En comparaison, il n'y a pas de dossier ici : la prise en charge se demande directement à votre assureur." ] },
-      { titre: "La demande à l'assureur, en comparaison", texte: [
-        "Sur un départ en retraite, « Préparer la demande à l'assureur » dit à qui s'adresser (l'assureur et la police de votre contrat), le montant à demander — le versé, s'il est sous le dû — et le délai de paiement à attendre.",
-        "La liste des pièces que les assureurs demandent d'ordinaire se coche au fil de la préparation ; elle vous aide et ne s'enregistre pas.",
-        "La fiche de calcul de la plateforme est un PDF scellé (numéro FC-…), sans aucune donnée personnelle : joignez-la, l'assureur vérifie en ligne qu'elle n'a pas été retouchée.",
-        "Une fois payé, déclarez le montant et la date : sans nom, cela suffit pour que vos rapports tiennent compte du départ." ] },
+        "L'identité et les pièces sont effacées douze mois après le paiement. Le numéro du dossier se vérifie toujours : son sceau public ne porte aucune donnée personnelle." ] },
+      { titre: "Un départ sans mandat", texte: [
+        "Sans mandat au jour du départ, l'entreprise a traité avec son assureur. « Fiche de calcul et paiement » donne la fiche de calcul scellée (numéro FC-…, sans donnée personnelle) et reçoit ce que l'assureur a payé, sans nom." ] },
       { titre: "Ce que les rapports en font", texte: [
         "L'étude lit les départs enregistrés à sa date : les retraites que l'étude précédente prévoyait contre celles qui ont eu lieu, année par année — c'est scellé avec l'étude.",
         "La rotation observée (démissions et licenciements, rapportés à l'effectif) est comparée à l'hypothèse. Avec au moins cinq départs et un écart d'un demi-point, elle est PROPOSÉE ; jamais appliquée d'office : la retenir se fait dans une nouvelle étude, avec une justification qui figure au rapport.",
         "Un salarié enregistré comme parti mais encore présent dans le fichier est signalé : l'engagement le compterait.",
         "Le cahier des charges montre aux assureurs les retraites passées par années regroupées — au moins trois par période — et les délais de paiement constatés sur les dossiers suivis." ] },
     ],
-    termes: ["turnover", "fonds", "prise_en_charge", "courtage", "comparaison"],
+    termes: ["turnover", "fonds", "prise_en_charge", "courtage"],
   },
   {
     id: "equipe", groupe: "Le parcours", titre: "L'équipe du dossier", ecran: "equipe",

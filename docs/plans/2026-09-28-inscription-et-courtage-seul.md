@@ -2,7 +2,7 @@
 
 Spécification : `docs/specs/2026-09-28-inscription-et-courtage-seul-design.md`.
 
-1. [ ] **Courtage seul.** Contrat : un seul service à l'écran ; « sans mandat » tant qu'aucun mandat n'est signé ;
+1. [x] **Courtage seul.** Contrat : un seul service à l'écran ; « sans mandat » tant qu'aucun mandat n'est signé ;
    l'orientation vers l'assureur retirée (route, page, guide). Cahier, envoi et réponses : conseiller seulement ;
    choix : administrateur de l'entreprise.
 2. [ ] **Activation (socle).** Migration 0023 : `organisations.activation` (`en_attente` | `confirmee` | `refusee`)

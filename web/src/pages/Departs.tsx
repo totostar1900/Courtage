@@ -10,7 +10,7 @@ import { ExpliquerCalcul } from "../composants/Calcul";
 import type { ApercuImport, CalculPrestation, Constat, ContratsDossier, MotifDepart, Prestation, Prestations } from "../types";
 import { useDossier } from "./Dossier";
 import { DemandePriseEnCharge, EtatDossier } from "./DossierPEC";
-import { OrientationAssureur } from "./Orientation";
+import { DepartHorsMandat } from "./HorsMandat";
 
 /** Les libellés des motifs, lus au rendu (la langue peut changer). */
 export const motifs = (): Record<MotifDepart, string> => ({
@@ -44,8 +44,10 @@ export default function Departs() {
         <p className="discret">
           {contrat.service === "courtage"
             ? t("En courtage, nous porterons la prise en charge auprès de votre assureur.", "Under brokerage, we will handle the benefit payment with your insurer.")
-            : t("En comparaison, la prise en charge se demande directement à votre assureur.", "Under comparison, the benefit payment is requested directly from your insurer.")}{" "}
-          <Link to="../contrat">{t("Votre contrat", "Your contract")}</Link>
+            : t("Sans mandat, la prise en charge reste entre vous et votre assureur. Signez un mandat pour que nous la portions.",
+                "Without a mandate, the benefit payment stays between you and your insurer. Sign a mandate for us to handle it.")}{" "}
+          <Link to={contrat.service === "courtage" ? "../contrat" : "../accompagnement"}>
+            {contrat.service === "courtage" ? t("Votre contrat", "Your contract") : t("Demander un accompagnement", "Request brokerage support")}</Link>
         </p>
       )}
 
@@ -74,7 +76,7 @@ export default function Departs() {
             <DemandePriseEnCharge p={volet.demander} onFermer={() => setVolet(null)} />
           )}
           {typeof volet === "object" && "orienter" in volet && (
-            <OrientationAssureur p={volet.orienter} onFermer={() => setVolet(null)} onFait={fait} />
+            <DepartHorsMandat p={volet.orienter} onFermer={() => setVolet(null)} onFait={fait} />
           )}
         </Tiroir>
       )}
@@ -118,7 +120,7 @@ export default function Departs() {
   );
 }
 
-/** Qui s'occupe de la prestation : nous (courtage, un dossier), ou l'assureur directement (comparaison). */
+/** Qui s'occupe de la prestation : nous (sous mandat, un dossier), ou l'entreprise avec son assureur (sans mandat). */
 function PriseEnCharge({ p, role, onDemander, onOrienter }:
   { p: Prestation; role: string; onDemander: () => void; onOrienter: () => void }) {
   if (p.motif !== "retraite") return null;
@@ -133,10 +135,10 @@ function PriseEnCharge({ p, role, onDemander, onOrienter }:
   }
   return (
     <div>
-      <p className="discret">{t("Au jour de ce départ, le service était la comparaison : la prise en charge se demande directement à votre assureur. Aucune identité n'est recueillie ici.",
-        "On the day of this departure, the service was comparison: the benefit payment is requested directly from your insurer. No identity is collected here.")}</p>
+      <p className="discret">{t("Sans mandat au jour de ce départ : la prise en charge s'est faite entre l'entreprise et son assureur. Aucune identité n'est recueillie ici.",
+        "No mandate on the day of this departure: the benefit payment was handled between the company and its insurer. No identity is collected here.")}</p>
       <div className="actions"><button className="principal" onClick={onOrienter}>
-        {p.part_fonds_payee !== null ? t("Revoir la demande à l'assureur", "Review the request to the insurer") : t("Préparer la demande à l'assureur", "Prepare the request to the insurer")}</button></div>
+        {p.part_fonds_payee !== null ? t("Revoir le paiement déclaré", "Review the reported payment") : t("Fiche de calcul et paiement", "Calculation sheet and payment")}</button></div>
     </div>
   );
 }
@@ -156,7 +158,7 @@ function Detail({ p }: { p: Prestation }) {
         <div><span>{t("Salaire mensuel de référence", "Reference monthly salary")}</span><span>{montant(p.salaire_mensuel_reference)}</span></div>
         {p.part_fonds_demandee !== null && <div><span>{t("Demandé au fonds", "Requested from the fund")}</span><span>{montant(p.part_fonds_demandee)}</span></div>}
         {p.payee_le && <div><span>{t("Payé par le fonds le", "Paid by the fund on")}</span><span>{dateFr(p.payee_le)}</span></div>}
-        <div><span>{t("Service au jour du départ", "Service on the day of departure")}</span><span>{p.service === "courtage" ? t("Courtage", "Brokerage") : t("Comparaison", "Comparison")}</span></div>
+        <div><span>{t("Service au jour du départ", "Service on the day of departure")}</span><span>{p.service === "courtage" ? t("Courtage (sous mandat)", "Brokerage (under mandate)") : t("Sans mandat", "No mandate")}</span></div>
         <div><span>{t("Origine", "Source")}</span><span>{p.origine === "import" ? t("Reprise d'historique (tableur)", "Imported history (spreadsheet)") : t("Saisie", "Entered by hand")}</span></div>
         {p.motif_correction && <div><span>{t("Corrige une ligne précédente", "Corrects an earlier line")}</span><span>{p.motif_correction}</span></div>}
         {p.note && <div><span>{t("Note", "Note")}</span><span>{p.note}</span></div>}
