@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Etude, FichierPersonnel
 from courtage.erreurs import ErreurMetier, Introuvable
-from courtage.fichier import Anomalie, Lecture, LigneLue, lire_fichier
+from courtage.fichier import Anomalie, Lecture, LigneLue, anomalies_en_clair, lire_fichier
+from courtage.langue import t, traduire
 
 from . import journaliser
 
@@ -25,8 +26,8 @@ def deposer(session: Session, organisation_id: uuid.UUID, auteur: uuid.UUID, *, 
     lecture = lire_fichier(contenu, nom_fichier, periodicite=periodicite)
     structurels = [a for a in lecture.anomalies if a.code in _STRUCTURELS]
     if structurels:
-        raise ErreurMetier("fichier_illisible", structurels[0].message, 422,
-                           {"anomalies": [asdict(a) for a in lecture.anomalies]})
+        raise ErreurMetier("fichier_illisible", traduire(structurels[0].code, structurels[0].message), 422,
+                           {"anomalies": anomalies_en_clair([asdict(a) for a in lecture.anomalies])})
     fichier = FichierPersonnel(
         organisation_id=organisation_id, depose_par=auteur, nom_fichier=nom_fichier,
         empreinte=hashlib.sha256(contenu).hexdigest(), date_donnees=date_donnees,
@@ -70,7 +71,7 @@ def en_clair(f: FichierPersonnel) -> dict:
     return {
         "id": str(f.id), "nom_fichier": f.nom_fichier, "depose_le": f.depose_le.isoformat(),
         "date_donnees": f.date_donnees.isoformat(), "periodicite": f.periodicite,
-        "effectif": len(f.lignes), "anomalies": f.anomalies,
+        "effectif": len(f.lignes), "anomalies": anomalies_en_clair(f.anomalies),
         "vide_le": f.vide_le.isoformat() if f.vide_le else None,
     }
 
@@ -104,9 +105,12 @@ def _sans_brouillons(session: Session, f: FichierPersonnel, auteur: uuid.UUID) -
 def supprimer(session: Session, f: FichierPersonnel, auteur: uuid.UUID) -> dict:
     """Le fichier disparaît, avec ses études en brouillon. Cité par une étude émise, il ne part pas : il s'allège."""
     if n := usages(session, f)["etudes_emises"]:
-        raise ErreurMetier("fichier_cite", f"{n} étude{'s' if n > 1 else ''} émise{'s' if n > 1 else ''} "
-                                           f"s'appuie{'nt' if n > 1 else ''} sur ce fichier : l'alléger (vider ses "
-                                           "lignes) plutôt que le supprimer ; son empreinte reste.", 409)
+        raise ErreurMetier("fichier_cite", t(
+            f"{n} étude{'s' if n > 1 else ''} émise{'s' if n > 1 else ''} "
+            f"s'appuie{'nt' if n > 1 else ''} sur ce fichier : l'alléger (vider ses "
+            "lignes) plutôt que le supprimer ; son empreinte reste.",
+            f"{n} issued stud{'ies' if n > 1 else 'y'} rel{'y' if n > 1 else 'ies'} on this file: slim it down (empty its "
+            "rows) rather than delete it; its fingerprint remains."), 409)
     brouillons = _sans_brouillons(session, f, auteur)
     journaliser(session, f.organisation_id, auteur, "fichier.supprime", f.id,
                 {"nom_fichier": f.nom_fichier, "date_donnees": f.date_donnees.isoformat(), "brouillons": brouillons})
@@ -119,7 +123,7 @@ def alleger(session: Session, f: FichierPersonnel, auteur: uuid.UUID) -> dict:
     """Vider les lignes et garder le nom, la date et l'empreinte : ce qu'une étude émise cite reste prouvé. Les
     brouillons, qui auraient besoin des lignes pour se recalculer, partent."""
     if f.vide_le is not None:
-        raise ErreurMetier("deja_allege", "Ce fichier est déjà allégé.", 409)
+        raise ErreurMetier("deja_allege", t("Ce fichier est déjà allégé.", "This file has already been slimmed down."), 409)
     brouillons = _sans_brouillons(session, f, auteur)
     effectif = len(f.lignes)
     session.execute(update(FichierPersonnel).where(FichierPersonnel.id == f.id)

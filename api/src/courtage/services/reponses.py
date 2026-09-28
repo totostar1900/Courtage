@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session, aliased
 from courtage.db import ChoixFiche, FicheRegime, Organisation, ReponseFiche
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.financement import Offre
+from courtage.langue import t
 
 from . import etudes, financement, journaliser
 
@@ -69,20 +70,27 @@ def enregistrer(session: Session, org: Organisation, auteur: uuid.UUID, fiche: F
     _ouverte(session, fiche)
     recue = donnees["recue_le"]
     if recue > date.today():
-        raise ErreurMetier("date_a_venir", "Une réponse se saisit une fois reçue : pas de date à venir.", 422)
+        raise ErreurMetier("date_a_venir", t("Une réponse se saisit une fois reçue : pas de date à venir.",
+                                              "A response is entered once received: no future date."), 422)
     if recue < fiche.emise_le.date():
-        raise ErreurMetier("reponse_avant_cahier", "Une réponse ne précède pas l'émission du cahier des charges.", 422)
+        raise ErreurMetier("reponse_avant_cahier", t("Une réponse ne précède pas l'émission du cahier des charges.",
+                                                      "A response cannot be dated before the tender specifications "
+                                                      "were issued."), 422)
     nom = donnees["assureur"].strip()
     for r in actives(session, fiche):
         if r.assureur.strip().lower() == nom.lower() and (remplace is None or r.id != remplace.id):
-            raise ErreurMetier("reponse_existante", f"{nom} a déjà une réponse à ce cahier : corrigez-la.", 409)
+            raise ErreurMetier("reponse_existante", t(f"{nom} a déjà une réponse à ce cahier : corrigez-la.",
+                                                       f"{nom} already has a response to these specifications: "
+                                                       "correct it."), 409)
     champs_offre = {}
     if offre is not None:
         nom_fichier, contenu = offre
         if not contenu.startswith(b"%PDF"):
-            raise ErreurMetier("type_de_piece", "L'offre de l'assureur se joint en PDF.", 422)
+            raise ErreurMetier("type_de_piece", t("L'offre de l'assureur se joint en PDF.",
+                                                   "The insurer's offer must be attached as a PDF."), 422)
         if len(contenu) > TAILLE_MAX_OFFRE:
-            raise ErreurMetier("piece_trop_lourde", "Une offre pèse 10 Mo au plus.", 422)
+            raise ErreurMetier("piece_trop_lourde", t("Une offre pèse 10 Mo au plus.",
+                                                       "An offer can be 10 MB at most."), 422)
         champs_offre = {"offre_nom_fichier": nom_fichier[:200], "offre_contenu": contenu,
                         "offre_empreinte": hashlib.sha256(contenu).hexdigest()}
     elif remplace is not None and remplace.offre_contenu is not None:
@@ -121,8 +129,10 @@ def choisir(session: Session, org: Organisation, auteur: uuid.UUID, fiche: Fiche
     r = _active(session, fiche, reponse_id)
     recommandee = comparer(session, fiche)["recommandee"]
     if str(r.id) != recommandee and not (motif or "").strip():
-        raise ErreurMetier("motif_requis", "Ce n'est pas l'offre conforme la moins chère : dites pourquoi vous la "
-                           "retenez (la raison figure au dossier).", 422)
+        raise ErreurMetier("motif_requis", t("Ce n'est pas l'offre conforme la moins chère : dites pourquoi vous la "
+                                             "retenez (la raison figure au dossier).",
+                                             "This is not the cheapest compliant offer: say why you are choosing it "
+                                             "(the reason goes on file)."), 422)
     c = ChoixFiche(organisation_id=org.id, fiche_id=fiche.id, reponse_id=r.id, motif=(motif or "").strip() or None,
                    choisi_par=auteur)
     session.add(c)
@@ -130,7 +140,9 @@ def choisir(session: Session, org: Organisation, auteur: uuid.UUID, fiche: Fiche
         with session.begin_nested():
             session.flush()
     except IntegrityError:
-        raise ErreurMetier("fiche_attribuee", "Ce cahier des charges est déjà attribué.", 409) from None
+        raise ErreurMetier("fiche_attribuee", t("Ce cahier des charges est déjà attribué.",
+                                                 "These tender specifications have already been awarded."),
+                           409) from None
     journaliser(session, org.id, auteur, "fiche.attribuee", fiche.id, {"reponse": str(r.id), "assureur": r.assureur,
                                                                         "recommandee": str(r.id) == recommandee})
     return c
@@ -138,15 +150,19 @@ def choisir(session: Session, org: Organisation, auteur: uuid.UUID, fiche: Fiche
 
 def _ouverte(session: Session, fiche: FicheRegime) -> None:
     if choix(session, fiche) is not None:
-        raise ErreurMetier("fiche_attribuee", "Ce cahier des charges est attribué : il ne reçoit plus de réponse et "
-                           "ne change plus de choix.", 409)
+        raise ErreurMetier("fiche_attribuee", t("Ce cahier des charges est attribué : il ne reçoit plus de réponse et "
+                                                "ne change plus de choix.",
+                                                "These tender specifications have been awarded: they take no more "
+                                                "responses and the choice no longer changes."), 409)
 
 
 def _active(session: Session, fiche: FicheRegime, reponse_id: uuid.UUID) -> ReponseFiche:
     r = next((x for x in actives(session, fiche) if x.id == reponse_id), None)
     if r is None:
-        raise ErreurMetier("reponse_inactive", "Cette réponse a été corrigée ou retirée, ou n'existe pas : prenez la "
-                           "plus récente.", 409)
+        raise ErreurMetier("reponse_inactive", t("Cette réponse a été corrigée ou retirée, ou n'existe pas : prenez la "
+                                                 "plus récente.",
+                                                 "This response has been corrected or withdrawn, or does not exist: "
+                                                 "use the most recent one."), 409)
     return r
 
 
@@ -156,12 +172,16 @@ def _inserer(session: Session, r: ReponseFiche) -> None:
         with session.begin_nested():
             session.flush()
     except IntegrityError:
-        raise ErreurMetier("reponse_inactive", "Cette réponse a déjà été corrigée ou retirée.", 409) from None
+        raise ErreurMetier("reponse_inactive", t("Cette réponse a déjà été corrigée ou retirée.",
+                                                  "This response has already been corrected or withdrawn."),
+                           409) from None
 
 
 def _motif(texte: str | None) -> str:
     if not (texte or "").strip():
-        raise ErreurMetier("motif_correction_requis", "Dites pourquoi la réponse est corrigée ou retirée.", 422)
+        raise ErreurMetier("motif_correction_requis", t("Dites pourquoi la réponse est corrigée ou retirée.",
+                                                         "Say why the response is being corrected or withdrawn."),
+                           422)
     return texte.strip()
 
 

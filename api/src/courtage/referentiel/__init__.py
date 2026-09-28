@@ -17,11 +17,21 @@ from typing import Annotated, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from courtage.langue import t
+
 VERSION_COURANTE = "2026-09-26"
 # Le périmètre servi aujourd'hui (décision du 26/09) : consultation et extraction assistée. Les conventions
 # d'autres pays restent au référentiel, parce que des études s'y réfèrent, mais ne sont pas proposées.
 CEMAC = {"CM": "Cameroun", "GA": "Gabon", "CG": "Congo", "TD": "Tchad", "CF": "Centrafrique", "GQ": "Guinée équatoriale"}
+CEMAC_EN = {"CM": "Cameroon", "GA": "Gabon", "CG": "Congo", "TD": "Chad", "CF": "Central African Republic",
+            "GQ": "Equatorial Guinea"}
 _DONNEES = files(__package__) / "donnees"
+
+
+def nom_du_pays(code: str | None) -> str:
+    """Le nom d'un pays de la CEMAC dans la langue de l'écran ; le code lui-même hors CEMAC."""
+    code = code or ""
+    return t(CEMAC.get(code, code), CEMAC_EN.get(code, code))
 
 
 class _Strict(BaseModel):
@@ -133,11 +143,12 @@ class Referentiel:
     def convention(self, code: str, a_la_date: date) -> Convention:
         versions = [c for c in self.conventions if c.code == code]
         if not versions:
-            raise LookupError(f"convention inconnue : {code}")
+            raise LookupError(t(f"convention inconnue : {code}", f"unknown collective agreement: {code}"))
         for c in versions:
             if c.en_vigueur(a_la_date):
                 return c
-        raise LookupError(f"aucune version de {code} en vigueur le {a_la_date.isoformat()}")
+        raise LookupError(t(f"aucune version de {code} en vigueur le {a_la_date.isoformat()}",
+                            f"no version of {code} in force on {a_la_date.isoformat()}"))
 
     def conventions_du_pays(self, pays: str, a_la_date: date) -> list[Convention]:
         return [c for c in self.conventions if c.pays == pays and c.en_vigueur(a_la_date)]
@@ -184,7 +195,8 @@ def charger_convention(code: str, a_la_date: date | None = None) -> Convention:
         return ref.convention(code, a_la_date)
     versions = [c for c in ref.conventions if c.code == code]
     if len(versions) != 1:
-        raise LookupError(f"{code} a {len(versions)} versions : préciser la date")
+        raise LookupError(t(f"{code} a {len(versions)} versions : préciser la date",
+                            f"{code} has {len(versions)} versions: specify the date"))
     return versions[0]
 
 

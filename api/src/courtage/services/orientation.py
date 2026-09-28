@@ -16,8 +16,9 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Contrat, Document, Organisation, Prestation, Utilisateur
 from courtage.erreurs import ErreurMetier, Introuvable
+from courtage.langue import langue, t
 
-from . import contrats, journaliser, rapport
+from . import contrats, journaliser, prestations, rapport
 from .dossiers import _delai
 
 # Ce que les assureurs demandent d'ordinaire : une aide, pas une liste officielle.
@@ -39,12 +40,38 @@ PIECES = [
 ]
 
 
+PIECES_EN = {
+    "courrier_demande": ("The company's request",
+                         "A signed letter quoting the policy, the staff number, the departure date and the amount "
+                         "claimed."),
+    "fiche_de_calcul": ("The platform's calculation sheet",
+                        "Sealed: the insurer checks online that it has not been altered."),
+    "certificat_travail": ("The employment certificate", "It establishes the hire and departure dates."),
+    "attestation_depart": ("The retirement certificate", "Or the notice of retirement."),
+    "piece_identite": ("The employee's identity document",
+                       "To be sent to the insurer only: the platform does not ask for it."),
+    "coordonnees_paiement": ("The payment details",
+                             "The company's if the insurer reimburses it, the employee's if the insurer pays them "
+                             "directly."),
+    "justificatif_versement": ("Proof of payment to the employee",
+                               "If the company has already paid the benefit and is claiming reimbursement."),
+}
+
+
+def pieces() -> list[dict]:
+    """Les pièces usuelles, dans la langue de l'écran."""
+    if langue() != "en":
+        return PIECES
+    return [{**p, "libelle": PIECES_EN[p["nature"]][0], "detail": PIECES_EN[p["nature"]][1]} for p in PIECES]
+
+
 def _prestation_retraite(session: Session, prestation_id) -> Prestation:
     p = session.get(Prestation, prestation_id)
     if p is None or p.annulation:
         raise Introuvable("Prestation")
     if p.motif != "retraite":
-        raise ErreurMetier("pas_d_ifc", "Seul un départ en retraite ouvre droit à l'IFC : rien à demander.", 409)
+        raise ErreurMetier("pas_d_ifc", t("Seul un départ en retraite ouvre droit à l'IFC : rien à demander.",
+                                           "Only a retirement gives entitlement to the IFC: nothing to claim."), 409)
     return p
 
 
@@ -55,21 +82,28 @@ def orienter(session: Session, prestation_id) -> dict:
     delai, exige = _delai(session)
     a_demander = min(p.du, p.verse) if p.verse is not None else p.du
     if service.service == "courtage":
-        message = "Au jour de ce départ, la plateforme est votre courtier : elle porte la demande. Ouvrez le dossier " \
-                  "de prise en charge."
+        message = t("Au jour de ce départ, la plateforme est votre courtier : elle porte la demande. Ouvrez le dossier "
+                    "de prise en charge.",
+                    "On the date of this departure, the platform is your broker: it handles the claim. Open the "
+                    "claim file.")
     elif c and c.assureur:
-        message = f"Adressez la demande à {c.assureur}, avec les pièces ci-dessous. La plateforme ne transmet rien " \
-                  "et ne recueille aucune identité."
+        message = t(f"Adressez la demande à {c.assureur}, avec les pièces ci-dessous. La plateforme ne transmet rien "
+                    "et ne recueille aucune identité.",
+                    f"Send the claim to {c.assureur}, with the documents below. The platform forwards nothing and "
+                    "collects no identity.")
     else:
-        message = "Aucun assureur n'est enregistré pour ce départ : adressez-vous à celui qui gère votre fonds " \
-                  "d'IFC, et demandez à votre conseiller de l'enregistrer dans « Contrat »."
+        message = t("Aucun assureur n'est enregistré pour ce départ : adressez-vous à celui qui gère votre fonds "
+                    "d'IFC, et demandez à votre conseiller de l'enregistrer dans « Contrat ».",
+                    "No insurer is recorded for this departure: contact whoever manages your IFC fund, and ask your "
+                    "adviser to record it under “Contract”.")
     return {
         "prestation_id": str(p.id), "service": service.service,
         "qui_s_en_occupe": "plateforme" if service.service == "courtage" else "entreprise",
         "assureur": c.assureur if c else None, "numero_police": c.numero_police if c else None,
         "date_effet_police": c.date_effet_police.isoformat() if c and c.date_effet_police else None,
-        "du": p.du, "verse": p.verse, "montant_a_demander": a_demander, "calcul": p.calcul,
-        "delai_jours": delai, "delai_exige": exige, "pieces": PIECES, "message": message,
+        "du": p.du, "verse": p.verse, "montant_a_demander": a_demander,
+        "calcul": prestations._calcul_en_clair(p.calcul),
+        "delai_jours": delai, "delai_exige": exige, "pieces": pieces(), "message": message,
     }
 
 

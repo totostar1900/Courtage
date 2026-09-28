@@ -16,6 +16,7 @@ from courtage.actuariat.ifc import mois_d_ifc
 from courtage.catalogue import SECTEURS, SEUIL, TAILLES, Partage, anonymiser_categories, groupes_visibles
 from courtage.db import EntreeCatalogue, Organisation, PartageRegime, RetraitCatalogue, VersionRegime
 from courtage.erreurs import ErreurMetier, Introuvable
+from courtage.langue import t
 from courtage.referentiel import CEMAC, BaremePaliers, BaremeTranches, referentiel_courant
 from courtage.services import journaliser
 from courtage.services.regimes import categories_de
@@ -48,12 +49,13 @@ def _retirer_actifs(session: Session, org: Organisation) -> None:
 def partager(session: Session, org: Organisation, version: VersionRegime, auteur: uuid.UUID, *,
              secteur: str, taille: str) -> PartageRegime:
     if org.pays not in CEMAC:
-        raise ErreurMetier("hors_cemac", "Le catalogue réunit pour l'instant les régimes des pays de la CEMAC.", 422)
+        raise ErreurMetier("hors_cemac", t("Le catalogue réunit pour l'instant les régimes des pays de la CEMAC.", "For now the catalogue covers plans from CEMAC countries only."), 422)
     if version.statut != "adoptee":
-        raise ErreurMetier("version_non_adoptee", "Seule une version adoptée se partage : un projet n'est le "
-                           "régime de personne.", 409)
+        raise ErreurMetier("version_non_adoptee", t("Seule une version adoptée se partage : un projet n'est le "
+                             "régime de personne.",
+                             "Only an adopted version can be shared: a draft is nobody's plan."), 409)
     if secteur not in SECTEURS or taille not in TAILLES:
-        raise ErreurMetier("requete_invalide", "Secteur ou taille inconnus.", 422)
+        raise ErreurMetier("requete_invalide", t("Secteur ou taille inconnus.", "Unknown sector or size."), 422)
     categories = categories_de(session, version)
     principale = next((c for c in categories if c.categorie == "*"), categories[0])
     _retirer_actifs(session, org)                       # une entreprise, un partage actif
@@ -128,7 +130,7 @@ def consulter(session: Session, jour: date | None = None) -> dict:
         groupes.append({
             **{k: attributs.get(k) for k in ("pays", "secteur", "taille")},
             "libelle": " · ".join(([SECTEURS[attributs["secteur"]]] if "secteur" in attributs else [])
-                                  + [CEMAC[attributs["pays"]] if "pays" in attributs else "Afrique centrale (CEMAC)"]
+                                  + [CEMAC[attributs["pays"]] if "pays" in attributs else t("Afrique centrale (CEMAC)", "Central Africa (CEMAC)")]
                                   + ([TAILLES[attributs["taille"]]] if "taille" in attributs else [])),
             "entreprises": len({m.empreinte for m in membres}), "regimes": entrees,
         })

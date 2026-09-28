@@ -1389,12 +1389,12 @@ describe("la bascule FR/EN", () => {
     ouvrir(`/dossier/${ORG}/etudes`);
     await screen.findByRole("heading", { name: "Évaluer votre engagement" });
     await userEvent.click(screen.getByRole("button", { name: "EN" }));
-    expect(await screen.findByRole("button", { name: "Sign out" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "My profile" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
     expect(localStorage.getItem("courtage:langue")).toBe("en");
     expect(document.documentElement.lang).toBe("en");
     await userEvent.click(screen.getByRole("button", { name: "FR" }));
-    expect(await screen.findByRole("button", { name: "Se déconnecter" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Mon profil" })).toBeInTheDocument();
   });
 });
 

@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from courtage.actuariat.ifc import mois_dus
 from courtage.db import Document, FichierPersonnel, Organisation, Sceau, Utilisateur, VersionRegime
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 from courtage.referentiel import referentiel_courant
 
 from . import journaliser, rapport, regimes
@@ -36,9 +37,10 @@ def emettre(session: Session, org: Organisation, version: VersionRegime, nature:
             config: rapport.ConfigSceau, aujourd_hui: date) -> Document:
     """La note, scellée à la première demande ; la même ensuite."""
     if nature not in NATURES:
-        raise ErreurMetier("note_inconnue", "Note inconnue.", 404)
+        raise ErreurMetier("note_inconnue", t("Note inconnue.", "Unknown note."), 404)
     if version.statut != "adoptee":
-        raise ErreurMetier("version_non_adoptee", "Une note se tire d'une version adoptée : l'adopter d'abord.", 409)
+        raise ErreurMetier("version_non_adoptee", t("Une note se tire d'une version adoptée : l'adopter d'abord.",
+                                                     "A note is drawn from an adopted version: adopt it first."), 409)
     if (d := existante(session, version, nature)) is not None:
         return d
     code, gabarit, titre = NATURES[nature]

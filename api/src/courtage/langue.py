@@ -52,3 +52,15 @@ class MiddlewareLangue:
             await self.app(scope, receive, send)
         finally:
             _langue.reset(jeton)
+
+
+class en_francais:
+    """Le temps de bâtir un document scellé ou un export : toujours en français, quelle que soit la langue de
+    l'écran. Un sceau ne dépend pas de la langue de celui qui l'a demandé."""
+    def __enter__(self):
+        self._jeton = _langue.set("fr")
+        return self
+
+    def __exit__(self, *_):
+        _langue.reset(self._jeton)
+        return False

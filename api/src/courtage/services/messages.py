@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import MessageDossier, Utilisateur
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 
 from . import journaliser
 
@@ -21,9 +22,9 @@ def cote_de(role: str | None, admin_plateforme: bool) -> str:
 def envoyer(session: Session, organisation_id: uuid.UUID, auteur: uuid.UUID, cote: str, texte: str) -> MessageDossier:
     texte = (texte or "").strip()
     if not texte:
-        raise ErreurMetier("message_vide", "Écrire un message.", 422)
+        raise ErreurMetier("message_vide", t("Écrire un message.", "Write a message."), 422)
     if len(texte) > 4000:
-        raise ErreurMetier("message_trop_long", "4 000 caractères au plus.", 422)
+        raise ErreurMetier("message_trop_long", t("4 000 caractères au plus.", "4,000 characters at most."), 422)
     m = MessageDossier(organisation_id=organisation_id, auteur=auteur, cote=cote, texte=texte)
     session.add(m)
     session.flush()

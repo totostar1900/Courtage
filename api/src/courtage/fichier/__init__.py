@@ -8,9 +8,11 @@ ne sont jamais lues (spec §2.8).
 """
 from .controles import controler, controler_parametres, controler_resultat
 from .lecture import Anomalie, Lecture, LigneLue, lire_fichier, salaries
+from .traductions import anomalies_en_clair  # inscrit les traductions des anomalies
 
 __all__ = [
     "Anomalie",
+    "anomalies_en_clair",
     "Lecture",
     "LigneLue",
     "controler",

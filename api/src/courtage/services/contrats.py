@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Contrat, DossierPriseEnCharge, MandatCourtage, Prestation
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 
 from . import journaliser
 
@@ -39,8 +40,10 @@ def enregistrer(session: Session, organisation_id: uuid.UUID, auteur: uuid.UUID,
     assureur = (assureur or "").strip() or None
     mandat_reference = (mandat_reference or "").strip() or None
     if service == "courtage" and not mandat_reference:
-        raise ErreurMetier("mandat_requis", "Un courtage suppose un mandat signé par le client : indiquez sa "
-                           "référence. L'assureur peut venir ensuite, une fois le contrat placé.", 422)
+        raise ErreurMetier("mandat_requis", t("Un courtage suppose un mandat signé par le client : indiquez sa "
+                             "référence. L'assureur peut venir ensuite, une fois le contrat placé.",
+                             "Brokerage requires a mandate signed by the client: enter its reference. The insurer "
+                             "can come later, once the contract is placed."), 422)
     contrat = Contrat(organisation_id=organisation_id, en_vigueur_du=en_vigueur_du, service=service, assureur=assureur,
                       numero_police=(numero_police or "").strip() or None, date_effet_police=date_effet_police,
                       mandat_reference=mandat_reference, note=note, cree_par=auteur)
@@ -50,7 +53,8 @@ def enregistrer(session: Session, organisation_id: uuid.UUID, auteur: uuid.UUID,
     except IntegrityError as e:
         if "contrats_organisation_id_en_vigueur_du_key" in str(e.orig):
             raise ErreurMetier("contrat_deja_enregistre",
-                               f"Un contrat prend déjà effet le {en_vigueur_du:%d/%m/%Y}.", 409) from None
+                               t(f"Un contrat prend déjà effet le {en_vigueur_du:%d/%m/%Y}.",
+                                 f"A contract already takes effect on {en_vigueur_du:%d/%m/%Y}."), 409) from None
         raise
     journaliser(session, organisation_id, auteur, "contrat.enregistre", contrat.id,
                 {"service": service, "en_vigueur_du": en_vigueur_du.isoformat()})
@@ -83,15 +87,16 @@ def raison_de_garder(session: Session, c: Contrat) -> str | None:
     """Un contrat qu'un dossier de prise en charge cite, ou dont la période couvre un départ enregistré, reste : il dit
     sous quel service ce départ a été traité. Sinon, saisi par erreur, il se supprime."""
     if session.scalar(select(func.count()).select_from(DossierPriseEnCharge).where(DossierPriseEnCharge.contrat_id == c.id)):
-        return "Un dossier de prise en charge s'appuie sur ce contrat : il reste."
+        return t("Un dossier de prise en charge s'appuie sur ce contrat : il reste.", "A claim file relies on this contract: it stays.")
     if session.scalar(select(func.count()).select_from(MandatCourtage).where(MandatCourtage.contrat_id == c.id)):
-        return "Il découle d'un mandat signé sur la plateforme : il reste."
+        return t("Il découle d'un mandat signé sur la plateforme : il reste.", "It derives from a mandate signed on the platform: it stays.")
     suivant = session.scalar(select(func.min(Contrat.en_vigueur_du)).where(Contrat.en_vigueur_du > c.en_vigueur_du))
     requete = select(func.count()).select_from(Prestation).where(Prestation.date_depart >= c.en_vigueur_du)
     if suivant is not None:
         requete = requete.where(Prestation.date_depart < suivant)
     if session.scalar(requete):
-        return "Des départs enregistrés tombent dans sa période : il dit sous quel service ils ont été traités."
+        return t("Des départs enregistrés tombent dans sa période : il dit sous quel service ils ont été traités.",
+                 "Recorded departures fall within its period: it states under which service they were handled.")
     return None
 
 

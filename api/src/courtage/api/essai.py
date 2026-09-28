@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 from courtage.services import essai, regimes
 
 from .limites import limite
@@ -39,11 +40,11 @@ class Parametres(BaseModel):
 async def etude_d_essai(fichier: UploadFile = File(...), parametres: str = Form(...)):
     contenu = await fichier.read()
     if len(contenu) > 2 * 1024 * 1024:
-        raise ErreurMetier("fichier_trop_lourd", "Un fichier de 2 Mo au plus pour l'essai.", 422)
+        raise ErreurMetier("fichier_trop_lourd", t("Un fichier de 2 Mo au plus pour l'essai.", "A file of 2 MB at most for the trial."), 422)
     try:
         p = Parametres.model_validate(json.loads(parametres))
     except (ValueError, ValidationError):
-        raise ErreurMetier("parametres_invalides", "Paramètres de l'essai invalides.", 422) from None
+        raise ErreurMetier("parametres_invalides", t("Paramètres de l'essai invalides.", "Invalid trial parameters."), 422) from None
     categories = None if not p.categories else [
         regimes.SaisieCategorie(**{**c.model_dump(), "evenements": tuple(c.evenements)}) for c in p.categories]
     return essai.evaluer_essai(contenu=contenu, nom_fichier=fichier.filename or "personnel.xlsx", pays=p.pays,

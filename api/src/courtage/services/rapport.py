@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Document, Etude, Organisation, Sceau, Utilisateur
 from courtage.erreurs import ErreurMetier, Introuvable
+from courtage.langue import t
 from courtage.referentiel import referentiel_courant
 
 from . import etudes, fichiers, hypotheses, lecture
@@ -103,7 +104,7 @@ def sceller_document(session: Session, org: Organisation, *, nature: str, emprei
 def document_de(session: Session, etude: Etude) -> Document:
     document = session.scalars(select(Document).where(Document.etude_id == etude.id)).first()
     if document is None:
-        raise ErreurMetier("rapport_indisponible", "Le rapport existe une fois l'étude émise.", 404)
+        raise ErreurMetier("rapport_indisponible", t("Le rapport existe une fois l'étude émise.", "The report exists once the study has been issued."), 404)
     return document
 
 

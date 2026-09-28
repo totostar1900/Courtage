@@ -19,8 +19,8 @@ export const libellesRoles = (): Record<Role, string> => ({
 });
 
 const definitions = (): Record<Role, string> => ({
-  admin_client: t("décide : adopte le régime, choisit l'assureur, gère ses collègues", "decides: adopts the scheme, chooses the insurer, manages colleagues"),
-  contributeur_client: t("dépose le personnel, prépare régimes et études, sans adopter", "uploads the staff list, prepares schemes and studies, without adopting"),
+  admin_client: t("décide : adopte le régime, choisit l'assureur, gère ses collègues", "decides: adopts the plan, chooses the insurer, manages colleagues"),
+  contributeur_client: t("dépose le personnel, prépare régimes et études, sans adopter", "uploads the staff list, prepares plans and studies, without adopting"),
   lecteur_client: t("consulte tout, sans rien modifier", "sees everything, changes nothing"),
   conseiller: t("suit le dossier, émet les études, gère toute l'équipe", "follows the file, issues the studies, manages the whole team"),
 });

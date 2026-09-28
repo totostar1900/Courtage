@@ -1,11 +1,20 @@
 // Le guide : un texte, lu par l'écran Guide, cité par les infobulles, parcouru par la visite.
 // Un chapitre dit ce qu'on fait, pourquoi, et ce que la plateforme fait pour vous — dans cet ordre.
 
+// Deux langues : le texte français est écrit ici tel quel ; l'anglais vit à côté, dans ./chapitres-en, chapitre par
+// chapitre et section par section, dans le même ordre. `CHAPITRES` se relit dans la langue du moment (une liste
+// vivante, comme les étapes de la visite) : pas de texte figé à l'import.
+
+import { langue } from "../i18n";
+import { CHAPITRES_EN, GROUPES_EN } from "./chapitres-en";
 import type { CleTerme } from "./glossaire";
+import { listeVivante } from "./visite";
+
+type Groupe = "Commencer" | "Le parcours" | "Comprendre" | "Référence";
 
 export interface Chapitre {
   id: string;
-  groupe: "Commencer" | "Le parcours" | "Comprendre" | "Référence";
+  groupe: string;           // le nom du groupe, dans la langue du moment (l'un de GROUPES)
   titre: string;
   resume: string;
   sections: { titre: string; texte: string[] }[];
@@ -13,7 +22,7 @@ export interface Chapitre {
   termes?: CleTerme[];
 }
 
-export const CHAPITRES: Chapitre[] = [
+const FR: (Chapitre & { groupe: Groupe })[] = [
   {
     id: "bienvenue", groupe: "Commencer", titre: "Ce que fait la plateforme",
     resume: "Votre engagement d'IFC, calculé avant d'être vendu, puis mis en concurrence.",
@@ -331,4 +340,39 @@ export const CHAPITRES: Chapitre[] = [
   },
 ];
 
-export const GROUPES = ["Commencer", "Le parcours", "Comprendre", "Référence"] as const;
+const GROUPES_FR: Groupe[] = ["Commencer", "Le parcours", "Comprendre", "Référence"];
+
+/** L'anglais posé sur le français : même id, mêmes sections, même nombre de paragraphes. Ce qui manquerait reste en
+ *  français plutôt que de disparaître. */
+function enAnglais(c: Chapitre & { groupe: Groupe }): Chapitre {
+  const en = CHAPITRES_EN[c.id];
+  return {
+    ...c,
+    groupe: GROUPES_EN[c.groupe],
+    titre: en?.titre ?? c.titre,
+    resume: en?.resume ?? c.resume,
+    sections: c.sections.map((s, i) => ({
+      titre: en?.sections[i]?.titre ?? s.titre,
+      texte: s.texte.map((x, k) => en?.sections[i]?.texte[k] ?? x),
+    })),
+  };
+}
+
+// Une liste par langue, construite une fois : un chapitre garde son identité d'une lecture à l'autre
+// (`CHAPITRES.indexOf(c)` retrouve le chapitre que `CHAPITRES.find` a rendu).
+let anglais: Chapitre[] | undefined;
+
+/** Les chapitres, dans la langue du moment. */
+export function chapitres(): Chapitre[] {
+  if (langue() !== "en") return FR;
+  return (anglais ??= FR.map(enAnglais));
+}
+
+/** Les groupes du sommaire, dans la langue du moment. */
+export function groupes(): string[] {
+  return langue() === "en" ? GROUPES_FR.map((g) => GROUPES_EN[g]) : GROUPES_FR;
+}
+
+/** Les mêmes listes, relues à chaque accès : pour qui les importe comme des constantes. */
+export const CHAPITRES: Chapitre[] = listeVivante(chapitres);
+export const GROUPES: string[] = listeVivante(groupes);

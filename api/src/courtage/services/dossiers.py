@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session
 from courtage.db import (Beneficiaire, Contrat, DossierPriseEnCharge, EvenementDossier, FicheRegime, Organisation,
                          PieceDossier, Prestation, Utilisateur, contexte)
 from courtage.erreurs import ErreurMetier, Introuvable
+from courtage.langue import t
 
 from . import contrats, journaliser, prestations, rapport
 
@@ -56,18 +57,22 @@ def ouvrir(session: Session, org: Organisation, auteur: uuid.UUID, *, prestation
     service = contrats.service_a_la_date(session, p.date_depart)
     if service.service != "courtage":
         assureur = f" ({service.contrat.assureur})" if service.contrat and service.contrat.assureur else ""
-        raise ErreurMetier("pas_de_mandat", "Au jour de ce départ, la plateforme n'était pas mandatée : la prise en "
-                           f"charge se demande directement à votre assureur{assureur}. Aucune identité n'est "
-                           "recueillie ici.", 409)
+        raise ErreurMetier("pas_de_mandat", t("Au jour de ce départ, la plateforme n'était pas mandatée : la prise en "
+                             f"charge se demande directement à votre assureur{assureur}. Aucune identité n'est "
+                             "recueillie ici.",
+                             "On the date of this departure, the platform held no mandate: ask your insurer"
+                             f"{assureur} directly for payment. No identity details are collected here."), 409)
     if p.motif != "retraite":
-        raise ErreurMetier("pas_d_ifc", "Seul un départ en retraite ouvre droit à l'IFC.", 409)
+        raise ErreurMetier("pas_d_ifc", t("Seul un départ en retraite ouvre droit à l'IFC.", "Only a retirement departure gives entitlement to the IFC."), 409)
     plafond = p.verse if p.verse is not None else p.du
     if montant_demande > plafond:
-        raise ErreurMetier("demande_au_dela_du_verse", f"La demande ({montant_demande:,} F) dépasse ce qui a été "
-                           f"{'versé' if p.verse is not None else 'dû'} ({plafond:,} F).".replace(",", " "), 422)
+        raise ErreurMetier("demande_au_dela_du_verse", t(f"La demande ({montant_demande:,} F) dépasse ce qui a été "
+                             f"{'versé' if p.verse is not None else 'dû'} ({plafond:,} F).".replace(",", " "),
+                             f"The claim ({montant_demande:,} F) exceeds what was "
+                             f"{'paid' if p.verse is not None else 'due'} ({plafond:,} F).".replace(",", " ")), 422)
     if session.scalar(select(DossierPriseEnCharge.id).where(DossierPriseEnCharge.matricule == p.matricule,
                                                             DossierPriseEnCharge.date_depart == p.date_depart)):
-        raise ErreurMetier("dossier_existant", "Un dossier existe déjà pour ce départ.", 409)
+        raise ErreurMetier("dossier_existant", t("Un dossier existe déjà pour ce départ.", "A file already exists for this departure."), 409)
     d = DossierPriseEnCharge(organisation_id=org.id, matricule=p.matricule, date_depart=p.date_depart,
                              prestation_id=p.id, contrat_id=service.contrat.id, montant_demande=montant_demande,
                              cree_par=auteur)
@@ -84,14 +89,14 @@ def ouvrir(session: Session, org: Organisation, auteur: uuid.UUID, *, prestation
 def ajouter_piece(session: Session, org: Organisation, auteur: uuid.UUID, d: DossierPriseEnCharge, *, nature: str,
                   nom_fichier: str, contenu: bytes) -> PieceDossier:
     if nature not in NATURES:
-        raise ErreurMetier("nature_inconnue", f"Nature de pièce inconnue : {nature}.", 422)
+        raise ErreurMetier("nature_inconnue", t(f"Nature de pièce inconnue : {nature}.", f"Unknown document type: {nature}."), 422)
     if statut(session, d) == "paye" or _efface(session, d):
-        raise ErreurMetier("dossier_clos", "Le dossier est payé : il ne reçoit plus de pièce.", 409)
+        raise ErreurMetier("dossier_clos", t("Le dossier est payé : il ne reçoit plus de pièce.", "The file has been paid: it no longer accepts documents."), 409)
     if len(contenu) > TAILLE_MAX:
-        raise ErreurMetier("piece_trop_lourde", "Une pièce pèse 5 Mo au plus.", 422)
+        raise ErreurMetier("piece_trop_lourde", t("Une pièce pèse 5 Mo au plus.", "A document may weigh 5 MB at most."), 422)
     type_contenu = next((t for signature, t in _TYPES if contenu.startswith(signature)), None)
     if type_contenu is None:
-        raise ErreurMetier("type_de_piece", "Une pièce est un PDF, un JPEG ou un PNG.", 422)
+        raise ErreurMetier("type_de_piece", t("Une pièce est un PDF, un JPEG ou un PNG.", "A document must be a PDF, JPEG or PNG."), 422)
     piece = PieceDossier(organisation_id=org.id, dossier_id=d.id, nature=nature, nom_fichier=nom_fichier[:200],
                          type_contenu=type_contenu, contenu=contenu, empreinte=hashlib.sha256(contenu).hexdigest(),
                          cree_par=auteur)
@@ -113,8 +118,9 @@ def document(session: Session, d: DossierPriseEnCharge) -> PieceDossier:
                                                    PieceDossier.nature == "dossier_scelle")
                         .order_by(PieceDossier.cree_le.desc()).limit(1)).first()
     if p is None:
-        raise ErreurMetier("document_indisponible", "Le dossier scellé existe une fois transmis, et jusqu'à "
-                           "l'effacement de l'identité.", 404)
+        raise ErreurMetier("document_indisponible", t("Le dossier scellé existe une fois transmis, et jusqu'à "
+                             "l'effacement de l'identité.",
+                             "The sealed file exists once it has been sent, and until the identity is erased."), 404)
     return p
 
 
@@ -123,7 +129,7 @@ def document(session: Session, d: DossierPriseEnCharge) -> PieceDossier:
 def verifier(session: Session, org: Organisation, auteur: uuid.UUID, d: DossierPriseEnCharge, *, conforme: bool,
              motif: str | None, aujourd_hui: date) -> None:
     if not conforme and not (motif or "").strip():
-        raise ErreurMetier("motif_requis", "Dites à l'entreprise ce qui manque.", 422)
+        raise ErreurMetier("motif_requis", t("Dites à l'entreprise ce qui manque.", "Tell the company what is missing."), 422)
     _avancer(session, d, "verifie" if conforme else "a_completer", auteur, aujourd_hui, motif=motif)
     journaliser(session, org.id, auteur, "dossier.verifie" if conforme else "dossier.a_completer", d.id)
 
@@ -174,7 +180,7 @@ def repondre(session: Session, org: Organisation, auteur: uuid.UUID, d: DossierP
              montant: int | None, le: date, motif: str | None) -> None:
     if paye:
         if not montant or montant <= 0:
-            raise ErreurMetier("montant_requis", "Indiquez le montant payé par l'assureur.", 422)
+            raise ErreurMetier("montant_requis", t("Indiquez le montant payé par l'assureur.", "Enter the amount paid by the insurer."), 422)
         _avancer(session, d, "paye", auteur, le, montant=montant)
         # Le paiement constaté s'écrit sur la prestation : une ligne qui remplace la précédente.
         p = _prestation_active(session, d)
@@ -188,7 +194,7 @@ def repondre(session: Session, org: Organisation, auteur: uuid.UUID, d: DossierP
         prestations.corriger(session, org, auteur, p.id, s, f"Paiement constaté — dossier {numero(session, d)}")
     else:
         if not (motif or "").strip():
-            raise ErreurMetier("motif_requis", "Un refus se motive : recopiez celui de l'assureur.", 422)
+            raise ErreurMetier("motif_requis", t("Un refus se motive : recopiez celui de l'assureur.", "A refusal needs a reason: copy the insurer's."), 422)
         _avancer(session, d, "refuse", auteur, le, motif=motif)
     journaliser(session, org.id, auteur, "dossier.paye" if paye else "dossier.refuse", d.id,
                 {"montant": montant} if paye else {})
@@ -294,7 +300,8 @@ def _efface(session: Session, d: DossierPriseEnCharge) -> bool:
 def _exiger(session: Session, d: DossierPriseEnCharge, suivante: str) -> None:
     courant = statut(session, d)
     if suivante not in _SUITES[courant]:
-        raise ErreurMetier("etape_impossible", f"Le dossier est « {courant} » : il ne peut pas passer à « {suivante} ».",
+        raise ErreurMetier("etape_impossible", t(f"Le dossier est « {courant} » : il ne peut pas passer à « {suivante} ».",
+                             f"The file is at “{courant}”: it cannot move to “{suivante}”."),
                            409)
 
 
@@ -308,12 +315,13 @@ def _dater(session, d: DossierPriseEnCharge, etape: str, le: date) -> None:
     """Une date peut être passée (un dossier repris, envoyé avant d'arriver ici), jamais à venir ni avant le
     départ ; et l'assureur ne répond pas avant d'avoir reçu le dossier."""
     if le > date.today():
-        raise ErreurMetier("date_a_venir", "Une étape se note quand elle a eu lieu : pas de date à venir.", 422)
+        raise ErreurMetier("date_a_venir", t("Une étape se note quand elle a eu lieu : pas de date à venir.", "A step is recorded once it has happened: no future dates."), 422)
     if le < d.date_depart:
-        raise ErreurMetier("date_avant_depart", "Une étape du dossier ne précède pas le départ du salarié.", 422)
+        raise ErreurMetier("date_avant_depart", t("Une étape du dossier ne précède pas le départ du salarié.", "A step of the file cannot precede the employee's departure."), 422)
     envoi = _dernier(session, d, "transmis")
     if etape in ("paye", "refuse") and envoi and le < envoi.le:
-        raise ErreurMetier("reponse_avant_envoi", f"L'assureur ne répond pas avant l'envoi du {envoi.le:%d/%m/%Y}.",
+        raise ErreurMetier("reponse_avant_envoi", t(f"L'assureur ne répond pas avant l'envoi du {envoi.le:%d/%m/%Y}.",
+                             f"The insurer cannot reply before the sending on {envoi.le:%d/%m/%Y}."),
                            422)
 
 
@@ -326,7 +334,7 @@ def _etape(session, d, etape, auteur, le, **champs) -> None:
 def _beneficiaire(session: Session, d: DossierPriseEnCharge, exiger: bool = True) -> Beneficiaire | None:
     b = session.scalars(select(Beneficiaire).where(Beneficiaire.dossier_id == d.id)).first()
     if b is None and exiger:
-        raise ErreurMetier("identite_effacee", "L'identité du bénéficiaire a été effacée.", 409)
+        raise ErreurMetier("identite_effacee", t("L'identité du bénéficiaire a été effacée.", "The beneficiary's identity has been erased."), 409)
     return b
 
 
@@ -346,7 +354,7 @@ def _prestation_active(session: Session, d: DossierPriseEnCharge) -> Prestation:
     p = next((p for p in prestations.actives(session) if (p.matricule, p.date_depart) == (d.matricule, d.date_depart)),
              None)
     if p is None:
-        raise ErreurMetier("prestation_introuvable", "Le départ de ce dossier n'a plus de ligne active.", 409)
+        raise ErreurMetier("prestation_introuvable", t("Le départ de ce dossier n'a plus de ligne active.", "The departure of this file no longer has an active line."), 409)
     return p
 
 
@@ -364,6 +372,10 @@ def _constats(session, d, evenements, aujourd_hui: date) -> list[dict]:
     if jours <= delai:
         return []
     reference = "exigés au cahier des charges" if exige else "d'usage (aucun délai n'est fixé au cahier des charges)"
+    reference_en = ("required by the tender specifications" if exige
+                    else "customary (no deadline is set in the tender specifications)")
     return [{"niveau": "avertit", "code": "retard_assureur",
-             "message": f"Transmis le {evenements[-1].le:%d/%m/%Y}, sans réponse depuis {jours} jours : au-delà des "
-                        f"{delai} jours {reference}. Relancer l'assureur."}]
+             "message": t(f"Transmis le {evenements[-1].le:%d/%m/%Y}, sans réponse depuis {jours} jours : au-delà des "
+                          f"{delai} jours {reference}. Relancer l'assureur.",
+                          f"Sent on {evenements[-1].le:%d/%m/%Y}, no reply for {jours} days: beyond the "
+                          f"{delai} days {reference_en}. Chase the insurer.")}]

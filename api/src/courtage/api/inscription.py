@@ -13,6 +13,7 @@ from courtage import auth
 from courtage.auth.telephone import normaliser
 from courtage.db import Justificatif, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
+from courtage.langue import t
 from courtage.services import activation, inscription, journaliser, messages
 
 from . import COOKIE, identite, session_db
@@ -61,14 +62,14 @@ def _cible(nature: str, saisie: str) -> str:
     try:
         return normaliser(saisie)
     except ValueError:
-        raise ErreurMetier("telephone_invalide", "Numéro de téléphone invalide.", 422) from None
+        raise ErreurMetier("telephone_invalide", t("Numéro de téléphone invalide.", "Invalid phone number."), 422) from None
 
 
 @routeur_inscription.post("/inscription/code", dependencies=[Depends(limite("demande_code"))])
 def demander_code(corps: DemandeCode, request: Request, session: Session = Depends(session_db, scope="function")):
     inscription.demander_code(session, corps.nature, _cible(corps.nature, corps.cible), sms=request.app.state.expediteur,
                               courriel=request.app.state.courriel, cle=request.app.state.cle_auth)
-    return {"message": "Un code vient d'être envoyé. Il expire dans 10 minutes."}
+    return {"message": t("Un code vient d'être envoyé. Il expire dans 10 minutes.", "A code has just been sent. It expires in 10 minutes.")}
 
 
 @routeur_inscription.post("/inscription/verification", dependencies=[Depends(limite("essai_code"))])
@@ -77,7 +78,7 @@ def verifier_code(corps: VerificationCode, request: Request, session: Session = 
                                        request.app.state.cle_auth)
     if preuve is None:
         # Pas d'exception : elle annulerait la transaction, et avec elle le compte des essais.
-        return JSONResponse({"code": "code_invalide", "message": "Code incorrect ou expiré. Demandez-en un nouveau.",
+        return JSONResponse({"code": "code_invalide", "message": t("Code incorrect ou expiré. Demandez-en un nouveau.", "Incorrect or expired code. Request a new one."),
                              "details": {}}, status_code=401)
     return {"preuve": preuve}
 
@@ -103,7 +104,7 @@ def inscrire(corps: Inscription, request: Request, session: Session = Depends(se
 
 def _plateforme(utilisateur: Utilisateur = Depends(identite)) -> Utilisateur:
     if not utilisateur.admin_plateforme:
-        raise ErreurMetier("acces_refuse", "Réservé au courtier (administrateur de la plateforme).", 403)
+        raise ErreurMetier("acces_refuse", t("Réservé au courtier (administrateur de la plateforme).", "Reserved for the broker (platform administrator)."), 403)
     return utilisateur
 
 

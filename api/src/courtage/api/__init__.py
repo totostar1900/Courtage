@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from courtage import auth
 from courtage.db import Adhesion, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 from courtage.messagerie import ExpediteurJournal
 from courtage.services import cycle
 from courtage.services.rapport import ConfigSceau
@@ -83,6 +84,7 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     from .connexion import routeur_connexion
     from .inscription import routeur_inscription
     from .essai import routeur_essai
+    from .profil import routeur_profil
     from .routes import routeur
     from .referentiel import routeur_referentiel
     from .sante import routeur_sante
@@ -91,6 +93,7 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     app.include_router(routeur_connexion, prefix="/api/v1/auth")
     app.include_router(routeur_inscription, prefix="/api/v1")
     app.include_router(routeur_essai, prefix="/api/v1")
+    app.include_router(routeur_profil, prefix="/api/v1")
     app.include_router(routeur, prefix="/api/v1")
     if authentification == "entete_dev":
         from .dev import routeur_dev
@@ -122,7 +125,7 @@ def identite(request: Request, session: Session = Depends(session_db, scope="fun
         utilisateur = auth.utilisateur_du_jeton(session, jeton)
         if utilisateur is not None:
             if porteur is None and request.method not in _SURES and request.headers.get("x-courtage") != "1":
-                raise ErreurMetier("csrf", "Requête refusée : elle ne vient pas de l'application.", 403)
+                raise ErreurMetier("csrf", t("Requête refusée : elle ne vient pas de l'application.", "Request refused: it does not come from the application."), 403)
             return utilisateur
     if request.app.state.authentification == "entete_dev" and x_utilisateur:
         try:
@@ -131,7 +134,7 @@ def identite(request: Request, session: Session = Depends(session_db, scope="fun
             utilisateur = None
         if utilisateur is not None:
             return utilisateur
-    raise ErreurMetier("non_authentifie", "Connectez-vous.", 401)
+    raise ErreurMetier("non_authentifie", t("Connectez-vous.", "Please sign in."), 401)
 
 
 @dataclass
@@ -150,9 +153,9 @@ def acces(*roles: str):
         role = session.scalar(select(Adhesion.role).where(
             Adhesion.utilisateur_id == moi.id, Adhesion.organisation_id == organisation_id))
         if role is None:
-            raise ErreurMetier("acces_refuse", "Vous n'êtes pas membre de cette organisation.", 403)
+            raise ErreurMetier("acces_refuse", t("Vous n'êtes pas membre de cette organisation.", "You are not a member of this organisation."), 403)
         if roles and role not in roles:
-            raise ErreurMetier("acces_refuse", "Votre rôle ne permet pas cette action.", 403)
+            raise ErreurMetier("acces_refuse", t("Votre rôle ne permet pas cette action.", "Your role does not allow this action."), 403)
         organisation = session.get(Organisation, organisation_id)
         # Le cycle de vie : un dossier archivé ne s'ouvre plus ; clôturé, il se lit sans s'écrire (seuls le
         # reprendre et les calculs qui n'enregistrent rien passent).

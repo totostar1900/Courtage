@@ -47,7 +47,7 @@ TEXTE_COURRIEL = ("Bonjour,\n\nVotre code pour vérifier cette adresse est {code
 def normaliser_courriel(saisi: str) -> str:
     adresse = (saisi or "").strip().lower()
     if not COURRIEL.match(adresse) or len(adresse) > 200:
-        raise ErreurMetier("courriel_invalide", "Adresse électronique invalide.", 422)
+        raise ErreurMetier("courriel_invalide", t("Adresse électronique invalide.", "Invalid email address."), 422)
     return adresse
 
 
@@ -58,7 +58,7 @@ def demander_code(session: Session, nature: str, cible: str, *, sms, courriel, c
         CodeVerification.nature == nature, CodeVerification.cible == cible,
         CodeVerification.cree_le > func.now() - FENETRE_DEMANDES))
     if recentes >= LIMITE_DEMANDES:
-        raise ErreurMetier("trop_de_demandes", "Trop de demandes : réessayez dans un quart d'heure.", 429)
+        raise ErreurMetier("trop_de_demandes", t("Trop de demandes : réessayez dans un quart d'heure.", "Too many requests: try again in fifteen minutes."), 429)
     code = f"{secrets.randbelow(10**6):06d}"
     session.add(CodeVerification(nature=nature, cible=cible, code_hash=_hmac(cle, nature, cible, code),
                                  expire_le=func.now() + DUREE_CODE))
@@ -110,26 +110,28 @@ def inscrire(session: Session, *, telephone: str, preuve_telephone: str, courrie
         raise ErreurMetier("telephone_non_verifie", t("Vérifiez d'abord votre téléphone (le code a peut-être expiré).",
                                                       "Verify your phone first (the code may have expired)."), 422)
     if not preuve_valide(cle, preuve_courriel, "courriel", courriel):
-        raise ErreurMetier("courriel_non_verifie", "Vérifiez d'abord votre adresse électronique.", 422)
+        raise ErreurMetier("courriel_non_verifie", t("Vérifiez d'abord votre adresse électronique.", "Verify your email address first."), 422)
     if session.scalar(select(Utilisateur.id).where(Utilisateur.telephone == telephone)):
-        raise ErreurMetier("telephone_deja_inscrit", "Ce numéro a déjà un compte : connectez-vous.", 409)
+        raise ErreurMetier("telephone_deja_inscrit", t("Ce numéro a déjà un compte : connectez-vous.", "This number already has an account: sign in."), 409)
     if session.scalar(select(Utilisateur.id).where(Utilisateur.email == courriel)):
-        raise ErreurMetier("courriel_deja_inscrit", "Cette adresse a déjà un compte : connectez-vous.", 409)
+        raise ErreurMetier("courriel_deja_inscrit", t("Cette adresse a déjà un compte : connectez-vous.", "This address already has an account: sign in."), 409)
     nom = (nom or "").strip()
     raison = (entreprise.get("nom") or "").strip()
     rccm = (entreprise.get("rccm") or "").strip()
     rccm_normalise = normaliser_rccm(rccm)
     if len(nom) < 2 or len(raison) < 2:
-        raise ErreurMetier("champs_requis", "Votre nom et la raison sociale sont requis.", 422)
+        raise ErreurMetier("champs_requis", t("Votre nom et la raison sociale sont requis.", "Your name and the company name are required."), 422)
     if len(rccm_normalise) < 5:
-        raise ErreurMetier("rccm_requis", "Le numéro RCCM de l'entreprise est requis.", 422)
+        raise ErreurMetier("rccm_requis", t("Le numéro RCCM de l'entreprise est requis.", "The company's RCCM number is required."), 422)
     if entreprise.get("taille") not in TAILLES:
-        raise ErreurMetier("taille_requise", "Choisir la taille de l'entreprise.", 422)
+        raise ErreurMetier("taille_requise", t("Choisir la taille de l'entreprise.", "Choose the size of the company."), 422)
     if session.scalar(select(Organisation.id).where(Organisation.rccm_normalise == rccm_normalise,
                                                      Organisation.etat != "supprime")):
         raise ErreurMetier("entreprise_deja_inscrite",
-                           "Cette entreprise est déjà inscrite. Demandez à son administrateur de vous ajouter à "
-                           "l'équipe, ou écrivez à votre conseiller.", 409)
+                           t("Cette entreprise est déjà inscrite. Demandez à son administrateur de vous ajouter à "
+                             "l'équipe, ou écrivez à votre conseiller.",
+                             "This company is already signed up. Ask its administrator to add you to the team, or "
+                             "write to your adviser."), 409)
     maintenant = datetime.now(timezone.utc)
     utilisateur = Utilisateur(telephone=telephone, email=courriel, email_verifie_le=maintenant, nom_affiche=nom)
     org = Organisation(nom=raison, pays=entreprise["pays"], secteur=(entreprise.get("secteur") or "").strip() or None,

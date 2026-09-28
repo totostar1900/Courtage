@@ -44,7 +44,6 @@ export default function Guide() {
         <NavLink to="/guide/conventions-preremplies" onClick={() => setRecherche("")}>{t("Consulter les conventions", "Browse the collective agreements")}</NavLink>
       </nav>
       <article className="guide-texte">
-        {langue() === "en" && <p className="discret" data-guide-langue>The guide's chapters are in French for now.</p>}
         {recherche.trim() ? <Resultats q={recherche} />
           : section === "lecons" ? (sous ? <UneLecon id={sous} /> : <Lecons />)
           : section === "glossaire" ? <Glossaire />
@@ -281,7 +280,7 @@ function Conventions() {
           <p className="discret">{t(`Référentiel du ${dateFr(donnee.version)}.`, `Reference data of ${dateFr(donnee.version)}.`)}</p>
           {aVenir.length > 0 && (
             <p className="discret" data-a-venir>{t(`Pas encore de convention préremplie pour : ${aVenir.join(", ")}. Une entreprise de ces pays peut décrire son régime à partir de son propre texte.`,
-              `No pre-filled collective agreement yet for: ${aVenir.join(", ")}. A company in these countries can describe its scheme from its own text.`)}</p>
+              `No pre-filled collective agreement yet for: ${aVenir.join(", ")}. A company in these countries can describe its plan from its own text.`)}</p>
           )}
           {liste.map((c) => <CarteConvention key={`${c.code}-${c.en_vigueur_du}`} c={c} />)}
         </>

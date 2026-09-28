@@ -17,6 +17,7 @@ from collections import deque
 from fastapi import Request
 
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 
 
 class Limiteur:
@@ -45,6 +46,7 @@ def limite(nom: str):
         limiteur: Limiteur = request.app.state.limites[nom]
         adresse = request.client.host if request.client else "inconnue"
         if not limiteur.admettre(adresse):
-            raise ErreurMetier("trop_de_requetes", "Trop de requêtes depuis cette adresse : réessayez dans une minute.",
+            raise ErreurMetier("trop_de_requetes", t("Trop de requêtes depuis cette adresse : réessayez dans une minute.",
+                                 "Too many requests from this address: try again in a minute."),
                                429)
     return dependance

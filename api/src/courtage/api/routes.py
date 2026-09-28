@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
+from courtage.langue import t, en_francais
 from courtage.financement import Offre, Scenario
 from courtage.services import activation, alertes, messages, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, mandats, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, simulation
 
@@ -71,7 +72,7 @@ def lister_justificatifs(a: Acces = Depends(acces(*TOUS))):
 def supprimer_inscription(confirmation: str = "", a: Acces = Depends(acces(*ENTREPRISE))):
     """Tant qu'elle attend (ou si elle a été refusée), l'entreprise retire son inscription : tout part."""
     if confirmation.strip().upper() not in ("SUPPRIMER", "DELETE"):
-        raise ErreurMetier("confirmation_requise", "Écrire « SUPPRIMER » pour confirmer.", 422)
+        raise ErreurMetier("confirmation_requise", t("Écrire « SUPPRIMER » pour confirmer.", "Type “SUPPRIMER” to confirm."), 422)
     return activation.effacer(a.session, a.organisation, a.utilisateur.id, "retirée par l'entreprise")
 
 
@@ -127,7 +128,7 @@ class NouvelleOrganisation(_Corps):
 def creer_organisation(corps: NouvelleOrganisation, session: Session = Depends(session_db, scope="function"),
                        utilisateur: Utilisateur = Depends(identite)):
     if not utilisateur.admin_plateforme:
-        raise ErreurMetier("acces_refuse", "Seule la plateforme ouvre un dossier client.", 403)
+        raise ErreurMetier("acces_refuse", t("Seule la plateforme ouvre un dossier client.", "Only the platform opens a client file."), 403)
     org = Organisation(nom=corps.nom.strip(), pays=corps.pays, secteur=corps.secteur)
     session.add(org)
     session.flush()
@@ -175,7 +176,9 @@ def telecharger_archive(a: Acces = Depends(acces(*TOUS))):
     """Tout ce que l'entreprise voudra garder : documents scellés, études en Excel, sommaire des numéros."""
     journaliser(a.session, a.organisation.id, a.utilisateur.id, "dossier.archive_telechargee", a.organisation.id, {})
     nom = f"archive-{a.organisation.nom}-{date.today().isoformat()}.zip"
-    return Response(nettoyage.archive(a.session, a.organisation, date.today()), media_type="application/zip",
+    with en_francais():
+        contenu = nettoyage.archive(a.session, a.organisation, date.today())
+    return Response(contenu, media_type="application/zip",
                     headers=_piece_jointe(nom))
 
 
@@ -205,11 +208,11 @@ def ajouter_adhesion(organisation_id: uuid.UUID, corps: NouvelleAdhesion, sessio
     role_appelant = session.scalar(select(Adhesion.role).where(
         Adhesion.utilisateur_id == utilisateur.id, Adhesion.organisation_id == organisation_id))
     if not (utilisateur.admin_plateforme or role_appelant == "conseiller"):
-        raise ErreurMetier("acces_refuse", "Seuls la plateforme et le conseiller du dossier ajoutent un membre.", 403)
+        raise ErreurMetier("acces_refuse", t("Seuls la plateforme et le conseiller du dossier ajoutent un membre.", "Only the platform and the file's adviser add a member."), 403)
     if session.get(Organisation, organisation_id) is None or session.get(Utilisateur, corps.utilisateur_id) is None:
-        raise ErreurMetier("introuvable", "Organisation ou utilisateur introuvable.", 404)
+        raise ErreurMetier("introuvable", t("Organisation ou utilisateur introuvable.", "Organisation or user not found."), 404)
     if session.get(Adhesion, (corps.utilisateur_id, organisation_id)) is not None:
-        raise ErreurMetier("deja_membre", "Cet utilisateur est déjà membre de l'organisation.", 409)
+        raise ErreurMetier("deja_membre", t("Cet utilisateur est déjà membre de l'organisation.", "This user is already a member of the organisation."), 409)
     session.add(Adhesion(utilisateur_id=corps.utilisateur_id, organisation_id=organisation_id, role=corps.role))
     adhesion = {"utilisateur_id": str(corps.utilisateur_id), "role": corps.role}
     contexte(session.connection(), organisation_id)
@@ -242,10 +245,10 @@ def inscrire_membre(organisation_id: uuid.UUID, corps: NouveauMembre, session: S
     l'entreprise ses collègues."""
     org = session.get(Organisation, organisation_id)
     if org is None:
-        raise ErreurMetier("introuvable", "Organisation introuvable.", 404)
+        raise ErreurMetier("introuvable", t("Organisation introuvable.", "Organisation not found."), 404)
     role = _role_de(session, utilisateur, organisation_id)
     if not (utilisateur.admin_plateforme or role):
-        raise ErreurMetier("acces_refuse", "Vous n'êtes pas membre de cette organisation.", 403)
+        raise ErreurMetier("acces_refuse", t("Vous n'êtes pas membre de cette organisation.", "You are not a member of this organisation."), 403)
     cycle.exiger_ecriture(org)
     contexte(session.connection(), organisation_id)
     activation.exiger(session, org, "equipe")
@@ -354,10 +357,11 @@ def signer_mandat(mandat_id: uuid.UUID, corps: SignatureMandat, request: Request
     contrat « courtage » prend effet à sa date."""
     activation.exiger(a.session, a.organisation, "mandat")
     if not corps.accepte:
-        raise ErreurMetier("acceptation_requise", "Cocher « J'ai lu et j'accepte ce mandat ».", 422)
+        raise ErreurMetier("acceptation_requise", t("Cocher « J'ai lu et j'accepte ce mandat ».", "Tick “I have read and accept this mandate”."), 422)
     m = mandats.obtenir(a.session, mandat_id)
-    mandats.signer(a.session, a.organisation, m, a.utilisateur.id, nom=corps.nom, fonction=corps.fonction,
-                   empreinte_lue=corps.empreinte, config=request.app.state.sceau, aujourd_hui=date.today())
+    with en_francais():
+        mandats.signer(a.session, a.organisation, m, a.utilisateur.id, nom=corps.nom, fonction=corps.fonction,
+                       empreinte_lue=corps.empreinte, config=request.app.state.sceau, aujourd_hui=date.today())
     return mandats.en_clair(a.session, a.organisation, m)
 
 
@@ -379,7 +383,7 @@ def retirer_mandat(mandat_id: uuid.UUID, corps: Motif, a: Acces = Depends(acces(
 def telecharger_mandat(mandat_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     d = mandats.document_de(a.session, mandats.obtenir(a.session, mandat_id))
     if d is None:
-        raise ErreurMetier("mandat_non_signe", "Le mandat scellé existe une fois signé.", 404)
+        raise ErreurMetier("mandat_non_signe", t("Le mandat scellé existe une fois signé.", "The sealed mandate exists once signed."), 404)
     return Response(d.contenu, media_type=d.type_contenu, headers=_piece_jointe(f"mandat-courtage-{a.organisation.nom}-{d.numero}.pdf"))
 
 
@@ -478,8 +482,9 @@ def corriger_prestation(prestation_id: uuid.UUID, corps: CorrectionPrestation, a
 @routeur.get("/organisations/{organisation_id}/prestations/{prestation_id}/fiche-de-calcul")
 def fiche_de_calcul(prestation_id: uuid.UUID, request: Request, a: Acces = Depends(acces(*CLIENT))):
     activation.exiger(a.session, a.organisation, "fiche_de_calcul")
-    d = orientation.fiche_de_calcul(a.session, a.organisation, a.utilisateur.id, prestation_id,
-                                    request.app.state.sceau, date.today())
+    with en_francais():
+        d = orientation.fiche_de_calcul(a.session, a.organisation, a.utilisateur.id, prestation_id,
+                                        request.app.state.sceau, date.today())
     return Response(d.contenu, media_type="application/pdf",
                     headers={**_piece_jointe(f"fiche-de-calcul-{d.numero}.pdf"), "X-Numero-Document": d.numero})
 
@@ -602,8 +607,9 @@ def resoumettre_dossier(dossier_id: uuid.UUID, a: Acces = Depends(acces(*ENTREPR
 @routeur.post("/organisations/{organisation_id}/dossiers/{dossier_id}/transmission")
 def transmettre_dossier(dossier_id: uuid.UUID, corps: Transmission, request: Request,
                         a: Acces = Depends(acces(*CONSEIL))):
-    dossiers.transmettre(a.session, a.organisation, a.utilisateur.id, dossiers.obtenir(a.session, dossier_id),
-                         le=corps.le or date.today(), config=request.app.state.sceau, aujourd_hui=date.today())
+    with en_francais():
+        dossiers.transmettre(a.session, a.organisation, a.utilisateur.id, dossiers.obtenir(a.session, dossier_id),
+                             le=corps.le or date.today(), config=request.app.state.sceau, aujourd_hui=date.today())
     return _dossier(a, dossier_id, 201)
 
 
@@ -636,7 +642,7 @@ async def extraire_convention(request: Request, fichier: UploadFile = File(...),
                               consentement: bool = Form(default=False), session: Session = Depends(session_db, scope="function"),
                               utilisateur: Utilisateur = Depends(identite)):
     if not utilisateur.admin_plateforme:
-        raise ErreurMetier("acces_refuse", "Le référentiel se tient par la plateforme.", 403)
+        raise ErreurMetier("acces_refuse", t("Le référentiel se tient par la plateforme.", "The reference data is maintained by the platform."), 403)
     return extractions.pour_le_referentiel(utilisateur.id, request.app.state.extracteur, session,
                                            contenu=await fichier.read(), nom_fichier=fichier.filename or "texte",
                                            consentement=consentement, pays=pays.strip().upper())
@@ -737,8 +743,9 @@ def emettre_note(version_id: uuid.UUID, nature: str, request: Request,
                  a: Acces = Depends(acces("admin_client", "conseiller"))):
     """La note aux salariés ou aux assureurs d'une version adoptée : scellée à la première demande, la même ensuite."""
     activation.exiger(a.session, a.organisation, "notes_regime")
-    d = notes_regime.emettre(a.session, a.organisation, regimes.obtenir_version(a.session, version_id), nature,
-                             a.utilisateur.id, request.app.state.sceau, date.today())
+    with en_francais():
+        d = notes_regime.emettre(a.session, a.organisation, regimes.obtenir_version(a.session, version_id), nature,
+                                 a.utilisateur.id, request.app.state.sceau, date.today())
     return {"numero": d.numero}
 
 
@@ -747,7 +754,7 @@ def telecharger_note(version_id: uuid.UUID, nature: str, a: Acces = Depends(acce
     v = regimes.obtenir_version(a.session, version_id)
     d = notes_regime.existante(a.session, v, nature) if nature in notes_regime.NATURES else None
     if d is None:
-        raise ErreurMetier("note_non_emise", "Cette note n'a pas encore été émise.", 404)
+        raise ErreurMetier("note_non_emise", t("Cette note n'a pas encore été émise.", "This note has not been issued yet."), 404)
     nom = f"{notes_regime.NATURES[nature][2].lower().replace(' ', '-')}-{a.organisation.nom}-v{v.numero}-{d.numero}.pdf"
     return Response(d.contenu, media_type=d.type_contenu, headers=_piece_jointe(nom))
 
@@ -786,8 +793,9 @@ def consulter_catalogue(session: Session = Depends(session_db, scope="function")
     if not utilisateur.admin_plateforme and not session.scalar(
             select(func.count()).select_from(Adhesion).join(Organisation, Organisation.id == Adhesion.organisation_id)
             .where(Adhesion.utilisateur_id == utilisateur.id, Organisation.activation == "confirmee")):
-        raise ErreurMetier("inscription_non_confirmee", "Le catalogue anonyme s'ouvre une fois votre inscription "
-                           "confirmée par votre conseiller.", 403, {"capacite": "catalogue"})
+        raise ErreurMetier("inscription_non_confirmee", t("Le catalogue anonyme s'ouvre une fois votre inscription "
+                             "confirmée par votre conseiller.",
+                             "The anonymous catalogue opens once your adviser has confirmed your sign-up."), 403, {"capacite": "catalogue"})
     return catalogue.consulter(session)
 
 
@@ -800,7 +808,7 @@ def partages_du_dossier(a: Acces = Depends(acces(*TOUS))):
 def partager_version(version_id: uuid.UUID, corps: Partage, a: Acces = Depends(acces(*ENTREPRISE))):
     activation.exiger(a.session, a.organisation, "catalogue")
     if not corps.consentement:
-        raise ErreurMetier("consentement_requis", "Le partage demande l'accord explicite de l'entreprise.", 422)
+        raise ErreurMetier("consentement_requis", t("Le partage demande l'accord explicite de l'entreprise.", "Sharing requires the company's explicit consent."), 422)
     lien = catalogue.partager(a.session, a.organisation, regimes.obtenir_version(a.session, version_id),
                               a.utilisateur.id, secteur=corps.secteur, taille=corps.taille)
     return {"partage_id": str(lien.partage_id), "version_id": str(lien.version_id)}
@@ -938,9 +946,11 @@ def exporter_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     """L'étude en Excel : synthèse, échéancier, catégories, sensibilités, salariés (par matricule)."""
     activation.exiger(a.session, a.organisation, "export_etude")
     from courtage import exports
-    e = etudes.en_clair(a.session, a.organisation, etudes.obtenir(a.session, etude_id), date.today())
+    with en_francais():
+        e = etudes.en_clair(a.session, a.organisation, etudes.obtenir(a.session, etude_id), date.today())
+        classeur = exports.etude(e, a.organisation.nom)
     journaliser(a.session, a.organisation.id, a.utilisateur.id, "etude.exportee", etude_id, {})
-    return _xlsx(exports.etude(e, a.organisation.nom), f"etude-ifc-{e['date_evaluation']}.xlsx")
+    return _xlsx(classeur, f"etude-ifc-{e['date_evaluation']}.xlsx")
 
 
 def _xlsx(contenu: bytes, nom: str) -> Response:
@@ -960,7 +970,7 @@ def supprimer_etude(etude_id: uuid.UUID, confirmation: str | None = None, a: Acc
     """Un brouillon : l'équipe. Une étude émise : l'administrateur ou le conseiller, sur confirmation écrite."""
     e = etudes.obtenir(a.session, etude_id)
     if e.statut == "emise" and a.role not in ("admin_client", "conseiller"):
-        raise ErreurMetier("droit_insuffisant", "Seuls l'administrateur et le conseiller suppriment une étude émise.", 403)
+        raise ErreurMetier("droit_insuffisant", t("Seuls l'administrateur et le conseiller suppriment une étude émise.", "Only the administrator and the adviser can delete an issued study."), 403)
     etudes.supprimer(a.session, e, a.utilisateur.id, confirmation=confirmation)
     return Response(status_code=204)
 
@@ -970,8 +980,9 @@ def emettre_etude(etude_id: uuid.UUID, request: Request, a: Acces = Depends(acce
     """Émettre, sceller et rendre le rapport : un seul acte. Si le rapport échoue, rien n'est émis."""
     activation.exiger(a.session, a.organisation, "rapport_scelle")
     cycle.exiger_emission(a.organisation)
-    e = etudes.emettre(a.session, a.organisation, etudes.obtenir(a.session, etude_id), a.utilisateur.id, date.today())
-    document = rapport.sceller(a.session, a.organisation, e, request.app.state.sceau, date.today())
+    with en_francais():
+        e = etudes.emettre(a.session, a.organisation, etudes.obtenir(a.session, etude_id), a.utilisateur.id, date.today())
+        document = rapport.sceller(a.session, a.organisation, e, request.app.state.sceau, date.today())
     journaliser(a.session, a.organisation.id, a.utilisateur.id, "rapport.scelle", document.numero, {"etude_id": str(e.id)})
     return etudes.en_clair(a.session, a.organisation, e, date.today())
 
@@ -1045,9 +1056,11 @@ def emettre_fiche(corps: NouvelleFiche, request: Request, a: Acces = Depends(acc
     """Le cahier des charges : émis, scellé, rendu, en un seul acte."""
     activation.exiger(a.session, a.organisation, "cahier")
     cycle.exiger_emission(a.organisation)
-    f, document = fiches.emettre(a.session, a.organisation, a.utilisateur.id, etude_id=corps.etude_id,
-                                 conditions=corps.conditions.model_dump(), date_limite_reponse=corps.date_limite_reponse,
-                                 config=request.app.state.sceau, aujourd_hui=date.today())
+    with en_francais():
+        f, document = fiches.emettre(a.session, a.organisation, a.utilisateur.id, etude_id=corps.etude_id,
+                                     conditions=corps.conditions.model_dump(),
+                                     date_limite_reponse=corps.date_limite_reponse,
+                                     config=request.app.state.sceau, aujourd_hui=date.today())
     return fiches.en_clair(f, document.numero)
 
 
@@ -1087,7 +1100,7 @@ def _donnees(brut: str, modele):
     try:
         return modele.model_validate_json(brut).model_dump()
     except ValidationError as e:
-        raise ErreurMetier("donnees_invalides", "Réponse illisible : vérifiez les champs de la grille.", 422,
+        raise ErreurMetier("donnees_invalides", t("Réponse illisible : vérifiez les champs de la grille.", "Unreadable response: check the fields of the grid."), 422,
                            {"erreurs": [{"champ": ".".join(map(str, x["loc"])), "message": x["msg"]} for x in e.errors()]}) from None
 
 
@@ -1104,9 +1117,11 @@ def lire_reponses(fiche_id: uuid.UUID, horizon: int = 10, amortissement: int = 3
 def exporter_reponses(fiche_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     """Les réponses des assureurs en Excel : comparaison, conformité, scénarios, cahier des charges."""
     from courtage import exports
-    t = reponses.tout(a.session, reponses.obtenir_fiche(a.session, fiche_id))
+    with en_francais():
+        tout = reponses.tout(a.session, reponses.obtenir_fiche(a.session, fiche_id))
+        classeur = exports.reponses(tout, a.organisation.nom)
     journaliser(a.session, a.organisation.id, a.utilisateur.id, "reponses.exportees", fiche_id, {})
-    return _xlsx(exports.reponses(t, a.organisation.nom), "reponses-assureurs.xlsx")
+    return _xlsx(classeur, "reponses-assureurs.xlsx")
 
 
 @routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses", status_code=201)
@@ -1140,7 +1155,7 @@ def retirer_reponse(fiche_id: uuid.UUID, reponse_id: uuid.UUID, corps: Retrait, 
 def telecharger_offre(fiche_id: uuid.UUID, reponse_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     r = a.session.get(ReponseFiche, reponse_id)
     if r is None or r.fiche_id != fiche_id or r.offre_contenu is None:
-        raise ErreurMetier("offre_indisponible", "Aucune offre jointe à cette réponse.", 404)
+        raise ErreurMetier("offre_indisponible", t("Aucune offre jointe à cette réponse.", "No offer attached to this response."), 404)
     return Response(r.offre_contenu, media_type="application/pdf", headers=_piece_jointe(r.offre_nom_fichier or "offre.pdf"))
 
 

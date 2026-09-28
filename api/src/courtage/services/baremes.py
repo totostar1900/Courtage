@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from courtage.actuariat.ifc import comparer_baremes
 from courtage.db import BaremeEntreprise, Organisation
 from courtage.erreurs import ErreurMetier, Introuvable
+from courtage.langue import t
 from courtage.referentiel import Bareme, referentiel_courant
 
 from . import journaliser
@@ -33,18 +34,21 @@ def proposer(session: Session, org: Organisation, auteur: uuid.UUID, *, libelle:
     try:
         type_bareme = type_de(bareme)
     except ValidationError as e:
-        raise ErreurMetier("bareme_mal_forme", "Barème mal formé.", 422, {"erreurs": e.errors(include_url=False)}) from None
+        raise ErreurMetier("bareme_mal_forme", t("Barème mal formé.", "Malformed scale."), 422, {"erreurs": e.errors(include_url=False)}) from None
     try:
         convention = referentiel_courant().convention(convention_code, en_vigueur_du)
     except LookupError as e:
         raise ErreurMetier("convention_introuvable", str(e), 422) from None
     if convention.pays != org.pays:
-        raise ErreurMetier("convention_autre_pays", f"{convention.code} n'est pas une convention de {org.pays}.", 422)
+        raise ErreurMetier("convention_autre_pays", t(f"{convention.code} n'est pas une convention de {org.pays}.",
+                             f"{convention.code} is not a collective agreement of {org.pays}."), 422)
     en_dessous = comparer_baremes(type_bareme, convention.bareme)
     if en_dessous:
         raise ErreurMetier("bareme_inferieur_convention",
-                           f"Le barème donne moins que la convention à partir de {en_dessous[0]} ans d'ancienneté : "
-                           "une entreprise peut verser plus que sa convention, jamais moins.", 422,
+                           t(f"Le barème donne moins que la convention à partir de {en_dessous[0]} ans d'ancienneté : "
+                             "une entreprise peut verser plus que sa convention, jamais moins.",
+                             f"The scale gives less than the collective agreement from {en_dessous[0]} years of "
+                             "service: a company may pay more than its collective agreement, never less."), 422,
                            {"anciennetes": en_dessous})
     b = BaremeEntreprise(organisation_id=org.id, libelle=libelle.strip(), fondement=fondement,
                          document_reference=document_reference.strip(), convention_code=convention.code,
@@ -58,7 +62,7 @@ def proposer(session: Session, org: Organisation, auteur: uuid.UUID, *, libelle:
 
 def valider(session: Session, b: BaremeEntreprise, auteur: uuid.UUID) -> BaremeEntreprise:
     if b.statut == "valide":
-        raise ErreurMetier("bareme_deja_valide", "Ce barème est déjà validé.", 409)
+        raise ErreurMetier("bareme_deja_valide", t("Ce barème est déjà validé.", "This scale has already been approved."), 409)
     b.statut, b.valide_par, b.valide_le = "valide", auteur, datetime.now(timezone.utc)
     session.flush()
     journaliser(session, b.organisation_id, auteur, "bareme.valide", b.id)

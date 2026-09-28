@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import MandatCourtage, Organisation
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 
 from . import contrats
 
@@ -33,6 +34,27 @@ APRES_CONFIRMATION = {
 SOUS_MANDAT = {
     "cahier": "le cahier des charges et la consultation des assureurs",
 }
+# Les mêmes libellés pour l'écran anglais : lus au moment de la requête (`libelle`, `libelles`), jamais figés.
+_EN = {
+    "rapport_scelle": "issuing a sealed report",
+    "export_etude": "the Excel export of a study",
+    "notes_regime": "the sealed plan notes",
+    "fiche_de_calcul": "the sealed calculation sheet",
+    "equipe": "inviting colleagues and setting their rights",
+    "catalogue": "the anonymous catalogue",
+    "extraction_claude": "having Claude read a text",
+    "mandat": "proposing and signing the mandate",
+    "cahier": "the tender specifications and the consultation of insurers",
+}
+
+
+def libelle(capacite: str) -> str:
+    fr = APRES_CONFIRMATION.get(capacite) or SOUS_MANDAT[capacite]
+    return t(fr, _EN[capacite])
+
+
+def libelles() -> dict[str, str]:
+    return {c: libelle(c) for c in APRES_CONFIRMATION | SOUS_MANDAT}
 
 
 def normaliser_rccm(saisi: str) -> str:
@@ -51,15 +73,18 @@ def sous_mandat(session: Session, aujourd_hui: date) -> bool:
 def exiger(session: Session, org: Organisation, capacite: str, aujourd_hui: date | None = None) -> None:
     if capacite not in APRES_CONFIRMATION and capacite not in SOUS_MANDAT:
         raise ValueError(f"capacité inconnue : {capacite}")
-    libelle = APRES_CONFIRMATION.get(capacite) or SOUS_MANDAT[capacite]
+    quoi = libelle(capacite)
     if org.activation != "confirmee":
         raise ErreurMetier("inscription_non_confirmee",
-                           f"Votre inscription attend la confirmation de votre conseiller : {libelle} s'ouvre ensuite.",
+                           t(f"Votre inscription attend la confirmation de votre conseiller : {quoi} s'ouvre ensuite.",
+                             f"Your sign-up is awaiting your adviser's confirmation: {quoi} opens after that."),
                            403, {"capacite": capacite})
     if capacite in SOUS_MANDAT and not sous_mandat(session, aujourd_hui or date.today()):
         raise ErreurMetier("mandat_requis",
-                           f"Sans mandat de courtage signé, {libelle} ne s'ouvre pas encore : demandez un "
-                           "accompagnement.", 409, {"capacite": capacite})
+                           t(f"Sans mandat de courtage signé, {quoi} ne s'ouvre pas encore : demandez un "
+                             "accompagnement.",
+                             f"Without a signed brokerage mandate, {quoi} is not available yet: ask for support."),
+                           409, {"capacite": capacite})
 
 
 def echeance(demandee_le: datetime) -> date:
@@ -77,7 +102,7 @@ def en_clair(session: Session, org: Organisation, aujourd_hui: date) -> dict:
     mandat = confirmee and sous_mandat(session, aujourd_hui)
     capacites = {c: confirmee for c in APRES_CONFIRMATION} | {c: mandat for c in SOUS_MANDAT}
     d = {"etat": org.activation, "capacites": capacites,
-         "libelles": APRES_CONFIRMATION | SOUS_MANDAT,
+         "libelles": libelles(),
          "rccm": org.rccm, "taille": org.taille, "adresse": org.adresse, "ville": org.ville,
          "demandee_le": org.activation_demandee_le.isoformat() if org.activation_demandee_le else None,
          "decidee_le": org.activation_decidee_le.isoformat() if org.activation_decidee_le else None,
@@ -147,12 +172,12 @@ def decider(session: Session, org: Organisation, auteur, *, decision: str, verif
     from courtage.db import Adhesion, Utilisateur, contexte
     from . import journaliser
     if org.activation != "en_attente":
-        raise ErreurMetier("deja_decidee", "Cette inscription a déjà été traitée.", 409)
+        raise ErreurMetier("deja_decidee", t("Cette inscription a déjà été traitée.", "This sign-up has already been processed."), 409)
     motif = (motif or "").strip() or None
     if decision == "refuser" and not motif:
-        raise ErreurMetier("motif_requis", "Dire au client pourquoi son inscription est refusée.", 422)
+        raise ErreurMetier("motif_requis", t("Dire au client pourquoi son inscription est refusée.", "Tell the client why their sign-up is refused."), 422)
     if decision not in ("confirmer", "refuser"):
-        raise ErreurMetier("decision_inconnue", "Confirmer ou refuser.", 422)
+        raise ErreurMetier("decision_inconnue", t("Confirmer ou refuser.", "Confirm or refuse."), 422)
     org.activation = "confirmee" if decision == "confirmer" else "refusee"
     org.activation_decidee_le, org.activation_par = func.now(), auteur
     org.activation_verification, org.activation_motif = verification or {}, motif
@@ -160,7 +185,7 @@ def decider(session: Session, org: Organisation, auteur, *, decision: str, verif
     if decision == "confirmer":
         conseiller = conseiller_id or auteur
         if str(conseiller) not in {c["id"] for c in conseillers(session, auteur)}:
-            raise ErreurMetier("conseiller_inconnu", "Choisir un conseiller de la plateforme.", 422)
+            raise ErreurMetier("conseiller_inconnu", t("Choisir un conseiller de la plateforme.", "Choose an adviser from the platform."), 422)
         if not session.scalar(select(func.count()).select_from(Adhesion).where(
                 Adhesion.organisation_id == org.id, Adhesion.utilisateur_id == conseiller)):
             session.add(Adhesion(utilisateur_id=conseiller, organisation_id=org.id, role="conseiller"))
@@ -180,9 +205,9 @@ def deposer_rccm(session: Session, org: Organisation, auteur, contenu: bytes, no
     from courtage.db import Justificatif
     from . import journaliser
     if type_contenu not in TYPES_JUSTIFICATIF:
-        raise ErreurMetier("format_refuse", "Un PDF, un JPEG ou un PNG.", 422)
+        raise ErreurMetier("format_refuse", t("Un PDF, un JPEG ou un PNG.", "A PDF, JPEG or PNG."), 422)
     if not contenu or len(contenu) > TAILLE_MAX:
-        raise ErreurMetier("taille_refusee", "Un fichier de 10 Mo au plus.", 422)
+        raise ErreurMetier("taille_refusee", t("Un fichier de 10 Mo au plus.", "A file of 10 MB at most."), 422)
     j = Justificatif(organisation_id=org.id, nature="rccm", nom_fichier=nom_fichier[:200], type_contenu=type_contenu,
                      contenu=contenu, empreinte=hashlib.sha256(contenu).hexdigest(), depose_par=auteur)
     session.add(j)
@@ -207,7 +232,7 @@ def effacer(session: Session, org: Organisation, auteur, raison: str) -> dict:
     from sqlalchemy import delete
     from . import journaliser, regimes
     if org.activation == "confirmee":
-        raise ErreurMetier("inscription_confirmee", "Un dossier confirmé ne s'efface pas ainsi : le clôturer.", 409)
+        raise ErreurMetier("inscription_confirmee", t("Un dossier confirmé ne s'efface pas ainsi : le clôturer.", "A confirmed file cannot be erased this way: close it instead."), 409)
     contexte(session.connection(), org.id)
     compte = {}
     for modele in (MessageDossier, Justificatif, MandatCourtage, Prestation, ExtractionTexte, Etude):

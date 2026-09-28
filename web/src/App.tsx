@@ -1,7 +1,7 @@
 import { Fragment } from "react";
-import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
-import { api, DEMO, ErreurApi, seConnecter } from "./api";
+import { api, DEMO, ErreurApi } from "./api";
 import { useCharge } from "./composants/communs";
 import { changerLangue, t, useLangue } from "./i18n";
 import Visionneuse from "./composants/Visionneuse";
@@ -22,6 +22,7 @@ import Etudes from "./pages/Etudes";
 import Financement from "./pages/Financement";
 import Guide from "./pages/Guide";
 import Personnel from "./pages/Personnel";
+import Profil from "./pages/Profil";
 import Regime from "./pages/Regime";
 import Reponses from "./pages/Reponses";
 import Simulation from "./pages/Simulation";
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/essai" element={<Essai />} />
           <Route path="/guide/*" element={<Guide />} />
           <Route path="/" element={<Protege><Accueil /></Protege>} />
+          <Route path="/profil" element={<Protege><Profil /></Protege>} />
           <Route path="/dossier/:org" element={<Protege><Dossier /></Protege>}>
             <Route index element={<TableauDeBord />} />
             <Route path="personnel" element={<Personnel />} />
@@ -86,7 +88,6 @@ function Protege({ children }: { children: React.ReactNode }) {
 }
 
 function Entete() {
-  const naviguer = useNavigate();
   const { pathname } = useLocation();
   const connecte = !["/connexion", "/verifier", "/guide", "/inscription", "/essai"].some((p) => pathname.startsWith(p));
   return (
@@ -100,11 +101,12 @@ function Entete() {
           <Link to="/verifier" style={{ color: "#fff" }}>{t("Vérifier un document", "Verify a document")}</Link>
           <BasculeLangue />
           {connecte && (
-            <button onClick={async () => {
-              await api.post("/auth/deconnexion").catch(() => undefined);
-              seConnecter(null);
-              naviguer("/connexion");
-            }}>{t("Se déconnecter", "Sign out")}</button>
+            <Link to="/profil" className="bouton-profil" title={t("Mon profil", "My profile")}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8"
+                   strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              <span>{t("Mon profil", "My profile")}</span>
+            </Link>
           )}
         </div>
       </div>

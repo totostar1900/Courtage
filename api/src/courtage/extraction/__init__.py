@@ -23,7 +23,8 @@ from typing import Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 BASES = {"dernier": "dernier salaire", "moyenne_12_mois": "moyenne des 12 derniers mois"}
-from courtage.referentiel import CEMAC
+from courtage.langue import TRADUCTIONS, traduire  # noqa: E402
+from courtage.referentiel import CEMAC, CEMAC_EN  # noqa: E402
 TypeDocument = Literal["accord_entreprise", "convention_collective", "contrat_travail", "usage", "decision_direction",
                        "autre"]
 
@@ -216,5 +217,80 @@ def _c(niveau: str, code: str, message: str) -> dict:
     return {"niveau": niveau, "code": code, "message": message}
 
 
+# --- L'anglais de l'écran ------------------------------------------------------------------
+# Les constats d'une proposition s'enregistrent avec l'extraction (`ExtractionTexte.resultat`) : ils naissent en
+# français, et `constats_en_clair` les traduit au moment de les rendre, par les motifs inscrits ici.
+
+_PAYS_EN = {fr: CEMAC_EN[code] for code, fr in CEMAC.items()}
+_CHAMPS_EN = {"ancienneté minimale": "minimum length of service", "plafond (mois)": "cap (months)",
+              "base de salaire": "salary basis"}
+
+
+class _Gabarit:
+    def __init__(self, fonction):
+        self.fonction = fonction
+
+    def format(self, **groupes) -> str:
+        return self.fonction(**groupes)
+
+
+def _motif(francais: str) -> str:
+    morceaux = re.split(r"\{(\w+)\}", francais)
+    return "".join(re.escape(m) if i % 2 == 0 else f"(?P<{m}>.+?)" for i, m in enumerate(morceaux))
+
+
+def _ajouter(code: str, francais: str, anglais) -> None:
+    TRADUCTIONS.setdefault(code, []).append((_motif(francais), anglais))
+
+
+_ajouter("texte_illisible", "Le texte du document n'a pas pu être lu localement (PDF scanné ?) : aucune citation ne "
+         "peut être vérifiée. Relisez chaque valeur.",
+         "The document's text could not be read locally (scanned PDF?): no quotation can be checked. Review every "
+         "value.")
+_ajouter("hors_cemac", "Le texte relève d'un pays hors CEMAC ({pays}) : la plateforme ne traite pour l'instant que "
+         "les textes des pays de la CEMAC. Rien n'est repris.",
+         "The text comes from a country outside CEMAC ({pays}): for now the platform only handles texts from CEMAC "
+         "countries. Nothing is taken over.")
+_ajouter("autre_pays", "Le texte semble relever de {texte}, l'entreprise de {entreprise}.",
+         _Gabarit(lambda texte, entreprise: f"The text appears to come from {_PAYS_EN.get(texte, texte)}, the "
+                                            f"company from {_PAYS_EN.get(entreprise, entreprise)}."))
+_ajouter("bareme_absent", "Catégorie « {nom} » : aucun barème lu.", "Category “{nom}”: no scale read.")
+_ajouter("derniere_tranche_ouverte", "Catégorie « {nom} » : le texte ne dit pas le taux au-delà de la dernière "
+         "tranche ; le dernier taux est prolongé, à vérifier.",
+         "Category “{nom}”: the text does not give the rate beyond the last band; the last rate is extended, to be "
+         "checked.")
+_ajouter("citation_introuvable", "Catégorie « {nom} » : le passage cité pour le barème n'est pas dans le texte. "
+         "Vérifiez chaque taux avant d'enregistrer.",
+         "Category “{nom}”: the passage quoted for the scale is not in the text. Check each rate before saving.")
+_ajouter("citation_introuvable", "Catégorie « {nom} » : {champ} sans passage retrouvé dans le texte.",
+         _Gabarit(lambda nom, champ: f"Category “{nom}”: {_CHAMPS_EN.get(champ, champ)} with no passage found in "
+                                     "the text."))
+_ajouter("rien_a_reprendre", "Aucun barème d'indemnité de départ à la retraite n'a été trouvé dans ce texte.",
+         "No retirement benefit scale was found in this text.")
+_ajouter("sans_categorie_generale", "Le texte ne vise que certaines catégories : ajoutez « * » pour le reste du "
+         "personnel, ou il restera au plancher de la convention.",
+         "The text covers only some categories: add “*” for the rest of the staff, or they will stay at the "
+         "collective agreement floor.")
+_ajouter("non_trouve", "Non trouvé dans le texte : {manque}.", "Not found in the text: {manque}.")
+# Les refus du moteur de lecture (extraction/claude.py), rendus comme erreur `extraction_impossible`.
+for _fr, _en in (
+        ("Le service de lecture est injoignable : réessayez plus tard.",
+         "The reading service cannot be reached: try again later."),
+        ("Le service de lecture est saturé : réessayez dans une minute.",
+         "The reading service is overloaded: try again in a minute."),
+        ("Le service de lecture a répondu une erreur ({statut}).", "The reading service returned an error ({statut})."),
+        ("Le service de lecture a décliné ce document.", "The reading service declined this document."),
+        ("Le document est trop long pour être lu en une fois.", "The document is too long to be read in one go."),
+        ("Le service de lecture n'a rien rendu.", "The reading service returned nothing."),
+        ("La lecture a rendu une réponse illisible.", "The reading returned an unreadable response.")):
+    _ajouter("extraction_impossible", _fr, _en)
+
+
+def constats_en_clair(constats: list[dict]) -> list[dict]:
+    """Des COPIES, message dans la langue de l'écran : l'enregistré reste en français."""
+    return [{**c, "message": traduire(c.get("code"), c.get("message") or "")} for c in constats]
+
+
 __all__ = ["CEMAC", "Attention", "CategorieLue", "Document", "Extracteur", "Extraction", "ExtractionImpossible",
-           "Proposition", "TrancheLue", "ValidationError", "citation_retrouvee", "lire_document", "proposer"]
+           "Proposition", "TrancheLue", "ValidationError", "citation_retrouvee", "constats_en_clair", "lire_document",
+           "proposer"]

@@ -12,6 +12,7 @@ from fastapi.responses import Response
 
 from courtage.actuariat.ifc import mois_d_ifc
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 from courtage.modeles import modeles_du_pays
 from courtage.referentiel import CEMAC, referentiel_courant
 
@@ -41,7 +42,7 @@ def conventions():
 def modeles(pays: str = Query(pattern=r"^[A-Z]{2}$")):
     """Les modèles types d'un pays de la CEMAC, calculés depuis ses conventions en vigueur : publics, comme elles."""
     if pays not in CEMAC:
-        raise ErreurMetier("pays_non_couvert", "La plateforme couvre pour l'instant les pays de la CEMAC.", 422)
+        raise ErreurMetier("pays_non_couvert", t("La plateforme couvre pour l'instant les pays de la CEMAC.", "For now the platform covers CEMAC countries only."), 422)
     return {"pays": pays, "pays_libelle": CEMAC[pays], "modeles": modeles_du_pays(referentiel_courant(), pays, date.today())}
 
 

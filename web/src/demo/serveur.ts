@@ -17,6 +17,10 @@ export async function repondre(methode: string, chemin: string, corps: unknown, 
     if (!utilisateur) throw new ErreurApi(401, "non_authentifie", "Choisissez une personne.");
     return trouver(`GET /moi@${utilisateur}`);
   }
+  if (m === "GET" && chemin === "/moi/profil") {
+    if (!utilisateur) throw new ErreurApi(401, "non_authentifie", "Choisissez une personne.");
+    return trouver(`GET /moi/profil@${utilisateur}`);
+  }
   if (m === "POST" && chemin === "/auth/deconnexion") return { message: "Déconnecté." };
   if (m === "GET") return trouver(`GET ${chemin}`);
   if (m === "POST" && chemin.endsWith("/simulations")) return trouver(`POST ${chemin}`);
