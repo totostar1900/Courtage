@@ -104,13 +104,15 @@ def file_d_attente(session: Session, aujourd_hui: date) -> list[dict]:
             .where(Adhesion.organisation_id == o.id, Adhesion.role == "admin_client")
             .order_by(Adhesion.cree_le).limit(1)).first()
         session.execute(text("SELECT set_config('app.organisation_id', :o, true)"), {"o": str(o.id)})
-        rccm_depose = session.scalar(select(func.count()).select_from(Justificatif)
-                                     .where(Justificatif.organisation_id == o.id, Justificatif.nature == "rccm")) > 0
+        pieces = [{"id": str(j.id), "nom_fichier": j.nom_fichier, "depose_le": j.depose_le.isoformat()}
+                  for j in session.scalars(select(Justificatif).where(Justificatif.organisation_id == o.id)
+                                           .order_by(Justificatif.depose_le.desc()))]
+        rccm_depose = bool(pieces)
         e = echeance(o.activation_demandee_le)
         sortie.append({
             "id": str(o.id), "nom": o.nom, "pays": o.pays, "secteur": o.secteur, "rccm": o.rccm, "taille": o.taille,
             "adresse": o.adresse, "ville": o.ville, "demandee_le": o.activation_demandee_le.isoformat(),
-            "echeance": e.isoformat(), "en_retard": aujourd_hui > e, "rccm_depose": rccm_depose,
+            "echeance": e.isoformat(), "en_retard": aujourd_hui > e, "rccm_depose": rccm_depose, "justificatifs": pieces,
             "expire_le": (o.activation_demandee_le + EXPIRATION).date().isoformat(),
             "messages_non_lus": _non_lus(session),
             "demandeur": None if demandeur is None else {

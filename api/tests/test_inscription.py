@@ -77,6 +77,9 @@ def test_la_file_du_courtier_puis_la_confirmation(client, personnes):
     assert client.get(f"{V1}/inscriptions", headers=en_tant_que(drh)).status_code == 403
     [ligne] = [i for i in client.get(f"{V1}/inscriptions", headers=admin).json()["inscriptions"] if i["id"] == org]
     assert ligne["rccm_depose"] and ligne["demandeur"]["fonction"] == "DRH" and ligne["en_retard"] is False
+    [piece] = ligne["justificatifs"]
+    doc = client.get(f"{V1}/inscriptions/{org}/justificatifs/{piece['id']}", headers=admin)
+    assert doc.status_code == 200 and doc.content == b"%PDF-1.4 rccm"
     # Refuser demande un motif ; confirmer désigne le conseiller.
     assert client.post(f"{V1}/inscriptions/{org}/decision", headers=admin,
                        json={"decision": "refuser"}).json()["code"] == "motif_requis"
