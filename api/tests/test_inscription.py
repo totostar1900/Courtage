@@ -66,7 +66,7 @@ def test_une_entreprise_un_dossier(client):
     assert r.status_code == 409 and r.json()["code"] == "entreprise_deja_inscrite"
 
 
-def test_la_file_du_courtier_puis_la_confirmation(client, personnes):
+def test_la_file_du_courtier_puis_la_confirmation(client, personnes, azito):     # azito : le conseiller en suit déjà un
     corps = inscrire(client).json()
     org, drh = corps["organisation_id"], corps["utilisateur"]["id"]
     # Le client dépose son RCCM.
@@ -156,3 +156,24 @@ def test_l_essai_se_reprend_dans_le_dossier(client):
     v = client.post(f"{V1}/organisations/{org}/regimes/{r['id']}/versions", headers=h,
                     json={**modele["version"], "en_vigueur_du": "2025-12-31"})
     assert v.status_code == 201, v.text
+
+
+
+def test_le_courtier_confie_le_dossier_a_un_conseiller(client, personnes, azito):
+    corps = inscrire(client).json()
+    org, drh = corps["organisation_id"], corps["utilisateur"]["id"]
+    admin = en_tant_que(personnes["admin"])
+    assert client.get(f"{V1}/inscriptions/conseillers", headers=en_tant_que(drh)).status_code == 403
+    liste = client.get(f"{V1}/inscriptions/conseillers", headers=admin).json()["conseillers"]
+    ids = {c["id"] for c in liste}
+    assert str(personnes["conseiller"]) in ids and str(personnes["admin"]) in ids and drh not in ids
+    assert next(c for c in liste if c["id"] == str(personnes["admin"]))["moi"] is True
+    # Un utilisateur qui n'est pas conseiller ne se voit pas confier un dossier.
+    r = client.post(f"{V1}/inscriptions/{org}/decision", headers=admin,
+                    json={"decision": "confirmer", "conseiller_id": drh})
+    assert r.status_code == 422 and r.json()["code"] == "conseiller_inconnu"
+    r = client.post(f"{V1}/inscriptions/{org}/decision", headers=admin,
+                    json={"decision": "confirmer", "conseiller_id": str(personnes["conseiller"])})
+    assert r.status_code == 200, r.text
+    membres = client.get(f"{V1}/organisations/{org}/equipe", headers=en_tant_que(drh)).json()["membres"]
+    assert [m["id"] for m in membres if m["role"] == "conseiller"] == [str(personnes["conseiller"])]

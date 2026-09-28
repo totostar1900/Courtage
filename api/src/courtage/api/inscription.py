@@ -127,6 +127,12 @@ def file_des_inscriptions(session: Session = Depends(session_db, scope="function
             "delai_jours_ouvres": activation.DELAI_JOURS_OUVRES}
 
 
+@routeur_inscription.get("/inscriptions/conseillers")
+def lister_conseillers(session: Session = Depends(session_db, scope="function"), moi: Utilisateur = Depends(_plateforme)):
+    """Les conseillers entre lesquels répartir les dossiers confirmés. L'entreprise ne choisit pas le sien."""
+    return {"conseillers": activation.conseillers(session, moi.id)}
+
+
 @routeur_inscription.post("/inscriptions/{organisation_id}/decision")
 def decider(organisation_id: uuid.UUID, corps: Decision, session: Session = Depends(session_db, scope="function"),
             moi: Utilisateur = Depends(_plateforme)):

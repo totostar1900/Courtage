@@ -128,6 +128,19 @@ def _non_lus(session: Session) -> int:
     return messages.non_lus(session, "courtier")
 
 
+def conseillers(session: Session, moi) -> list[dict]:
+    """Qui peut suivre un dossier : les administrateurs de la plateforme et quiconque est déjà conseiller d'un dossier,
+    avec le nombre de dossiers qu'il suit (pour répartir). `adhesions` est hors RLS : la plateforme lit tout."""
+    from courtage.db import Adhesion, Utilisateur
+    suivis = (select(Adhesion.utilisateur_id, func.count().label("n")).where(Adhesion.role == "conseiller")
+              .group_by(Adhesion.utilisateur_id).subquery())
+    rangs = session.execute(
+        select(Utilisateur, func.coalesce(suivis.c.n, 0)).outerjoin(suivis, suivis.c.utilisateur_id == Utilisateur.id)
+        .where((Utilisateur.admin_plateforme.is_(True)) | (suivis.c.n > 0)).order_by(Utilisateur.nom_affiche))
+    return [{"id": str(u.id), "nom": u.nom_affiche or u.email or u.telephone, "courriel": u.email,
+             "dossiers": n, "moi": u.id == moi} for u, n in rangs]
+
+
 def decider(session: Session, org: Organisation, auteur, *, decision: str, verification: dict | None,
             motif: str | None, conseiller_id=None) -> None:
     """Confirmer (ce qui a été vérifié, le conseiller désigné) ou refuser (un motif que le client lit)."""
@@ -146,8 +159,8 @@ def decider(session: Session, org: Organisation, auteur, *, decision: str, verif
     contexte(session.connection(), org.id)
     if decision == "confirmer":
         conseiller = conseiller_id or auteur
-        if session.get(Utilisateur, conseiller) is None:
-            raise ErreurMetier("conseiller_inconnu", "Conseiller introuvable.", 422)
+        if str(conseiller) not in {c["id"] for c in conseillers(session, auteur)}:
+            raise ErreurMetier("conseiller_inconnu", "Choisir un conseiller de la plateforme.", 422)
         if not session.scalar(select(func.count()).select_from(Adhesion).where(
                 Adhesion.organisation_id == org.id, Adhesion.utilisateur_id == conseiller)):
             session.add(Adhesion(utilisateur_id=conseiller, organisation_id=org.id, role="conseiller"))
