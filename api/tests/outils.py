@@ -51,3 +51,10 @@ def etude(client, a, qui="drh", **champs):
 
 def codes(anomalies, niveau=None):
     return {x["code"] for x in anomalies if niveau is None or x["niveau"] == niveau}
+
+
+def sous_mandat(client, a, depuis: str = "2019-01-01") -> None:
+    """Le dossier passe en courtage (un contrat sous mandat), ce que le cahier des charges exige. Idempotent."""
+    r = client.post(f"{V1}/organisations/{a['org']}/contrats", headers=en_tant_que(a["conseiller"]),
+                    json={"en_vigueur_du": depuis, "service": "courtage", "mandat_reference": "Mandat de test"})
+    assert r.status_code in (201, 409), r.text

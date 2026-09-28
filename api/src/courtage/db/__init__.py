@@ -48,6 +48,18 @@ class Organisation(Base):
     # Le cycle de vie : ouvert, suspendu, cloture, archive, supprime (histoire dans `etats_dossier`).
     etat: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
     etat_depuis: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    # L'inscription en libre-service : en_attente jusqu'à la vérification du courtier (spec 2026-09-28).
+    activation: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
+    rccm: Mapped[str | None] = mapped_column(Text)
+    rccm_normalise: Mapped[str | None] = mapped_column(Text)
+    taille: Mapped[str | None] = mapped_column(Text)
+    adresse: Mapped[str | None] = mapped_column(Text)
+    ville: Mapped[str | None] = mapped_column(Text)
+    activation_demandee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activation_decidee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activation_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    activation_verification: Mapped[dict | None] = mapped_column(JSONB)
+    activation_motif: Mapped[str | None] = mapped_column(Text)
 
 
 class EtatDossier(Base):
@@ -71,6 +83,44 @@ class Utilisateur(Base):
     admin_plateforme: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
     nom_affiche: Mapped[str | None] = mapped_column(Text)
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    email_verifie_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CodeVerification(Base):
+    """Un code à usage unique de l'inscription, pour un téléphone ou un courriel pas encore inscrits."""
+    __tablename__ = "codes_verification"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    nature: Mapped[str] = mapped_column(Text)
+    cible: Mapped[str] = mapped_column(Text)
+    code_hash: Mapped[str] = mapped_column(Text)
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    expire_le: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    tentatives: Mapped[int] = mapped_column(Integer, server_default=FetchedValue())
+    utilise_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Justificatif(Base):
+    __tablename__ = "justificatifs"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    nature: Mapped[str] = mapped_column(Text)
+    nom_fichier: Mapped[str] = mapped_column(Text)
+    type_contenu: Mapped[str] = mapped_column(Text)
+    contenu: Mapped[bytes] = mapped_column(LargeBinary)
+    empreinte: Mapped[str] = mapped_column(Text)
+    depose_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    depose_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class MessageDossier(Base):
+    __tablename__ = "messages_dossier"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    auteur: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cote: Mapped[str] = mapped_column(Text)
+    texte: Mapped[str] = mapped_column(Text)
+    le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    lu_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Adhesion(Base):

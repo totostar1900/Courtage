@@ -164,7 +164,7 @@ def test_la_plateforme_ouvre_un_dossier_et_le_suit(client, personnes):
     org = client.post(f"{V1}/organisations", json={"nom": "Brasseries Démo", "pays": "CM", "suivre": True},
                       headers=admin).json()["id"]
     dossiers = client.get(f"{V1}/moi", headers=admin).json()["organisations"]
-    assert {"id": org, "nom": "Brasseries Démo", "pays": "CM", "role": "conseiller", "etat": "ouvert"} in [
+    assert {"id": org, "nom": "Brasseries Démo", "pays": "CM", "role": "conseiller", "etat": "ouvert", "activation": "confirmee"} in [
         {k: v for k, v in d.items() if k != "etat_depuis"} for d in dossiers]
     r = client.post(f"{V1}/organisations/{org}/membres", headers=admin,
                     json={"telephone": "+237 6 99 00 11 22", "nom_affiche": "Mme DRH", "role": "admin_client"})

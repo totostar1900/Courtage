@@ -34,7 +34,10 @@ def partager(client, personnes, e, secteur="commerce", taille="50_a_250", consen
 
 
 def test_le_catalogue_ne_montre_rien_avant_cinq_puis_des_groupes_anonymes(client, personnes):
-    catalogue = lambda: client.get(f"{V1}/catalogue/regimes", headers=en_tant_que(personnes["etranger"])).json()  # noqa: E731
+    # Qui n'appartient à aucune entreprise confirmée ne consulte pas le catalogue.
+    r = client.get(f"{V1}/catalogue/regimes", headers=en_tant_que(personnes["etranger"]))
+    assert r.status_code == 403 and r.json()["code"] == "inscription_non_confirmee"
+    catalogue = lambda: client.get(f"{V1}/catalogue/regimes", headers=en_tant_que(personnes["admin"])).json()  # noqa: E731
     assert catalogue()["groupes"] == []
     entreprises = [entreprise(client, personnes, f"Entreprise {i}", taux=0.8 + i / 20,
                               categorie="Pilotes de ligne" if i == 0 else "*") for i in range(5)]

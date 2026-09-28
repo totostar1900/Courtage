@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import text
 
 from courtage.fiche import SEUIL, agreger_population, regrouper_echeancier
-from tests.outils import V1, en_tant_que, etude
+from tests.outils import sous_mandat, V1, en_tant_que, etude
 from tests.test_rapport import emettre, pages
 from tests.test_regime import CADRES, CCI, adopter, categorie, regime
 
@@ -17,7 +17,9 @@ CONDITIONS = {"taux_garanti_minimum": 0.025, "frais_sur_cotisations_maximum": 0.
               "delai_paiement_jours_maximum": 30, "base_etude_plateforme": True, "reporting_annuel": True}
 
 
-def fiche(client, a, etude_id, qui="conseiller", **champs):
+def fiche(client, a, etude_id, qui="conseiller", mandat=True, **champs):
+    if mandat:
+        sous_mandat(client, a)
     corps = {"etude_id": etude_id, "date_limite_reponse": DANS_UN_MOIS, "conditions": CONDITIONS, **champs}
     return client.post(f"{V1}/organisations/{a['org']}/fiches", json=corps, headers=en_tant_que(a[qui]))
 

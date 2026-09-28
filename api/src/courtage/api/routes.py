@@ -8,14 +8,14 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from courtage.auth.telephone import normaliser
 from courtage.db import Adhesion, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.financement import Offre, Scenario
-from courtage.services import alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, mandats, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, simulation
+from courtage.services import activation, alertes, analyse, cycle, equipe, nettoyage, notes_regime, catalogue, contrats, dossiers, etudes, extractions, mandats, orientation, reponses, prestations, fiches, financement, fichiers, journaliser, rapport, regimes, simulation
 
 from . import Acces, acces, identite, session_db
 from .limites import limite
@@ -43,9 +43,15 @@ def moi(session: Session = Depends(session_db, scope="function"), utilisateur: U
         "id": str(utilisateur.id), "email": utilisateur.email, "telephone": utilisateur.telephone,
         "admin_plateforme": utilisateur.admin_plateforme,
         "organisations": [{"id": str(o.id), "nom": o.nom, "pays": o.pays, "role": r, "etat": o.etat,
-                           "etat_depuis": o.etat_depuis.isoformat()}
+                           "etat_depuis": o.etat_depuis.isoformat(), "activation": o.activation}
                           for o, r in rangs if o.etat not in ("archive", "supprime")],
     }
+
+
+@routeur.get("/organisations/{organisation_id}/activation")
+def lire_activation(a: Acces = Depends(acces(*TOUS))):
+    """Où en est l'inscription, et ce que chaque capacité attend encore."""
+    return activation.en_clair(a.session, a.organisation, date.today())
 
 
 @routeur.get("/alertes")
@@ -200,6 +206,7 @@ def inscrire_membre(organisation_id: uuid.UUID, corps: NouveauMembre, session: S
         raise ErreurMetier("acces_refuse", "Vous n'êtes pas membre de cette organisation.", 403)
     cycle.exiger_ecriture(org)
     contexte(session.connection(), organisation_id)
+    activation.exiger(session, org, "equipe")
     return equipe.inscrire(session, org, utilisateur, role, telephone=corps.telephone, nom_affiche=corps.nom_affiche,
                            role=corps.role, fonction=corps.fonction)
 
@@ -212,6 +219,8 @@ class ModificationMembre(_Corps):
 
 @routeur.patch("/organisations/{organisation_id}/membres/{utilisateur_id}")
 def modifier_membre(utilisateur_id: uuid.UUID, corps: ModificationMembre, a: Acces = Depends(acces(*TOUS))):
+    if utilisateur_id != a.utilisateur.id or corps.role is not None:      # sa propre fonction, oui ; les droits, non
+        activation.exiger(a.session, a.organisation, "equipe")
     equipe.modifier(a.session, a.organisation, a.utilisateur, a.role, utilisateur_id, **corps.model_dump())
     return equipe.lister(a.session, a.organisation, a.utilisateur, a.role)
 
@@ -290,6 +299,7 @@ def demander_accompagnement(corps: DemandeAccompagnement, a: Acces = Depends(acc
 
 @routeur.put("/organisations/{organisation_id}/mandats/{mandat_id}/proposition")
 def proposer_mandat(mandat_id: uuid.UUID, corps: PropositionMandat, a: Acces = Depends(acces(*CONSEIL))):
+    activation.exiger(a.session, a.organisation, "mandat")
     m = mandats.proposer(a.session, a.organisation, mandats.obtenir(a.session, mandat_id), a.utilisateur.id,
                          **corps.model_dump(), aujourd_hui=date.today())
     return mandats.en_clair(a.session, a.organisation, m)
@@ -300,6 +310,7 @@ def signer_mandat(mandat_id: uuid.UUID, corps: SignatureMandat, request: Request
                   a: Acces = Depends(acces(*ENTREPRISE))):
     """L'administrateur de l'entreprise signe le texte qu'il a lu (son empreinte) : le mandat est scellé, le
     contrat « courtage » prend effet à sa date."""
+    activation.exiger(a.session, a.organisation, "mandat")
     if not corps.accepte:
         raise ErreurMetier("acceptation_requise", "Cocher « J'ai lu et j'accepte ce mandat ».", 422)
     m = mandats.obtenir(a.session, mandat_id)
@@ -424,6 +435,7 @@ def corriger_prestation(prestation_id: uuid.UUID, corps: CorrectionPrestation, a
 
 @routeur.get("/organisations/{organisation_id}/prestations/{prestation_id}/fiche-de-calcul")
 def fiche_de_calcul(prestation_id: uuid.UUID, request: Request, a: Acces = Depends(acces(*CLIENT))):
+    activation.exiger(a.session, a.organisation, "fiche_de_calcul")
     d = orientation.fiche_de_calcul(a.session, a.organisation, a.utilisateur.id, prestation_id,
                                     request.app.state.sceau, date.today())
     return Response(d.contenu, media_type="application/pdf",
@@ -570,6 +582,8 @@ def mode_extraction(request: Request, _: Utilisateur = Depends(identite)):
 @routeur.post("/organisations/{organisation_id}/regimes/extraction", status_code=201)
 async def extraire_regime(request: Request, fichier: UploadFile = File(...), consentement: bool = Form(default=False),
                           a: Acces = Depends(acces(*CLIENT))):
+    if request.app.state.extracteur.envoie_a_un_tiers:
+        activation.exiger(a.session, a.organisation, "extraction_claude")
     return extractions.pour_un_regime(a.session, a.organisation, a.utilisateur.id, request.app.state.extracteur,
                                       contenu=await fichier.read(), nom_fichier=fichier.filename or "texte",
                                       consentement=consentement)
@@ -680,6 +694,7 @@ def dupliquer_version(version_id: uuid.UUID, a: Acces = Depends(acces(*CLIENT)))
 def emettre_note(version_id: uuid.UUID, nature: str, request: Request,
                  a: Acces = Depends(acces("admin_client", "conseiller"))):
     """La note aux salariés ou aux assureurs d'une version adoptée : scellée à la première demande, la même ensuite."""
+    activation.exiger(a.session, a.organisation, "notes_regime")
     d = notes_regime.emettre(a.session, a.organisation, regimes.obtenir_version(a.session, version_id), nature,
                              a.utilisateur.id, request.app.state.sceau, date.today())
     return {"numero": d.numero}
@@ -724,7 +739,13 @@ class Partage(_Corps):
 @routeur.get("/catalogue/regimes")
 def consulter_catalogue(session: Session = Depends(session_db, scope="function"),
                         utilisateur: Utilisateur = Depends(identite)):
-    """Toute personne connectée : des groupes d'au moins cinq entreprises, jamais une entreprise."""
+    """Une entreprise confirmée (ou la plateforme) : des groupes d'au moins cinq entreprises, jamais une entreprise.
+    Ni un visiteur, ni une inscription en attente : on ne compare qu'à des entreprises vérifiées."""
+    if not utilisateur.admin_plateforme and not session.scalar(
+            select(func.count()).select_from(Adhesion).join(Organisation, Organisation.id == Adhesion.organisation_id)
+            .where(Adhesion.utilisateur_id == utilisateur.id, Organisation.activation == "confirmee")):
+        raise ErreurMetier("inscription_non_confirmee", "Le catalogue anonyme s'ouvre une fois votre inscription "
+                           "confirmée par votre conseiller.", 403, {"capacite": "catalogue"})
     return catalogue.consulter(session)
 
 
@@ -735,6 +756,7 @@ def partages_du_dossier(a: Acces = Depends(acces(*TOUS))):
 
 @routeur.post("/organisations/{organisation_id}/regimes/versions/{version_id}/partage", status_code=201)
 def partager_version(version_id: uuid.UUID, corps: Partage, a: Acces = Depends(acces(*ENTREPRISE))):
+    activation.exiger(a.session, a.organisation, "catalogue")
     if not corps.consentement:
         raise ErreurMetier("consentement_requis", "Le partage demande l'accord explicite de l'entreprise.", 422)
     lien = catalogue.partager(a.session, a.organisation, regimes.obtenir_version(a.session, version_id),
@@ -872,6 +894,7 @@ def lire_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
 @routeur.get("/organisations/{organisation_id}/etudes/{etude_id}/export")
 def exporter_etude(etude_id: uuid.UUID, a: Acces = Depends(acces(*TOUS))):
     """L'étude en Excel : synthèse, échéancier, catégories, sensibilités, salariés (par matricule)."""
+    activation.exiger(a.session, a.organisation, "export_etude")
     from courtage import exports
     e = etudes.en_clair(a.session, a.organisation, etudes.obtenir(a.session, etude_id), date.today())
     journaliser(a.session, a.organisation.id, a.utilisateur.id, "etude.exportee", etude_id, {})
@@ -903,6 +926,7 @@ def supprimer_etude(etude_id: uuid.UUID, confirmation: str | None = None, a: Acc
 @routeur.post("/organisations/{organisation_id}/etudes/{etude_id}/emission")
 def emettre_etude(etude_id: uuid.UUID, request: Request, a: Acces = Depends(acces(*CONSEIL))):
     """Émettre, sceller et rendre le rapport : un seul acte. Si le rapport échoue, rien n'est émis."""
+    activation.exiger(a.session, a.organisation, "rapport_scelle")
     cycle.exiger_emission(a.organisation)
     e = etudes.emettre(a.session, a.organisation, etudes.obtenir(a.session, etude_id), a.utilisateur.id, date.today())
     document = rapport.sceller(a.session, a.organisation, e, request.app.state.sceau, date.today())
@@ -977,6 +1001,7 @@ class NouvelleFiche(_Corps):
 @routeur.post("/organisations/{organisation_id}/fiches", status_code=201)
 def emettre_fiche(corps: NouvelleFiche, request: Request, a: Acces = Depends(acces(*CONSEIL))):
     """Le cahier des charges : émis, scellé, rendu, en un seul acte."""
+    activation.exiger(a.session, a.organisation, "cahier")
     cycle.exiger_emission(a.organisation)
     f, document = fiches.emettre(a.session, a.organisation, a.utilisateur.id, etude_id=corps.etude_id,
                                  conditions=corps.conditions.model_dump(), date_limite_reponse=corps.date_limite_reponse,
