@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from courtage.auth import masquer
 from courtage.db import Adhesion, CodeVerification, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 
 from . import journaliser
 from .activation import normaliser_rccm
@@ -106,7 +107,8 @@ def preuve_valide(cle: bytes, jeton: str, nature: str, cible: str) -> bool:
 def inscrire(session: Session, *, telephone: str, preuve_telephone: str, courriel: str, preuve_courriel: str,
              nom: str, fonction: str | None, entreprise: dict, cle: bytes) -> tuple[Utilisateur, Organisation]:
     if not preuve_valide(cle, preuve_telephone, "telephone", telephone):
-        raise ErreurMetier("telephone_non_verifie", "Vérifiez d'abord votre téléphone (le code a peut-être expiré).", 422)
+        raise ErreurMetier("telephone_non_verifie", t("Vérifiez d'abord votre téléphone (le code a peut-être expiré).",
+                                                      "Verify your phone first (the code may have expired)."), 422)
     if not preuve_valide(cle, preuve_courriel, "courriel", courriel):
         raise ErreurMetier("courriel_non_verifie", "Vérifiez d'abord votre adresse électronique.", 422)
     if session.scalar(select(Utilisateur.id).where(Utilisateur.telephone == telephone)):

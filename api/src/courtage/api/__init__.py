@@ -55,6 +55,8 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
         raise RuntimeError("Connexion : en production, il faut une clé d'authentification et un vrai "
                            "fournisseur d'envoi de messages.")
     app = FastAPI(title="Courtage", version="0.1.0")
+    from courtage.langue import MiddlewareLangue
+    app.add_middleware(MiddlewareLangue)
     app.state.moteur = moteur
     app.state.authentification = authentification
     app.state.sceau = ConfigSceau.depuis(cle_sceau, url_publique)
