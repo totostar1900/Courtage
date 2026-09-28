@@ -52,10 +52,13 @@ describe("la file des inscriptions", () => {
     expect(appels.some((a) => a.chemin === "/inscriptions")).toBe(false);
   });
 
-  it("confirmer envoie ce qui a été vérifié, puis relit la file", async () => {
+  it("confirmer envoie ce qui a été vérifié et le conseiller choisi, puis relit la file", async () => {
     let decide = false;
     const appels = simulerApi({
       "/moi": COURTIER,
+      "/inscriptions/conseillers": { conseillers: [
+        { id: "adm", nom: "Le courtier", courriel: null, dossiers: 4, moi: true },
+        { id: "c2", nom: "Awa Nkoulou", courriel: "awa@x.cm", dossiers: 1, moi: false }] },
       "/inscriptions": () => ({ delai_jours_ouvres: 2,
         inscriptions: decide ? [] : [inscription("o-a", "Brasseries du Littoral")] }),
       "POST /inscriptions/o-a/decision": () => { decide = true; return { etat: "confirmee" }; },
@@ -69,11 +72,14 @@ describe("la file des inscriptions", () => {
     await userEvent.type(date, "2026-09-25");
     await userEvent.type(within(tiroir).getByLabelText("Personne jointe, et à quel titre"), "Mme Ngo, DRH");
     await userEvent.type(within(tiroir).getByLabelText("Note"), "Appel au siège.");
+    const choix = within(tiroir).getByLabelText("Conseiller du dossier");
+    await waitFor(() => expect(choix).toHaveValue("adm"));                // vous, par défaut
+    await userEvent.selectOptions(choix, "c2");
     await userEvent.click(within(tiroir).getByRole("button", { name: "Confirmer l'inscription" }));
     await waitFor(() => expect(appels.some((a) => a.chemin === "/inscriptions/o-a/decision")).toBe(true));
     const envoi = appels.find((a) => a.chemin === "/inscriptions/o-a/decision")!;
     expect(JSON.parse(envoi.init!.body as string)).toEqual({ decision: "confirmer", verification: {
-      rccm_recu: true, appel_le: "2026-09-25", habilitation: "Mme Ngo, DRH", note: "Appel au siège." } });
+      rccm_recu: true, appel_le: "2026-09-25", habilitation: "Mme Ngo, DRH", note: "Appel au siège." }, conseiller_id: "c2" });
     expect(await screen.findByText("Aucune inscription en attente.")).toBeInTheDocument();
   });
 

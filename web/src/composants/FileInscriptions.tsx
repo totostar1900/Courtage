@@ -127,7 +127,13 @@ export default function FileInscriptions({ onDecision }: { onDecision?: () => vo
 
 interface Acte { ins: Ligne; onFermer: () => void; onFait: () => void }
 
+interface Conseiller { id: string; nom: string | null; courriel: string | null; dossiers: number; moi: boolean }
+
 function Confirmer({ ins, onFermer, onFait }: Acte) {
+  const { donnee: liste } = useCharge(() => api.get<{ conseillers: Conseiller[] }>("/inscriptions/conseillers"), []);
+  const conseillers = liste?.conseillers ?? [];
+  const [conseiller, setConseiller] = useState<string>("");
+  const choisi = conseiller || conseillers.find((c) => c.moi)?.id || "";
   const [erreur, setErreur] = useState<unknown>(null);
   const [enCours, setEnCours] = useState(false);
   async function envoyer(ev: FormEvent<HTMLFormElement>) {
@@ -143,7 +149,8 @@ function Confirmer({ ins, onFermer, onFait }: Acte) {
     setErreur(null);
     setEnCours(true);
     try {
-      await api.post(`/inscriptions/${ins.id}/decision`, { decision: "confirmer", verification });
+      await api.post(`/inscriptions/${ins.id}/decision`, {
+        decision: "confirmer", verification, ...(choisi ? { conseiller_id: choisi } : {}) });
       onFait();
     } catch (e) {
       setErreur(e);
@@ -153,8 +160,19 @@ function Confirmer({ ins, onFermer, onFait }: Acte) {
   return (
     <Volet titre={t(`Confirmer ${ins.nom}`, `Confirm ${ins.nom}`)} onFermer={onFermer}>
       <form className="formulaire" onSubmit={envoyer}>
-        <p className="discret">{t("Ce qui a été vérifié est tracé avec la décision. En confirmant, vous devenez le conseiller du dossier.",
-          "What was checked is recorded with the decision. By confirming, you become the file's adviser.")}</p>
+        <p className="discret">{t("Ce qui a été vérifié est tracé avec la décision. Le conseiller choisi suit le dossier ; l'entreprise ne le choisit pas.",
+          "What was checked is recorded with the decision. The chosen adviser follows the file; the company does not choose.")}</p>
+        <label>{t("Conseiller du dossier", "File adviser")}
+          <select value={choisi} onChange={(e) => setConseiller(e.target.value)} required>
+            {conseillers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nom ?? c.courriel ?? c.id}{c.moi ? t(" (vous)", " (you)") : ""}
+                {t(` — ${c.dossiers} dossier${c.dossiers > 1 ? "s" : ""} suivi${c.dossiers > 1 ? "s" : ""}`,
+                   ` — ${c.dossiers} file${c.dossiers > 1 ? "s" : ""} followed`)}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="case">
           <input type="checkbox" name="rccm_recu" defaultChecked={ins.rccm_depose} />
           {t(`RCCM reçu et conforme (${ins.rccm})`, `RCCM received and matching (${ins.rccm})`)}
