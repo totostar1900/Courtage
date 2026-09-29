@@ -34,6 +34,9 @@ export default function Accueil() {
     <>
       <div className="actions" style={{ marginTop: 0, justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>{t("Vos dossiers", "Your files")}</h1>
+        {moi && (moi.admin_plateforme || moi.organisations.some((o) => o.role === "conseiller")) && (
+          <Link to="/portefeuille" className="bouton">{t("Pipeline et portefeuille", "Pipeline and portfolio")}</Link>
+        )}
         {moi?.admin_plateforme && !ouvrir && (
           <button type="button" className="principal" onClick={() => setOuvrir(true)}>{t("Ouvrir un dossier client", "Open a client file")}</button>
         )}

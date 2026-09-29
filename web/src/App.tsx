@@ -27,6 +27,7 @@ import Etudes from "./pages/Etudes";
 import Financement from "./pages/Financement";
 import Guide from "./pages/Guide";
 import Personnel from "./pages/Personnel";
+import Portefeuille from "./pages/Portefeuille";
 import Placement from "./pages/Placement";
 import Profil from "./pages/Profil";
 import Regime from "./pages/Regime";
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/confidentialite" element={<><Titre valeur={t("Confidentialité", "Privacy")} /><Confidentialite /></>} />
           <Route path="/" element={<Racine onVisiteur={setVisiteur} />} />
           <Route path="/profil" element={<Protege><Profil /></Protege>} />
+          <Route path="/portefeuille" element={<Protege><Portefeuille /></Protege>} />
           <Route path="/dossier/:org" element={<Protege><Dossier /></Protege>}>
             <Route index element={<TableauDeBord />} />
             <Route path="personnel" element={<Personnel />} />
