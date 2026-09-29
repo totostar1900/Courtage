@@ -13,6 +13,8 @@ export interface EtatDossier {
   mandat?: "aucun" | "demande" | "propose" | "signe" | null;
   /** Une offre a été retenue sur un cahier des charges. */
   offreRetenue?: boolean;
+  /** Sous mandat, par un mandat signé ici ou un contrat de courtage enregistré par le conseiller. */
+  sousMandat?: boolean;
 }
 
 export interface Etape {
@@ -28,7 +30,7 @@ export function etapes(e: EtatDossier): Etape[] {
     // L'accompagnement d'abord : c'est ce que l'entreprise vient chercher. « Fait » dès qu'il est demandé, sauf quand
     // un mandat attend sa signature.
     { cle: "accompagnement", libelle: t("Accompagnement", "Support"),
-      fait: e.mandat == null || e.mandat === "demande" || e.mandat === "signe",
+      fait: Boolean(e.sousMandat) || e.mandat == null || e.mandat === "demande" || e.mandat === "signe",
       aide: e.mandat === "propose" ? t("Un mandat de courtage vous attend : lisez-le, puis signez-le.",
                                        "A brokerage mandate is waiting for you: read it, then sign it.")
         : t("Dites ce que vous attendez de votre courtier : il vous propose ensuite un mandat.",

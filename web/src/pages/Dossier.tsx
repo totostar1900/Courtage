@@ -65,6 +65,7 @@ export default function Dossier() {
       etudesEmises: etudes.filter((e) => e.statut === "emise").length,
       etudesBrouillon: etudes.filter((e) => e.statut === "brouillon").length,
       fiches: fiches.length, mandat: mandat as EtatDossier["mandat"], offreRetenue: fiches.some((f) => f.attribuee),
+      sousMandat: activation.etat === "confirmee" && activation.capacites.cahier,
     };
     return { org: o, role: o.role, fichiers, regimes, etudes, fiches, equipe, etat, activation, nonLus, moiId: moi.id };
   }, [org]);

@@ -755,3 +755,156 @@ details.pli > .pli-corps > .carte { border: 0; padding: 0; box-shadow: none; }
 .choix-carte:hover { border-color: #b9c0de; }
 .choix-carte.coche { border-color: var(--indigo-vif); background: var(--indigo-doux); }
 .choix-carte input { margin-top: 3px; accent-color: var(--indigo); }
+.frise.frise-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 900px) { .frise.frise-4 { grid-template-columns: 1fr; } }
+.frise li.fait .frise-num { background: var(--bien); }
+.badge.badge-neutre { background: var(--indigo-doux); color: var(--indigo); }
+.decomposition { font-variant-numeric: tabular-nums; margin: 2px 0 6px; }
+.carte.vide { text-align: center; padding: 36px 24px; }
+.carte.vide h2 { font-size: 20px; }
+.carte.vide p { margin-left: auto; margin-right: auto; }
+
+/* ==========================================================================================================
+   Le socle visuel de 2026-09-29 (docs/design/audit-2026-09-29.md). Écrit en dernier : il l'emporte sur ce qui
+   précède sans le réécrire. Une idée par règle : de l'air entre les sections, des surfaces qui se détachent par une
+   ombre douce plutôt que par un trait, des contrôles de même taille, un focus visible, des mouvements discrets.
+   ========================================================================================================== */
+:root {
+  --fond: #f4f5f9;
+  --trait: #e3e6ef;
+  --trait-fort: #cdd2e3;
+  --ombre-1: 0 1px 2px rgba(20, 26, 51, .05), 0 1px 1px rgba(20, 26, 51, .03);
+  --ombre-2: 0 10px 30px -12px rgba(20, 26, 51, .18), 0 2px 6px rgba(20, 26, 51, .05);
+  --rayon: 16px;
+  --anneau: 0 0 0 3px rgba(47, 65, 154, .18);
+}
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+h1 { font-size: clamp(28px, 2.6vw, 36px); line-height: 1.15; letter-spacing: -.01em; margin-bottom: 10px; }
+h2 { font-size: 23px; line-height: 1.25; letter-spacing: -.005em; }
+h3 { font-size: 16px; letter-spacing: -.003em; }
+
+/* L'en-tête reste là quand on descend. */
+.entete { position: sticky; top: 0; z-index: 30; box-shadow: 0 8px 24px -16px rgba(0, 0, 0, .55); }
+
+/* Les surfaces */
+.carte { border-radius: var(--rayon); padding: 22px 24px; box-shadow: var(--ombre-1); }
+.carte.lien { transition: border-color .15s, box-shadow .15s, transform .15s; }
+.carte.lien:hover { box-shadow: var(--ombre-2); transform: translateY(-1px); }
+
+/* L'air : une section de page se détache nettement ; dans une carte, moins. */
+.section { margin-top: 32px; }
+.dossier > section > .section, .dossier > section > section, .dossier > section > details.pli { margin-top: 48px; }
+.carte .section { margin-top: 20px; }
+.dossier > section > h1 + p, .essai > h1 + p, .page > h1 + p { font-size: 16px; color: var(--encre-2); }
+.dossier > section > .section > h2:first-child, .dossier > section > section > h2:first-child { margin-bottom: 14px; }
+.dossier { gap: 48px; }
+
+/* Les contrôles : une hauteur, un rayon, un anneau de focus. */
+button, a.bouton { min-height: 40px; padding: 9px 18px; border-radius: 10px; font-size: 14.5px; line-height: 1.2;
+  transition: background .15s, border-color .15s, box-shadow .15s, transform .05s; }
+a.bouton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--trait);
+  background: var(--surface); color: var(--encre); }
+button:hover:not(:disabled), a.bouton:hover { border-color: var(--trait-fort); }
+button.principal, a.bouton.principal { box-shadow: 0 1px 2px rgba(31, 45, 107, .3), inset 0 1px 0 rgba(255, 255, 255, .12); }
+button.principal:hover:not(:disabled), a.bouton.principal:hover { background: var(--indigo-vif); border-color: var(--indigo-vif); }
+button:active:not(:disabled), a.bouton:active { transform: translateY(1px); }
+button.danger { color: var(--grave); border-color: #ecc6c0; }
+button.lien, .segments button, .fermer-volet, .terme .aide, .bouton-aide { min-height: 0; }
+.fermer-volet { padding: 0; }
+.terme .aide { padding: 0; }
+input, select, textarea { min-height: 42px; border-radius: 10px; padding: 9px 12px; border-color: var(--trait-fort);
+  transition: border-color .15s, box-shadow .15s; }
+textarea { min-height: 0; }
+input[type="checkbox"], input[type="radio"] { min-height: 0; accent-color: var(--indigo); }
+input[type="range"] { min-height: 0; accent-color: var(--indigo); }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--indigo-vif); box-shadow: var(--anneau); }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid rgba(47, 65, 154, .35); outline-offset: 2px; }
+label { font-size: 13px; }
+.champ-telephone-ligne { border-color: var(--trait-fort); border-radius: 10px; }
+.champ-telephone-ligne input, .champ-telephone-ligne input:focus { min-height: 42px; box-shadow: none; }
+
+/* Les tableaux : un en-tête posé, des lignes qui respirent. */
+th { background: #f8f9fc; }
+th, td { padding: 11px 12px; }
+.defile { border-radius: 12px; }
+
+/* Les constats : des cartes teintées, la couleur dit le niveau. */
+.constat { border: 1px solid var(--trait); border-left-width: 4px; border-radius: 12px; padding: 12px 16px; box-shadow: var(--ombre-1); }
+.constat.bloque, .constat.bloquant { background: #fff7f6; border-color: #f0d3ce; border-left-color: var(--grave); }
+.constat.avertit, .constat.avertissement { background: #fffaf0; border-color: #f1e3c2; border-left-color: var(--attention); }
+.constat.informe { background: #f6f7fd; border-color: #dfe3f4; border-left-color: var(--indigo-vif); }
+.bandeau-activation { padding: 18px 20px; }
+.bandeau-activation .titre { font-size: 15px; }
+
+/* Le menu du dossier : il suit la page. */
+.parcours a { padding: 9px 12px; transition: background .15s, color .15s; }
+.parcours a:hover { background: #eceef7; color: var(--encre); }
+
+/* Les offres */
+.offre.meilleure { border: 2px solid var(--bien); box-shadow: 0 12px 30px -16px rgba(35, 112, 74, .45); }
+.badge { box-shadow: 0 2px 8px -2px rgba(0, 0, 0, .2); }
+
+@media (prefers-reduced-motion: reduce) {
+  button, a.bouton, .carte.lien, input, select, textarea { transition: none; }
+}
+
+/* La vitrine, redessinée : un bandeau d'accueil à deux colonnes (le texte, un aperçu du produit), puis des blocs
+   nettement séparés, chacun avec son surtitre. */
+.vitrine { gap: 72px; }
+.vitrine-une { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 40px; align-items: center;
+  padding: 48px 44px; margin-top: 8px; border-radius: 24px; color: #fff; position: relative; overflow: hidden;
+  background: radial-gradient(1200px 400px at 100% 0%, rgba(242, 194, 122, .22), transparent 60%),
+              linear-gradient(135deg, #18245a 0%, #1f2d6b 45%, #2f419a 100%); }
+.vitrine-une h1 { color: #fff; font-size: clamp(30px, 4vw, 48px); max-width: 18ch; margin: 6px 0 16px; }
+.vitrine-une .vitrine-chapeau { color: rgba(255, 255, 255, .86); font-size: 17.5px; line-height: 1.6; }
+.surtitre-clair { color: #f2c27a; }
+.vitrine-une .actions { margin: 26px 0 12px; }
+.bouton-grand { min-height: 48px !important; padding: 12px 22px !important; font-size: 15.5px !important; border-radius: 12px !important; }
+.vitrine-une a.bouton.principal { background: #fff; color: var(--indigo); border-color: #fff; }
+.vitrine-une a.bouton.principal:hover { background: #eef0fb; }
+a.bouton.bouton-clair { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .45); }
+a.bouton.bouton-clair:hover { background: rgba(255, 255, 255, .1); border-color: #fff; }
+.vitrine-liens { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px; margin: 0 0 20px; }
+.vitrine-liens a { color: rgba(255, 255, 255, .85); }
+.vitrine-assurances { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 14px; color: rgba(255, 255, 255, .85); }
+.vitrine-assurances li { display: flex; gap: 10px; align-items: baseline; }
+.vitrine-assurances li::before { content: "✓"; color: #7fd4a3; font-weight: 700; }
+.vitrine-assurances .vitrine-gratuit { background: none; padding: 0; border-radius: 0; display: flex; }
+.vitrine-assurances strong { color: #fff; }
+.vitrine-une-visuel { display: grid; place-items: center; }
+.apercu-carte { width: min(360px, 100%); background: #fff; color: var(--encre); border-radius: 18px; padding: 22px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .45); transform: rotate(-1.5deg); }
+.apercu-tete { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--discret); }
+.apercu-chiffre { font-family: var(--titre); font-size: 38px; margin: 6px 0 14px; font-variant-numeric: tabular-nums; }
+.apercu-barres { display: flex; align-items: flex-end; gap: 6px; height: 70px; margin-bottom: 16px; }
+.apercu-barres span { flex: 1; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, #4b5cc4, #2f419a); }
+.apercu-ligne { display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--trait); font-size: 14px; }
+.apercu-ligne strong { font-variant-numeric: tabular-nums; }
+.vitrine-bloc > h2 { font-size: clamp(24px, 2.4vw, 30px); margin-bottom: 22px; }
+.vitrine-frise { margin-top: 8px; }
+.carte-icone .pastille-icone { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--indigo-doux); color: var(--indigo); margin-bottom: 14px; }
+.carte-icone h3 { font-size: 17px; }
+.vitrine-questions { display: grid; gap: 10px; margin-bottom: 14px; }
+.vitrine-questions details.pli > summary { font-size: 15.5px; }
+.vitrine-questions .pli-corps p { margin: 0; }
+.vitrine-bas { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.fiche-cabinet { display: grid; gap: 4px; margin: 0; font-size: 14px; }
+.fiche-cabinet dt { color: var(--discret); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; margin-top: 10px; }
+.fiche-cabinet dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .vitrine { gap: 48px; }
+  .vitrine-une { grid-template-columns: 1fr; padding: 32px 22px; border-radius: 18px; }
+  .vitrine-une-visuel { display: none; }
+  .vitrine-bas { grid-template-columns: 1fr; }
+}
+.vitrine-assurances li { display: block; position: relative; padding-left: 22px; }
+.vitrine-assurances li::before { position: absolute; left: 0; top: 0; }
+.vitrine-assurances .vitrine-gratuit { display: block; }
+@media (min-width: 701px) { .grille-2 > .champ-telephone { grid-column: span 2; } }
+@media (max-width: 600px) {
+  .entete .interieur { padding: 10px 16px; gap: 10px; }
+  .entete .droite { gap: 10px; font-size: 13px; }
+  .entete .droite a[href="/verifier"] { display: none; }
+}
+.vitrine-assurances li.vitrine-gratuit { padding-left: 22px; }

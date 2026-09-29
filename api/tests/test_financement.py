@@ -184,3 +184,9 @@ def test_les_offres_se_classent_par_rendement_net():
     rendements = {o["nom"]: o["scenarios"][0]["rendement_net"] for o in r["offres"]}
     assert r["classement_rendement"][0] == max(rendements, key=rendements.get)
     assert rendements["Frais bas"] > rendements["Taux haut, frais lourds"]
+
+
+def test_sans_frais_rendement_net_et_taux_servi_sont_le_meme_nombre():
+    """« Taux servi 4,63 % − frais 0,00 % = 4,62 % » : l'arrondi du calcul se voyait à l'écran."""
+    p = une(offre=Offre(nom="PB", taux_garanti=0.025, participation_benefices=0.85), scenario=Scenario(nom="c", rendement=0.05))
+    assert p["rendement_net"] == round(p["taux_servi"], 8)

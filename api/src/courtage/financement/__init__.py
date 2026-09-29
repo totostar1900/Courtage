@@ -145,9 +145,9 @@ def rendement_net(fonds_initial: float, annees: list[dict], fonds_final: float) 
             haut = milieu
         else:
             bas = milieu
-        if haut - bas < 1e-10:
+        if haut - bas < 1e-12:
             break
-    return (bas + haut) / 2
+    return round((bas + haut) / 2, 8)      # sans frais, il tombe exactement sur le taux servi, comme à l'affichage
 
 
 def _projeter_une(e: Engagement, o: Offre, s: Scenario, p: Parametres, annuite: float) -> dict:

@@ -1463,7 +1463,9 @@ describe("les départs attendent le contrat", () => {
 
 describe("l'accompagnement en tête du parcours", () => {
   it("un mandat proposé devient l'étape suivante, en tête du menu", async () => {
-    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/mandats`]: { mandats: [{ statut: "propose" }] } });
+    const d = dossier("admin_client");
+    (d[`/organisations/${ORG}/activation`] as { capacites: Record<string, boolean> }).capacites.cahier = false;  // pas encore sous mandat
+    simulerApi({ ...d, [`/organisations/${ORG}/mandats`]: { mandats: [{ statut: "propose" }] } });
     ouvrir(`/dossier/${ORG}`);
     const parcours = await screen.findByRole("link", { name: /^Accompagnement/ });
     expect(parcours.closest("li")).toHaveClass("suivant");
