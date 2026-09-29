@@ -18,7 +18,7 @@ export default function Visionneuse() {
       <button className="principal fermer" onClick={() => setPages(null)}>{t("Fermer le document", "Close the document")}</button>
       <div className="feuilles" onClick={(e) => e.stopPropagation()}>
         {pages.length ? pages.map((p, i) => <img key={i} src={p} alt={t(`Page ${i + 1}`, `Page ${i + 1}`)} />)
-          : <p style={{ color: "#fff" }}>{t("Document indisponible dans la démonstration.", "Document not available in the demo.")}</p>}
+          : <p style={{ color: "#f5f7f9" }}>{t("Document indisponible dans la démonstration.", "Document not available in the demo.")}</p>}
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ export interface Variante {
 
 /** La référence (la convention seule) en neutre foncé, toujours en tirets ; les variantes dans l'ordre de la palette,
  *  par leur rang dans la simulation : une variante garde sa couleur quel que soit le point de comparaison. */
-export const NEUTRE = "#4a5068";
+export const NEUTRE = "#7d8a97";
 export const GAIN = "#2a78d6";
 export const PERTE = "#eb6834";
 export const EGAL = "#c9cdd9";
