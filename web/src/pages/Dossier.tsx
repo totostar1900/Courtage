@@ -42,7 +42,7 @@ export function useDossier(): ContexteDossier {
 export default function Dossier() {
   const { org } = useParams();
   const { donnee, erreur, recharger } = useCharge(async () => {
-    const [moi, fichiers, regimes, etudes, fiches, equipe, activation, nonLus] = await Promise.all([
+    const [moi, fichiers, regimes, etudes, fiches, equipe, activation, nonLus, mandat] = await Promise.all([
       api.get<Moi>("/moi"),
       api.get<Fichier[]>(`/organisations/${org}/fichiers`),
       api.get<Regime[]>(`/organisations/${org}/regimes`),
@@ -51,6 +51,11 @@ export default function Dossier() {
       api.get<Equipe>(`/organisations/${org}/equipe`).then((e) => e.membres),
       api.get<Activation>(`/organisations/${org}/activation`).catch(() => CONFIRMEE),
       api.get<{ non_lus: number }>(`/organisations/${org}/messages/non-lus`).then((r) => r.non_lus).catch(() => 0),
+      api.get<{ mandats: { statut: string }[] }>(`/organisations/${org}/mandats`)
+        .then((r) => {
+          const s = r.mandats.map((m) => m.statut);
+          return s.includes("signe") ? "signe" : s.includes("propose") ? "propose" : s.includes("demande") ? "demande" : "aucun";
+        }).catch(() => null),
     ]);
     const o = moi.organisations.find((x) => x.id === org)!;
     const versions = regimes.flatMap((r) => r.versions);
@@ -59,7 +64,7 @@ export default function Dossier() {
       versionsAdoptees: versions.filter((v) => v.statut === "adoptee").length,     // en vigueur, à venir ou remplacée
       etudesEmises: etudes.filter((e) => e.statut === "emise").length,
       etudesBrouillon: etudes.filter((e) => e.statut === "brouillon").length,
-      fiches: fiches.length,
+      fiches: fiches.length, mandat: mandat as EtatDossier["mandat"],
     };
     return { org: o, role: o.role, fichiers, regimes, etudes, fiches, equipe, etat, activation, nonLus, moiId: moi.id };
   }, [org]);
@@ -112,8 +117,6 @@ export default function Dossier() {
             ))}
           </ol>
           <ol className="parcours" style={{ marginTop: 14 }} data-visite="outils">
-            <li><NavLink to="accompagnement" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="accompagnement" />{t("Accompagnement", "Support")}</NavLink></li>
             <li><NavLink to="contrat" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="contrat" />{t("Contrat", "Contract")}</NavLink></li>
             <li><NavLink to="placement" className={({ isActive }) => (isActive ? "actif" : "")}>

@@ -745,3 +745,13 @@ details.pli > .pli-corps > .carte { border: 0; padding: 0; box-shadow: none; }
 @media (max-width: 900px) { .frise.frise-3 { grid-template-columns: 1fr; } }
 .carte.verrou { border-color: #d8dcef; background: linear-gradient(180deg, #fbfbfe 0%, #f3f5fc 100%); }
 .verrou-rail { margin-left: auto; color: var(--discret); display: inline-flex; }
+
+/* Des cases en cartes : chaque choix est une surface qu'on touche (inscription, besoins). */
+.choix-cartes { border: 0; padding: 0; margin: 4px 0 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 640px) { .choix-cartes { grid-template-columns: 1fr; } }
+.choix-carte { display: flex !important; align-items: flex-start; gap: 10px; padding: 14px 16px; border: 1.5px solid var(--trait);
+  border-radius: 12px; background: var(--surface); cursor: pointer; font-weight: 500 !important; color: var(--encre) !important;
+  transition: border-color .15s, background .15s; }
+.choix-carte:hover { border-color: #b9c0de; }
+.choix-carte.coche { border-color: var(--indigo-vif); background: var(--indigo-doux); }
+.choix-carte input { margin-top: 3px; accent-color: var(--indigo); }

@@ -107,11 +107,12 @@ def test_la_file_du_courtier_puis_la_confirmation(client, personnes, azito):    
 def test_le_client_retire_son_inscription(client, bases):
     corps = inscrire(client).json()
     org, drh = corps["organisation_id"], corps["utilisateur"]["id"]
-    # Du travail déjà fait : le personnel, une étude, un départ, un message au courtier… tout part.
+    # Du travail déjà fait : le personnel, une étude, un message au courtier… tout part. (Un départ, non : les
+    # départs attendent le contrat d'assurance.)
     f = deposer(client, org, drh, fichier_azito())
     assert etude(client, {"org": org, "fichier": f["id"], "drh": drh}).status_code == 201
     assert client.post(f"{V1}/organisations/{org}/prestations", headers=en_tant_que(drh),
-                       json={**DEPART, "verse": 1}).status_code == 201
+                       json={**DEPART, "verse": 1}).json()["code"] == "inscription_non_confirmee"
     url = f"{V1}/organisations/{org}/inscription"
     assert client.delete(url, headers=en_tant_que(drh)).json()["code"] == "confirmation_requise"
     assert client.delete(url, params={"confirmation": "SUPPRIMER"}, headers=en_tant_que(drh)).status_code == 200
@@ -187,3 +188,21 @@ def test_le_courtier_confie_le_dossier_a_un_conseiller(client, personnes, azito)
     assert r.status_code == 200, r.text
     membres = client.get(f"{V1}/organisations/{org}/equipe", headers=en_tant_que(drh)).json()["membres"]
     assert [m["id"] for m in membres if m["role"] == "conseiller"] == [str(personnes["conseiller"])]
+
+
+def test_l_accompagnement_se_demande_des_l_inscription(client, personnes):
+    """La demande d'accompagnement est une des premières choses que l'entreprise dit : elle part avec l'inscription."""
+    besoins = client.get(f"{V1}/public/besoins").json()["besoins"]
+    assert {b["code"] for b in besoins} >= {"placement", "mise_en_concurrence"}
+    r = inscrire(client, accompagnement={"besoins": ["placement", "prestations"], "message": "Contrat actuel échu en mars."})
+    assert r.status_code == 201, r.text
+    org, drh = r.json()["organisation_id"], r.json()["utilisateur"]["id"]
+    m = client.get(f"{V1}/organisations/{org}/mandats", headers=en_tant_que(drh)).json()
+    [courant] = [x for x in m["mandats"] if x["statut"] == "demande"]
+    assert {b["code"] for b in courant["besoins"]} == {"placement", "prestations"}
+    [ligne] = [i for i in client.get(f"{V1}/inscriptions", headers=en_tant_que(personnes["admin"])).json()["inscriptions"]
+               if i["id"] == org]
+    assert ligne["accompagnement_demande"] is True
+    # Un besoin inconnu défait tout : pas de dossier à moitié créé.
+    r = inscrire(client, accompagnement={"besoins": ["inconnu"]})
+    assert r.status_code == 422 and r.json()["code"] == "besoins_requis"

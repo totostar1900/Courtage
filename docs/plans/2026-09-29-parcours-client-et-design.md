@@ -12,7 +12,7 @@ Spécification : `docs/specs/2026-09-29-parcours-client-et-design-design.md`.
    *Nous contacter, et moins de bruit*
 5. [x] **Départs.** Capacité `departs` (police en vigueur ou contrat de courtage avec assureur) ; page verrouillée. —
    *Les départs attendent le contrat*
-6. [ ] **Accompagnement.** Quatrième étape de l'inscription ; en tête du parcours. — *L'accompagnement dès
+6. [x] **Accompagnement.** Quatrième étape de l'inscription ; en tête du parcours. — *L'accompagnement dès
    l'inscription*
 7. [ ] **Offres.** Rendement net ; classement ; migration 0033 `origine` ; offre ajoutée par l'entreprise ; page
    « Offres » à la place de « Financement ». — *Les offres : apportées par le conseiller, classées par rendement net*

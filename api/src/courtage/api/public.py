@@ -29,6 +29,13 @@ def lire_cabinet():
     return cabinet.identite()
 
 
+@routeur_public.get("/public/besoins")
+def lire_besoins():
+    """Ce qu'une entreprise peut attendre de l'accompagnement : les cases de l'inscription et de la page Accompagnement."""
+    from courtage.services import mandats
+    return {"besoins": [{"code": c, "libelle": l} for c, l in mandats._libelles(mandats.BESOINS, mandats.BESOINS_EN).items()]}
+
+
 def _base(request: Request) -> str:
     return (request.app.state.sceau.url_publique or str(request.base_url)).rstrip("/")
 

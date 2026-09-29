@@ -22,7 +22,10 @@ const enAttente = (extra: Record<string, unknown> = {}) =>
   ({ ...dossier("admin_client"), [`/organisations/${ORG}/activation`]: EN_ATTENTE,
      [`/organisations/${ORG}/justificatifs`]: [], ...extra });
 
-const CABINET = { "/public/cabinet": { nom: "Cabinet", agrement: "A1", adresse: "Douala", rccm: "R", courriel: "c@x.cm",
+const CABINET = { "/public/besoins": { besoins: [
+  { code: "placement", libelle: "Placer notre engagement IFC auprès d'un assureur" },
+  { code: "mise_en_concurrence", libelle: "Remettre en concurrence notre contrat actuel" }] },
+  "/public/cabinet": { nom: "Cabinet", agrement: "A1", adresse: "Douala", rccm: "R", courriel: "c@x.cm",
   telephone: "1", hebergeur: "Render", conditions_version: "conditions-2026-09", manquants: [] } };
 
 describe("inscription", () => {
@@ -78,6 +81,16 @@ describe("inscription", () => {
     await userEvent.type(screen.getByLabelText("Numéro RCCM"), "RC/LBV/2020/B/99");
     await userEvent.selectOptions(screen.getByLabelText("Taille"), "moins_de_50");
     await userEvent.type(screen.getByLabelText("Ville"), "Libreville");
+    await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    // Quatrième étape : les besoins, qui partent avec l'inscription comme demande d'accompagnement.
+    expect(await screen.findByRole("heading", { name: "Vos besoins" })).toBeInTheDocument();
+    expect(await screen.findByRole("checkbox", { name: /Placer notre engagement/ })).toBeChecked();
+    await userEvent.click(screen.getByRole("checkbox", { name: /Remettre en concurrence/ }));
+    await userEvent.type(screen.getByLabelText(/Précisions/), "Contrat actuel échu en mars.");
+    // Revenir en arrière ne perd pas l'entreprise.
+    await userEvent.click(screen.getByRole("button", { name: "Retour" }));
+    expect(screen.getByLabelText("Raison sociale")).toHaveValue("AZITO");
+    await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
     // Les conditions s'acceptent avant de créer le compte.
     expect(screen.getByRole("button", { name: "Créer mon compte" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "conditions d'utilisation" })).toHaveAttribute("href", "/conditions");
@@ -92,6 +105,7 @@ describe("inscription", () => {
       entreprise: { nom: "AZITO", pays: "GA", rccm: "RC/LBV/2020/B/99", taille: "moins_de_50", secteur: null, adresse: null,
                     ville: "Libreville" },
       conditions: "conditions-2026-09",
+      accompagnement: { besoins: ["placement", "mise_en_concurrence"], message: "Contrat actuel échu en mars." },
     });
   });
 
@@ -118,7 +132,8 @@ describe("inscription", () => {
     await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
     await userEvent.type(screen.getByLabelText("Raison sociale"), "AZITO");
     await userEvent.type(screen.getByLabelText("Numéro RCCM"), "RC 1234");
-    await userEvent.click(screen.getByRole("checkbox", { name: /J'ai lu et j'accepte/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /J'ai lu et j'accepte/ }));
     await userEvent.click(screen.getByRole("button", { name: "Créer mon compte" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Cette entreprise est déjà inscrite");
   });

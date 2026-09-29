@@ -9,10 +9,12 @@ export interface EtatDossier {
   etudesEmises: number;
   etudesBrouillon: number;
   fiches: number;
+  /** Où en est l'accompagnement : rien demandé, demandé, un mandat proposé à signer, signé. `null` : inconnu. */
+  mandat?: "aucun" | "demande" | "propose" | "signe" | null;
 }
 
 export interface Etape {
-  cle: "personnel" | "regime" | "etudes" | "financement" | "cahier";
+  cle: "accompagnement" | "personnel" | "regime" | "etudes" | "financement" | "cahier";
   libelle: string;
   fait: boolean;
   suivant: boolean;
@@ -21,6 +23,14 @@ export interface Etape {
 
 export function etapes(e: EtatDossier): Etape[] {
   const brutes: Omit<Etape, "suivant">[] = [
+    // L'accompagnement d'abord : c'est ce que l'entreprise vient chercher. « Fait » dès qu'il est demandé, sauf quand
+    // un mandat attend sa signature.
+    { cle: "accompagnement", libelle: t("Accompagnement", "Support"),
+      fait: e.mandat == null || e.mandat === "demande" || e.mandat === "signe",
+      aide: e.mandat === "propose" ? t("Un mandat de courtage vous attend : lisez-le, puis signez-le.",
+                                       "A brokerage mandate is waiting for you: read it, then sign it.")
+        : t("Dites ce que vous attendez de votre courtier : il vous propose ensuite un mandat.",
+            "Say what you expect from your broker: they then propose a mandate.") },
     { cle: "personnel", libelle: t("Personnel", "Workforce"), fait: e.fichiers > 0,
       aide: t("Déposez le fichier de votre personnel : matricules, dates, salaires. Aucun nom.",
         "Upload your workforce file: employee numbers, dates, salaries. No names.") },
@@ -40,7 +50,7 @@ export function etapes(e: EtatDossier): Etape[] {
         "Put insurers in competition on a common basis.") },
   ];
   // Le régime est facultatif : une étude émise sur la convention seule le rend « fait ».
-  if (e.etudesEmises > 0) brutes[1].fait = true;
+  if (e.etudesEmises > 0) brutes[2].fait = true;
   const premier = brutes.findIndex((x) => !x.fait);
   return brutes.map((x, i) => ({ ...x, suivant: i === premier }));
 }

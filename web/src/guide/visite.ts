@@ -22,8 +22,8 @@ export function listeVivante<T>(lire: () => T[]): T[] {
 export function visiteDossier(): EtapeVisite[] {
   return [
     { cible: "parcours", titre: t("Votre parcours", "Your journey"),
-      texte: t("Cinq étapes, de votre personnel au cahier des charges. Chaque étape a son icône ; un point signale l'étape suivante.",
-        "Five steps, from your workforce to the specifications. Each step has its icon; a dot marks the next step.") },
+      texte: t("Six étapes, de l'accompagnement au cahier des charges. Chaque étape a son icône ; un point signale l'étape suivante.",
+        "Six steps, from support to the specifications. Each step has its icon; a dot marks the next step.") },
     { cible: "prochaine", titre: t("La prochaine étape", "The next step"),
       texte: t("Ici, toujours la chose à faire maintenant, avec un bouton pour y aller.",
         "Here, always the thing to do now, with a button to get there.") },

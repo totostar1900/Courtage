@@ -1446,3 +1446,14 @@ describe("les départs attendent le contrat", () => {
     expect(screen.getByLabelText("pas encore ouvert")).toBeInTheDocument();
   });
 });
+
+describe("l'accompagnement en tête du parcours", () => {
+  it("un mandat proposé devient l'étape suivante, en tête du menu", async () => {
+    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/mandats`]: { mandats: [{ statut: "propose" }] } });
+    ouvrir(`/dossier/${ORG}`);
+    const parcours = await screen.findByRole("link", { name: /^Accompagnement/ });
+    expect(parcours.closest("li")).toHaveClass("suivant");
+    expect(parcours.closest("ol")!.querySelector("li:nth-child(2) a")).toBe(parcours);   // après le tableau de bord
+    expect(await screen.findByText(/Un mandat de courtage vous attend/)).toBeInTheDocument();
+  });
+});

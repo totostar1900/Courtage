@@ -32,6 +32,7 @@ PUBLIQUES = {
     ("GET", "/api/v1/referentiel/canevas-personnel"),
     ("GET", "/api/v1/catalogue/regimes"),
     ("GET", "/api/v1/public/cabinet"),                  # l'identité du cabinet (mentions légales)
+    ("GET", "/api/v1/public/besoins"),                  # les besoins proposés à l'inscription
     ("POST", "/api/v1/public/rappel"),                  # la demande de rappel de la vitrine
     ("POST", "/api/v1/public/mesure"),                  # la mesure d'audience, sans témoin
     ("GET", "/api/v1/auth/mode"),

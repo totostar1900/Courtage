@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, seConnecter } from "../api";
 import { useCabinet } from "../cabinet";
 import { useMesure } from "../mesure";
-import { Erreur } from "../composants/communs";
+import { Erreur, useCharge } from "../composants/communs";
 import { t } from "../i18n";
 import { reprendreEssai } from "./Essai";
 import { ChampTelephone } from "../composants/ChampTelephone";
@@ -46,14 +46,27 @@ export default function Inscription() {
   const [erreur, setErreur] = useState<unknown>(null);
   const [envoi, setEnvoi] = useState(false);
   const [accepte, setAccepte] = useState(false);
+  const [entreprise, setEntreprise] = useState<Record<string, string | null> | null>(null);
+  const [besoins, setBesoins] = useState<string[]>(["placement"]);
+  const [precision, setPrecision] = useState("");
+  const { donnee: listeBesoins } = useCharge(
+    () => api.get<{ besoins: { code: string; libelle: string }[] }>("/public/besoins").catch(() => ({ besoins: [] })), []);
   const cabinet = useCabinet();
   useMesure("inscription_ouverte");
-  const etapes = [t("Vos coordonnées", "Your contact details"), t("Vous", "You"), t("L'entreprise", "The company")];
+  const etapes = [t("Vos coordonnées", "Your contact details"), t("Vous", "You"), t("L'entreprise", "The company"),
+                  t("Vos besoins", "Your needs")];
 
-  async function inscrire(ev: FormEvent<HTMLFormElement>) {
+  function retenirEntreprise(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
     const f = new FormData(ev.currentTarget);
     const texte = (k: string) => String(f.get(k) ?? "").trim() || null;
+    setEntreprise({ nom: texte("entreprise"), pays: String(f.get("pays")), rccm: texte("rccm"), taille: String(f.get("taille")),
+                    secteur: texte("secteur"), adresse: texte("adresse"), ville: texte("ville") });
+    setEtape(4);
+  }
+
+  async function inscrire(ev: FormEvent<HTMLFormElement>) {
+    ev.preventDefault();
     setErreur(null);
     setEnvoi(true);
     try {
@@ -61,9 +74,9 @@ export default function Inscription() {
         telephone: telephone.cible, preuve_telephone: telephone.preuve,
         courriel: courriel.cible, preuve_courriel: courriel.preuve,
         nom: nom.trim(), fonction: fonction.trim() || null,
-        entreprise: { nom: texte("entreprise"), pays: f.get("pays"), rccm: texte("rccm"), taille: f.get("taille"),
-                      secteur: texte("secteur"), adresse: texte("adresse"), ville: texte("ville") },
+        entreprise,
         conditions: cabinet?.conditions_version,
+        ...(besoins.length ? { accompagnement: { besoins, message: precision.trim() || null } } : {}),
       });
       seConnecter(null);     // la session est le cookie posé par la réponse
       await reprendreEssai(r.organisation_id);
@@ -74,8 +87,8 @@ export default function Inscription() {
   return (
     <div style={{ maxWidth: 560 }}>
       <h1>{t("Créer votre compte", "Create your account")}</h1>
-      <p className="discret">{t("Trois étapes. Votre dossier s'ouvre aussitôt ; votre conseiller confirme ensuite votre "
-        + "entreprise, sous 2 jours ouvrés.", "Three steps. Your file opens straight away; your adviser then confirms "
+      <p className="discret">{t("Quatre étapes. Votre dossier s'ouvre aussitôt ; votre conseiller confirme ensuite votre "
+        + "entreprise, sous 2 jours ouvrés.", "Four steps. Your file opens straight away; your adviser then confirms "
         + "your company within 2 working days.")}</p>
       {essaiEnCours() && (
         <p className="constat informe">{t("Votre essai sera repris dans votre dossier.", "Your trial will be carried into your file.")}</p>
@@ -113,30 +126,54 @@ export default function Inscription() {
       )}
 
       {etape === 3 && (
-        <form className="carte formulaire" onSubmit={inscrire}>
+        <form className="carte formulaire" onSubmit={retenirEntreprise}>
           <h2 style={{ marginTop: 0 }}>{t("L'entreprise", "The company")}</h2>
           <label>{t("Raison sociale", "Company name")}
-            <input name="entreprise" required minLength={2} maxLength={200} autoComplete="organization" /></label>
+            <input name="entreprise" required minLength={2} maxLength={200} autoComplete="organization" defaultValue={entreprise?.nom ?? ""} /></label>
           <div className="grille-2">
             <label>{t("Pays", "Country")}
-              <select name="pays" defaultValue="CM">
+              <select name="pays" defaultValue={entreprise?.pays ?? "CM"}>
                 {pays().map(([code, libelle]) => <option key={code} value={code}>{libelle}</option>)}
               </select></label>
             <label>{t("Numéro RCCM", "Trade register (RCCM) number")}
-              <input name="rccm" required minLength={3} maxLength={80} placeholder="RC/DLA/2020/B/1234" /></label>
+              <input name="rccm" required minLength={3} maxLength={80} placeholder="RC/DLA/2020/B/1234" defaultValue={entreprise?.rccm ?? ""} /></label>
             <label>{t("Taille", "Size")}
-              <select name="taille" defaultValue="50_a_250">
+              <select name="taille" defaultValue={entreprise?.taille ?? "50_a_250"}>
                 {tailles().map(([code, libelle]) => <option key={code} value={code}>{libelle}</option>)}
               </select></label>
             <label>{t("Secteur", "Sector")}
-              <input name="secteur" list="secteurs-inscription" maxLength={120} /></label>
+              <input name="secteur" list="secteurs-inscription" maxLength={120} defaultValue={entreprise?.secteur ?? ""} /></label>
           </div>
           <datalist id="secteurs-inscription">{secteurs().map((s) => <option key={s} value={s} />)}</datalist>
-          <label>{t("Adresse", "Address")}<input name="adresse" maxLength={300} autoComplete="street-address" /></label>
-          <label>{t("Ville", "City")}<input name="ville" maxLength={120} autoComplete="address-level2" /></label>
+          <label>{t("Adresse", "Address")}<input name="adresse" maxLength={300} autoComplete="street-address" defaultValue={entreprise?.adresse ?? ""} /></label>
+          <label>{t("Ville", "City")}<input name="ville" maxLength={120} autoComplete="address-level2" defaultValue={entreprise?.ville ?? ""} /></label>
           <p className="discret">{t("Le document RCCM pourra être envoyé après l'inscription, depuis votre dossier : votre "
             + "conseiller s'en sert pour confirmer l'entreprise.", "The RCCM document can be sent after signing up, from "
             + "your file: your adviser uses it to confirm the company.")}</p>
+          <div className="actions">
+            <button className="principal">{t("Continuer", "Continue")}</button>
+            <button type="button" onClick={() => setEtape(2)}>{t("Retour", "Back")}</button>
+          </div>
+        </form>
+      )}
+
+      {etape === 4 && (
+        <form className="carte formulaire" onSubmit={inscrire}>
+          <h2 style={{ marginTop: 0 }}>{t("Vos besoins", "Your needs")}</h2>
+          <p>{t("Ce que vous attendez de votre courtier. Votre conseiller s'en sert pour préparer votre mandat : rien ne vous engage avant la signature, et l'accompagnement ne vous coûte rien — le courtier est rémunéré par l'assureur retenu.",
+            "What you expect from your broker. Your adviser uses it to prepare your mandate: nothing binds you before you sign, and the support costs you nothing — the broker is paid by the insurer chosen.")}</p>
+          <fieldset className="choix-cartes"><legend className="visuellement-cache">{t("Ce que vous attendez", "What you expect")}</legend>
+            {(listeBesoins?.besoins ?? []).map((x) => (
+              <label key={x.code} className={`choix-carte${besoins.includes(x.code) ? " coche" : ""}`}>
+                <input type="checkbox" checked={besoins.includes(x.code)}
+                       onChange={(e) => setBesoins(e.target.checked ? [...besoins, x.code] : besoins.filter((c) => c !== x.code))} />
+                <span>{x.libelle}</span>
+              </label>
+            ))}
+          </fieldset>
+          <label>{t("Précisions (facultatif)", "Details (optional)")}
+            <textarea rows={3} maxLength={2000} value={precision} onChange={(e) => setPrecision(e.target.value)}
+                      placeholder={t("Échéance de votre contrat actuel, contraintes, questions…", "End date of your current contract, constraints, questions…")} /></label>
           <label className="case">
             <input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />{" "}
             <span>{t("J'ai lu et j'accepte les ", "I have read and accept the ")}
@@ -146,7 +183,7 @@ export default function Inscription() {
           </label>
           <div className="actions">
             <button className="principal" disabled={envoi || !accepte || !cabinet}>{t("Créer mon compte", "Create my account")}</button>
-            <button type="button" onClick={() => setEtape(2)}>{t("Retour", "Back")}</button>
+            <button type="button" onClick={() => setEtape(3)}>{t("Retour", "Back")}</button>
           </div>
           <Erreur erreur={erreur} />
         </form>
