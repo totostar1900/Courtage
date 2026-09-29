@@ -342,3 +342,13 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
 - L'offre déposée par le lien entre dans `reponses_fiche` comme les autres (`consultation_id`, `saisie_par` vide) :
   confrontée, classée, corrigée ou retirée par le conseiller avec motif. Une seule par lien ; l'offre PDF est exigée.
 - `avis.prevoir_adresse` : un courriel à une adresse hors compte (l'assureur), aux mêmes règles que les avis.
+
+## Cycle annuel (spec 2026-09-29, cycle annuel)
+
+- `services/annuel.py`, `GET /calendrier`, `composants/AnneeDossier.tsx` (tableau de bord), migration 0029.
+- Calculé, jamais stocké : la dernière étude émise D fixe N = D + 1 an ; chaque étape se lit dans les données
+  (fichier daté de N, étude émise au N, relevé de l'assureur, revue avant l'anniversaire de la police).
+- Les points d'attention n'annoncent que « bientôt » pour le personnel et l'évaluation : leur retard est déjà dit par
+  `etude_a_renouveler` et `donnees_anciennes` (`DEJA_ALERTES`). Ne pas doubler.
+- Les rappels partent de `python -m courtage.purge` (`rappeler_partout`), au plus un par étape, état et année
+  (`rappels_envoyes`), en envoi immédiat (`session.info["envoi_immediat"]`) : un fil mourrait avec la tâche.

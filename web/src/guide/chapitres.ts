@@ -230,6 +230,21 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
     termes: ["courtage"],
   },
   {
+    id: "annee", groupe: "Le parcours", titre: "L'année du dossier",
+    resume: "L'engagement se remesure chaque année, à la même date : la plateforme tient le calendrier et le rappelle.",
+    sections: [
+      { titre: "Le calendrier", texte: [
+        "La dernière étude émise fixe la date de la prochaine évaluation : la même, un an plus tard. Viennent alors, dans l'ordre, la mise à jour du personnel à cette date (un mois pour la faire), le relevé annuel de l'assureur si le contrat est en vigueur, puis l'évaluation de l'année (deux mois).",
+        "Avant l'anniversaire de la police, votre conseiller revoit le contrat avec vous : conditions, rendement servi, opportunité de le remettre en concurrence." ] },
+      { titre: "Rien à cocher", texte: [
+        "Chaque étape se lit dans vos données : un fichier du personnel daté de l'évaluation, un relevé déposé, une étude émise. Quand l'évaluation de l'année est émise, le calendrier passe à l'année suivante de lui-même.",
+        "« L'année du dossier », au tableau de bord, montre chaque étape avec son échéance : faite, à venir, bientôt, en retard." ] },
+      { titre: "Les rappels", texte: [
+        "Un courriel vous prévient quand une étape devient bientôt due, puis si elle est en retard — une fois pour chacune, jamais plus. Il ne dit rien de votre dossier : l'étape, l'échéance et le lien. Vous pouvez couper ces avis dans « Mon profil »." ] },
+    ],
+    termes: ["dette"],
+  },
+  {
     id: "departs", groupe: "Le parcours", titre: "Les départs et l'historique", ecran: "departs",
     resume: "Enregistrer chaque départ par matricule ; la plateforme recalcule ce qui était dû.",
     sections: [
