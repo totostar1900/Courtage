@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { api, seConnecter } from "../api";
+import { useCabinet } from "../cabinet";
 import { Erreur } from "../composants/communs";
 import { t } from "../i18n";
 import { reprendreEssai } from "./Essai";
@@ -42,6 +43,8 @@ export default function Inscription() {
   const [fonction, setFonction] = useState("");
   const [erreur, setErreur] = useState<unknown>(null);
   const [envoi, setEnvoi] = useState(false);
+  const [accepte, setAccepte] = useState(false);
+  const cabinet = useCabinet();
   const etapes = [t("Vos coordonnées", "Your contact details"), t("Vous", "You"), t("L'entreprise", "The company")];
 
   async function inscrire(ev: FormEvent<HTMLFormElement>) {
@@ -57,6 +60,7 @@ export default function Inscription() {
         nom: nom.trim(), fonction: fonction.trim() || null,
         entreprise: { nom: texte("entreprise"), pays: f.get("pays"), rccm: texte("rccm"), taille: f.get("taille"),
                       secteur: texte("secteur"), adresse: texte("adresse"), ville: texte("ville") },
+        conditions: cabinet?.conditions_version,
       });
       seConnecter(null);     // la session est le cookie posé par la réponse
       await reprendreEssai(r.organisation_id);
@@ -130,8 +134,15 @@ export default function Inscription() {
           <p className="discret">{t("Le document RCCM pourra être envoyé après l'inscription, depuis votre dossier : votre "
             + "conseiller s'en sert pour confirmer l'entreprise.", "The RCCM document can be sent after signing up, from "
             + "your file: your adviser uses it to confirm the company.")}</p>
+          <label className="case">
+            <input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />{" "}
+            <span>{t("J'ai lu et j'accepte les ", "I have read and accept the ")}
+              <Link to="/conditions" target="_blank">{t("conditions d'utilisation", "terms of use")}</Link>
+              {t(" et la ", " and the ")}
+              <Link to="/confidentialite" target="_blank">{t("politique de confidentialité", "privacy policy")}</Link>.</span>
+          </label>
           <div className="actions">
-            <button className="principal" disabled={envoi}>{t("Créer mon compte", "Create my account")}</button>
+            <button className="principal" disabled={envoi || !accepte || !cabinet}>{t("Créer mon compte", "Create my account")}</button>
             <button type="button" onClick={() => setEtape(2)}>{t("Retour", "Back")}</button>
           </div>
           <Erreur erreur={erreur} />

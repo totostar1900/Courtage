@@ -9,7 +9,7 @@ import { changerLangue, t, useLangue } from "../i18n";
 
 interface Profil {
   id: string; nom_affiche: string | null; telephone: string | null; email: string | null; email_verifie_le: string | null;
-  admin_plateforme: boolean; cree_le: string;
+  admin_plateforme: boolean; cree_le: string; conditions: { version: string; le: string } | null;
   dossiers: { id: string; nom: string; pays: string; role: string; fonction: string | null; activation: string }[];
   sessions: { id: string; cree_le: string; derniere_activite: string; agent: string | null; courante: boolean }[];
 }
@@ -76,6 +76,8 @@ export default function Profil() {
             <div><span>{t("Téléphone", "Phone")}</span><span>{p.telephone ?? "—"}{p.telephone && <span className="etat bien" style={{ marginLeft: 8 }}>{t("vérifié", "verified")}</span>}</span></div>
             <div><span>{t("Courriel", "Email")}</span><span>{p.email ?? "—"}{p.email_verifie_le && <span className="etat bien" style={{ marginLeft: 8 }}>{t("vérifié", "verified")}</span>}</span></div>
             <div><span>{t("Compte créé le", "Account created on")}</span><span>{dateFr(p.cree_le)}</span></div>
+            {p.conditions && <div><span>{t("Conditions acceptées", "Terms accepted")}</span>
+              <span><Link to="/conditions">{p.conditions.version}</Link> · {dateFr(p.conditions.le)}</span></div>}
           </div>
         )}
         {!modifier && <div className="actions"><button onClick={() => setModifier(true)}>{t("Modifier mon nom", "Change my name")}</button></div>}

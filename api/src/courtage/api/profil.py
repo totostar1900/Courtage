@@ -39,6 +39,8 @@ def lire_profil(request: Request, session: Session = Depends(session_db, scope="
         "id": str(moi.id), "nom_affiche": moi.nom_affiche, "telephone": moi.telephone, "email": moi.email,
         "email_verifie_le": moi.email_verifie_le.isoformat() if moi.email_verifie_le else None,
         "admin_plateforme": moi.admin_plateforme, "cree_le": moi.cree_le.isoformat(),
+        "conditions": None if not moi.conditions_version else {
+            "version": moi.conditions_version, "le": moi.conditions_acceptees_le.isoformat()},
         "dossiers": [{"id": str(o.id), "nom": o.nom, "pays": o.pays, "role": r, "fonction": f, "activation": o.activation}
                      for o, r, f in dossiers],
         "sessions": [{"id": str(s.id), "cree_le": s.cree_le.isoformat(), "derniere_activite": s.derniere_activite.isoformat(),

@@ -5,7 +5,8 @@
 2. Un code juste rend une PREUVE : un jeton signé (nature, cible, échéance), sans état, valable 30 minutes. L'écran
    la garde et la présente à la création.
 3. La création : l'utilisateur (téléphone et courriel vérifiés), le dossier `en_attente`, l'adhésion
-   `admin_client`. Le RCCM est obligatoire et unique : une entreprise, un dossier vivant.
+   `admin_client`. Le RCCM est obligatoire et unique : une entreprise, un dossier vivant. Les conditions
+   d'utilisation en vigueur (`CONDITIONS_VERSION`) sont acceptées, et la version gardée sur le compte.
 
 Le courtier vérifie ensuite l'entreprise (`services/activation`, la file des inscriptions).
 """
@@ -21,6 +22,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from courtage.auth import masquer
+from courtage.cabinet import CONDITIONS_VERSION
 from courtage.db import Adhesion, CodeVerification, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier
 from courtage.langue import t
@@ -105,12 +107,18 @@ def preuve_valide(cle: bytes, jeton: str, nature: str, cible: str) -> bool:
 # --- La création -----------------------------------------------------------------
 
 def inscrire(session: Session, *, telephone: str, preuve_telephone: str, courriel: str, preuve_courriel: str,
-             nom: str, fonction: str | None, entreprise: dict, cle: bytes) -> tuple[Utilisateur, Organisation]:
+             nom: str, fonction: str | None, entreprise: dict, cle: bytes,
+             conditions: str | None = None) -> tuple[Utilisateur, Organisation]:
     if not preuve_valide(cle, preuve_telephone, "telephone", telephone):
         raise ErreurMetier("telephone_non_verifie", t("Vérifiez d'abord votre téléphone (le code a peut-être expiré).",
                                                       "Verify your phone first (the code may have expired)."), 422)
     if not preuve_valide(cle, preuve_courriel, "courriel", courriel):
         raise ErreurMetier("courriel_non_verifie", t("Vérifiez d'abord votre adresse électronique.", "Verify your email address first."), 422)
+    if conditions != CONDITIONS_VERSION:
+        raise ErreurMetier("conditions_requises", t("Lire et accepter les conditions d'utilisation et la politique de "
+                                                    "confidentialité.",
+                                                    "Read and accept the terms of use and the privacy policy."),
+                           422, {"version": CONDITIONS_VERSION})
     if session.scalar(select(Utilisateur.id).where(Utilisateur.telephone == telephone)):
         raise ErreurMetier("telephone_deja_inscrit", t("Ce numéro a déjà un compte : connectez-vous.", "This number already has an account: sign in."), 409)
     if session.scalar(select(Utilisateur.id).where(Utilisateur.email == courriel)):
@@ -133,7 +141,8 @@ def inscrire(session: Session, *, telephone: str, preuve_telephone: str, courrie
                              "This company is already signed up. Ask its administrator to add you to the team, or "
                              "write to your adviser."), 409)
     maintenant = datetime.now(timezone.utc)
-    utilisateur = Utilisateur(telephone=telephone, email=courriel, email_verifie_le=maintenant, nom_affiche=nom)
+    utilisateur = Utilisateur(telephone=telephone, email=courriel, email_verifie_le=maintenant, nom_affiche=nom,
+                              conditions_version=CONDITIONS_VERSION, conditions_acceptees_le=maintenant)
     org = Organisation(nom=raison, pays=entreprise["pays"], secteur=(entreprise.get("secteur") or "").strip() or None,
                        activation="en_attente", rccm=rccm, rccm_normalise=rccm_normalise, taille=entreprise["taille"],
                        adresse=(entreprise.get("adresse") or "").strip() or None,

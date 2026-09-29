@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import text
 
+from courtage.cabinet import CONDITIONS_VERSION
 from courtage.services import activation
 from tests.outils import V1, deposer, en_tant_que, etude, fichier_azito
 from tests.test_prestations import DEPART
@@ -32,7 +33,7 @@ def inscrire(client, rccm=None, telephone=None, courriel=None, **autres):
              "nom": "Awa Kouassi", "fonction": "DRH",
              "entreprise": {"nom": "Brasseries du Littoral", "pays": "CM",
                             "rccm": rccm or f"RC/DLA/2024/B/{uuid.uuid4().int % 10**6}", "taille": "50_a_250",
-                            "secteur": "Industrie", "ville": "Douala"}, **autres}
+                            "secteur": "Industrie", "ville": "Douala"}, "conditions": CONDITIONS_VERSION, **autres}
     r = client.post(f"{V1}/inscription", json=corps)
     if r.status_code == 201:
         assert "courtage_session" in r.headers.get("set-cookie", "")       # la session s'ouvre à l'inscription
@@ -48,6 +49,15 @@ def test_s_inscrire_ouvre_un_dossier_en_attente(client):
     moi = client.get(f"{V1}/moi", headers=en_tant_que(corps["utilisateur"]["id"])).json()
     [o] = moi["organisations"]
     assert (o["role"], o["activation"]) == ("admin_client", "en_attente")
+
+
+def test_les_conditions_en_vigueur_s_acceptent_et_se_gardent(client):
+    assert inscrire(client, conditions=None).json()["code"] == "conditions_requises"
+    r = inscrire(client, conditions="conditions-1999")
+    assert r.status_code == 422 and r.json()["details"]["version"] == CONDITIONS_VERSION
+    corps = inscrire(client).json()
+    p = client.get(f"{V1}/moi/profil", headers=en_tant_que(corps["utilisateur"]["id"])).json()
+    assert p["conditions"]["version"] == CONDITIONS_VERSION and p["conditions"]["le"]
 
 
 def test_sans_preuve_ou_avec_un_mauvais_code(client):

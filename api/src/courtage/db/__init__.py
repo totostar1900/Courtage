@@ -84,6 +84,8 @@ class Utilisateur(Base):
     nom_affiche: Mapped[str | None] = mapped_column(Text)
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
     email_verifie_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    conditions_version: Mapped[str | None] = mapped_column(Text)
+    conditions_acceptees_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class CodeVerification(Base):

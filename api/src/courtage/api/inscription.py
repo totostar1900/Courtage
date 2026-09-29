@@ -53,6 +53,7 @@ class Inscription(_Corps):
     nom: str = Field(min_length=2, max_length=120)
     fonction: str | None = Field(default=None, max_length=80)
     entreprise: Entreprise
+    conditions: str | None = Field(default=None, max_length=60)   # la version acceptée
     application: bool = False
 
 
@@ -88,7 +89,8 @@ def inscrire(corps: Inscription, request: Request, session: Session = Depends(se
     utilisateur, org = inscription.inscrire(
         session, telephone=_cible("telephone", corps.telephone), preuve_telephone=corps.preuve_telephone,
         courriel=_cible("courriel", corps.courriel), preuve_courriel=corps.preuve_courriel, nom=corps.nom,
-        fonction=corps.fonction, entreprise=corps.entreprise.model_dump(), cle=request.app.state.cle_auth)
+        fonction=corps.fonction, entreprise=corps.entreprise.model_dump(), cle=request.app.state.cle_auth,
+        conditions=corps.conditions)
     jeton = auth.ouvrir_session(session, utilisateur, request.headers.get("user-agent"))
     corps_reponse = {"organisation_id": str(org.id), "utilisateur": {"id": str(utilisateur.id), "nom_affiche": utilisateur.nom_affiche},
                      "activation": activation.en_clair(session, org, date.today())}
