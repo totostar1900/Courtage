@@ -26,5 +26,4 @@ dans une règle est un défaut : elle ne suit pas le thème. Exceptions voulues 
 
 ## Ce qui reste
 
-- Le nom, le logotype, l'icône et l'image d'aperçu (`web/public/apercu.png`, encore à l'ancienne identité).
-- La couleur de la barre du navigateur sur téléphone (`theme-color`), à poser avec le logotype.
+- Rien : le nom, le logotype, l'icône, l'image d'aperçu et `theme-color` sont posés (`marque-nitch.md`).

@@ -11,10 +11,18 @@ export function lireTheme(): Theme {
   } catch { return "auto"; }
 }
 
+/** Le fond de chaque thème (`--fond` dans styles.css) : la barre du navigateur sur téléphone prend sa couleur. */
+const FOND = { clair: "#f5f7f9", sombre: "#070b10" } as const;
+
 export function appliquerTheme(theme: Theme) {
   const racine = document.documentElement;
   if (theme === "auto") racine.removeAttribute("data-theme");
   else racine.setAttribute("data-theme", theme === "sombre" ? "dark" : "light");
+  // index.html porte une couleur par thème de l'appareil ; un thème imposé les aligne toutes deux sur lui.
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+    const propre = m.media.includes("dark") ? FOND.sombre : FOND.clair;
+    m.content = theme === "auto" ? propre : FOND[theme];
+  });
 }
 
 export function choisirTheme(theme: Theme) {

@@ -123,8 +123,8 @@ p { margin: 0 0 10px; color: var(--encre-2); max-width: 72ch; }
 /* Structure */
 .entete { background: var(--entete-fond); color: var(--encre); border-bottom: 1px solid var(--trait); }
 .entete .interieur { max-width: 1180px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 16px; }
-.entete .marque { font-family: var(--titre); font-weight: 600; letter-spacing: -.04em; font-size: 20px; color: var(--encre); text-decoration: none; }
-.entete .marque span { color: var(--accent); }
+.entete .marque { display: inline-flex; align-items: center; color: var(--encre); text-decoration: none; }
+.entete .marque svg { display: block; }
 .entete .droite { margin-left: auto; display: flex; gap: 12px; align-items: center; font-size: 14px; }
 .entete button { background: transparent; border: 1px solid var(--trait-fort); color: var(--encre); }
 .page { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }

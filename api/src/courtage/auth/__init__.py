@@ -33,7 +33,7 @@ FENETRE_DEMANDES = timedelta(minutes=15)
 DUREE_SESSION = timedelta(days=30)
 CLE_DE_DEVELOPPEMENT = b"courtage-cle-auth-de-developpement"
 
-MESSAGE = ("Courtage : votre code de connexion est {code}. Il expire dans 10 minutes. "
+MESSAGE = ("Nitch : votre code de connexion est {code}. Il expire dans 10 minutes. "
            "Ne le communiquez à personne, pas même à votre conseiller.")
 
 

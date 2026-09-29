@@ -89,6 +89,7 @@ def test_le_message_dit_la_duree_et_de_ne_pas_partager(web, boite, abonne):
     web.post(f"{V1}/auth/code", json={"telephone": abonne["telephone"]})
     texte = boite.envoyes[-1].texte
     assert "10 minutes" in texte and "communiquez" in texte
+    assert texte.startswith("Nitch : ")        # la marque signe le SMS : on sait qui écrit avant de lire le code
 
 
 def test_un_numero_inconnu_recoit_la_meme_reponse_et_rien_n_est_envoye(web, boite, abonne):

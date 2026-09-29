@@ -40,7 +40,7 @@ FENETRE_DEMANDES = timedelta(minutes=15)
 TAILLES = {"moins_de_50": "Moins de 50 salariés", "50_a_250": "50 à 250 salariés", "plus_de_250": "Plus de 250 salariés"}
 COURRIEL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-SMS = "Courtage : votre code d'inscription est {code}. Il expire dans 10 minutes. Ne le communiquez à personne."
+SMS = "Nitch : votre code d'inscription est {code}. Il expire dans 10 minutes. Ne le communiquez à personne."
 SUJET = "Votre code d'inscription"
 TEXTE_COURRIEL = ("Bonjour,\n\nVotre code pour vérifier cette adresse est {code}. Il expire dans 10 minutes.\n\n"
                   "Si vous n'avez pas demandé à vous inscrire, ignorez ce message.\n")

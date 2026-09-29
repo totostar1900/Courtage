@@ -70,7 +70,7 @@ class ExpediteurTwilio:
 @dataclass(frozen=True)
 class WhatsAppAvis:
     """Les avis sur WhatsApp : un expéditeur WhatsApp et l'identifiant du modèle générique approuvé
-    (« Courtage : {{1}} — {{2}} » : le sujet de l'avis, puis le lien)."""
+    (« Nitch : {{1}} — {{2}} » : le sujet de l'avis, puis le lien)."""
     expediteur: object
     modele: str
 
