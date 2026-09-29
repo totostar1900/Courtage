@@ -16,7 +16,8 @@ describe("vitrine et pages légales", () => {
   it("sans session, / montre la vitrine : l'offre, la gratuité, le cabinet, les entrées", async () => {
     simulerApi({ "/moi": () => NON_CONNECTE.clone(), "/public/cabinet": CABINET });
     ouvrir("/", null);
-    expect(await screen.findByRole("heading", { name: /chiffrées puis placées/ })).toBeInTheDocument();
+    // La vitrine attend la réponse 401 de /moi : sous la charge de la suite complète, plus d'une seconde.
+    expect(await screen.findByRole("heading", { name: /chiffrées puis placées/ }, { timeout: 4000 })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Essayer sans compte" })).toHaveAttribute("href", "/essai");
     expect(screen.getByRole("link", { name: "S'inscrire" })).toHaveAttribute("href", "/inscription");
     expect(screen.getByText("Gratuit pour l'entreprise.")).toBeInTheDocument();

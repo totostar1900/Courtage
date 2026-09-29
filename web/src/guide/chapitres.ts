@@ -53,10 +53,10 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "« Essayer sans compte » calcule votre engagement à l'écran : votre personnel (300 salariés au plus), votre fonds, la convention seule ou un modèle type.",
         "Rien n'est gardé sur la plateforme ; l'estimation n'est ni scellée ni imprimable. « Enregistrer mes résultats » mène à l'inscription, qui reprend votre saisie." ] },
       { titre: "S'inscrire", texte: [
-        "Votre téléphone et votre adresse électronique sont vérifiés par un code chacun. Vous indiquez votre nom, votre fonction et l'entreprise : raison sociale, pays, numéro RCCM (obligatoire), taille, secteur, adresse.",
+        "Votre téléphone et votre adresse électronique sont vérifiés par un code chacun. Vous indiquez votre nom, votre fonction et l'entreprise : raison sociale, pays, numéro RCCM (obligatoire), taille, secteur, adresse. Vous acceptez les conditions d'utilisation et la politique de confidentialité ; la version acceptée reste sur votre compte (« Mon profil »).",
         "Le document RCCM peut suivre : déposez-le depuis le bandeau de votre dossier. Une entreprise n'a qu'un dossier : un numéro RCCM déjà inscrit renvoie vers son administrateur." ] },
       { titre: "En attendant la confirmation", texte: [
-        "Votre conseiller vous contacte sous deux jours ouvrés, vérifie l'entreprise et confirme l'inscription. D'ici là, tout le travail est ouvert : personnel, régime, simulations, études à l'écran, départs, messages à votre conseiller.",
+        "Votre conseiller vous contacte sous deux jours ouvrés, vérifie l'entreprise et confirme l'inscription. D'ici là, tout le travail est ouvert : personnel, régime, simulations, études à l'écran, départs, messages à votre conseiller. Un courriel vous prévient de ce qui vous attend (la confirmation, un message, un mandat à signer) ; ces avis se coupent dans « Mon profil ».",
         "Ce qui sort de la plateforme attend la confirmation : rapports scellés, exports, notes, invitation de collègues, catalogue anonyme, mandat. Une inscription non confirmée est effacée au bout de 30 jours ; vous pouvez aussi la retirer vous-même." ] },
     ],
   },
@@ -202,7 +202,7 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
       { titre: "Signer le mandat", texte: [
         "Depuis « Accompagnement », l'entreprise dit ce qu'elle attend : placer son engagement, remettre son contrat en concurrence, faire porter ses départs, être conseillée sur son régime.",
         "Le conseiller propose un mandat de courtage : les missions, la date d'effet, la durée, le préavis, l'exclusivité. Le texte complet s'affiche sur la page.",
-        "L'administrateur le lit et le signe en ligne, sur le texte affiché. Le mandat signé est scellé, vérifiable par son numéro. Rien n'engage avant la signature." ] },
+        "L'administrateur le lit et le signe en ligne, sur le texte affiché, en disant en quelle qualité : représentant légal de l'entreprise, ou délégataire — il dépose alors la délégation de pouvoir, que le conseiller vérifie. Le mandat signé est scellé, vérifiable par son numéro. Rien n'engage avant la signature." ] },
       { titre: "Quand un salarié part", texte: [
         "Sous mandat : vous déclarez le départ, nous montons le dossier, le transmettons et suivons le paiement. Pour ce dossier seulement, nous recueillons l'identité du bénéficiaire.",
         "Sans mandat au jour du départ, la prise en charge s'est faite entre l'entreprise et son assureur : vous gardez la fiche de calcul scellée et déclarez ce qui a été payé, sans nom.",

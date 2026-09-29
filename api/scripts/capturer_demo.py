@@ -73,6 +73,8 @@ def main(url: str, sortie: Path) -> None:
         reponses[cle or f"{methode} {chemin}"] = r.json()
 
     capter("/referentiel/conventions")
+    capter("/public/cabinet")
+    reponses["GET /public/cabinet"]["nom"] = "Cabinet de démonstration"
     capter("/referentiel/modeles?pays=CM")
     capter("/referentiel/hypotheses")
     capter("/catalogue/regimes")

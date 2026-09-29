@@ -40,10 +40,10 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "“Try without an account” calculates your liability on screen: your staff (300 employees at most), your fund, the collective agreement alone or a model plan.",
         "Nothing is kept on the platform; the estimate is neither sealed nor printable. “Save my results” leads to sign-up, which carries over what you entered." ] },
       { titre: "Signing up", texte: [
-        "Your phone and your email address are each verified with a code. You give your name, your position and the company: company name, country, RCCM number (required), size, sector, address.",
+        "Your phone and your email address are each verified with a code. You give your name, your position and the company: company name, country, RCCM number (required), size, sector, address. You accept the terms of use and the privacy policy; the version accepted stays on your account (“My profile”).",
         "The RCCM document can follow: upload it from your file's banner. A company has only one file: an RCCM number already registered points to its administrator." ] },
       { titre: "While awaiting confirmation", texte: [
-        "Your adviser contacts you within two working days, checks the company and confirms the sign-up. Until then, all the work is open: staff, plan, simulations, on-screen studies, departures, messages to your adviser.",
+        "Your adviser contacts you within two working days, checks the company and confirms the sign-up. Until then, all the work is open: staff, plan, simulations, on-screen studies, departures, messages to your adviser. An email tells you when something is waiting for you (the confirmation, a message, a mandate to sign); these notices can be turned off in “My profile”.",
         "Anything that leaves the platform waits for confirmation: sealed reports, exports, notes, inviting colleagues, the anonymous catalogue, the mandate. An unconfirmed sign-up is erased after 30 days; you can also withdraw it yourself." ] },
     ],
   },
@@ -182,7 +182,7 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
       { titre: "Signing the mandate", texte: [
         "From “Support”, the company says what it expects: placing its liability, putting its contract back out to competition, having its departures handled, advice on its plan.",
         "The adviser proposes a brokerage mandate: the assignments, the effective date, the term, the notice period, exclusivity. The full text is shown on the page.",
-        "The administrator reads it and signs it online, on the text shown. The signed mandate is sealed and can be verified by its number. Nothing is binding before signature." ] },
+        "The administrator reads it and signs it online, on the text shown, saying in what capacity: legal representative of the company, or delegate — who then uploads the delegation of authority, which the adviser checks. The signed mandate is sealed and can be verified by its number. Nothing is binding before signature." ] },
       { titre: "When an employee leaves", texte: [
         "Under a mandate: you declare the departure, we prepare the file, send it and follow the payment. For this file only, we collect the beneficiary's identity.",
         "Without a mandate on the day of departure, the payment was handled between the company and its insurer: you keep the sealed calculation sheet and declare what was paid, without a name.",
