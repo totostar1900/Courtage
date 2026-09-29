@@ -667,3 +667,21 @@ class RappelEnvoye(Base):
     etat: Mapped[str] = mapped_column(Text)
     destinataires: Mapped[int] = mapped_column(Integer)
     envoye_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class DemandeRappel(Base):
+    """Un visiteur de la vitrine demande à être rappelé ; le courtier suit la demande. Effacée à douze mois."""
+    __tablename__ = "demandes_rappel"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    nom: Mapped[str] = mapped_column(Text)
+    entreprise: Mapped[str] = mapped_column(Text)
+    telephone: Mapped[str] = mapped_column(Text)
+    courriel: Mapped[str | None] = mapped_column(Text)
+    creneau: Mapped[str] = mapped_column(Text)
+    message: Mapped[str | None] = mapped_column(Text)
+    accord: Mapped[bool] = mapped_column(Boolean)
+    recue_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    statut: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
+    traitee_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    traitee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    note: Mapped[str | None] = mapped_column(Text)
