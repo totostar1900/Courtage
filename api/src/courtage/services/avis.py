@@ -75,6 +75,10 @@ EVENEMENTS: dict[str, tuple[str, str, str]] = {
         "Votre conseiller a répondu sur un dossier de prise en charge",
         "Il y a du nouveau sur un dossier de prise en charge de {entreprise}.",
         "/dossier/{org}/dossiers/{dossier}"),
+    "offre_recue": (
+        "Une offre d'assureur est arrivée",
+        "{assureur} a déposé son offre sur le cahier des charges de {entreprise} : à relire avant le classement.",
+        "/dossier/{org}/cahier/{fiche}"),
     "police_recue": (
         "Votre police est arrivée",
         "La police {assureur} de {entreprise} est déposée : lisez-la, signez-la avec l'assureur, puis déclarez la "
@@ -138,12 +142,25 @@ def prevoir(session: Session, evenement: str, destinataires: Iterable[uuid.UUID]
                 if u.email and u.avis_courriel]
     lien = f"{(session.info.get('url_publique') or '').rstrip('/')}{chemin.format(**valeurs)}"
     corps = f"Bonjour,\n\n{texte.format(**valeurs)}\n\nOuvrir : {lien}{PIED}"
+    _ranger(session, [(a, sujet, corps, evenement) for a in adresses])
+    return len(adresses)
+
+
+def prevoir_adresse(session: Session, adresse: str, sujet: str, corps: str, evenement: str) -> bool:
+    """Un courriel à une adresse hors compte (un assureur consulté), aux mêmes règles : après la validation, jamais
+    bloquant. Le corps est écrit par l'appelant."""
+    if session.info.get("courriel") is None:
+        return False
+    _ranger(session, [(adresse, sujet, corps, evenement)])
+    return True
+
+
+def _ranger(session: Session, avis: list[tuple[str, str, str, str]]) -> None:
     en_attente = session.info.setdefault("avis", [])
     if not en_attente:
         event.listen(session, "after_commit", _envoyer, once=True)
         event.listen(session, "after_rollback", _oublier, once=True)
-    en_attente.extend((a, sujet, corps, evenement) for a in adresses)
-    return len(adresses)
+    en_attente.extend(avis)
 
 
 def _oublier(session: Session) -> None:

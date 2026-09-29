@@ -76,7 +76,8 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
         "demande_code": Limiteur(10, 15 * 60),   # des codes pour 10 numéros par quart d'heure et par adresse
         "essai_code": Limiteur(30, 15 * 60),
         "inscription": Limiteur(5, 60 * 60),     # 5 inscriptions par heure et par adresse
-        "essai": Limiteur(20, 60 * 60),          # l'essai sans compte : 20 calculs par heure et par adresse
+        "essai": Limiteur(20, 60 * 60),
+        "offre": Limiteur(30, 15 * 60),          # le lien d'un assureur : 30 lectures ou dépôts par quart d'heure          # l'essai sans compte : 20 calculs par heure et par adresse
     }
 
     @app.exception_handler(ErreurMetier)
@@ -86,6 +87,7 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     from .connexion import routeur_connexion
     from .inscription import routeur_inscription
     from .essai import routeur_essai
+    from .consultations import routeur_consultations
     from .placement import routeur_placement
     from .profil import routeur_profil
     from .public import routeur_public
@@ -100,6 +102,7 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     app.include_router(routeur_essai, prefix="/api/v1")
     app.include_router(routeur_profil, prefix="/api/v1")
     app.include_router(routeur_placement, prefix="/api/v1")
+    app.include_router(routeur_consultations, prefix="/api/v1")
     app.include_router(routeur, prefix="/api/v1")
     if authentification == "entete_dev":
         from .dev import routeur_dev
