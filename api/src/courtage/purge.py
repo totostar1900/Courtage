@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from courtage.messagerie import courriel_depuis_environnement
 from courtage.services.activation import effacer_expirees_partout
 from courtage.services.annuel import rappeler_partout
+from courtage.services.demandes_rappel import effacer_anciennes
 from courtage.services.cycle import archiver_echus_partout
 from courtage.services.dossiers import effacer_echus_partout
 
@@ -30,6 +31,8 @@ if __name__ == "__main__":
     print(f"[purge] {a} dossier(s) archivé(s)", flush=True)
     i = effacer_expirees_partout(moteur, datetime.now(timezone.utc))
     print(f"[purge] {i} inscription(s) non confirmée(s) effacée(s)", flush=True)
+    d = effacer_anciennes(moteur, datetime.now(timezone.utc))
+    print(f"[purge] {d} demande(s) de rappel de plus de douze mois effacée(s)", flush=True)
     courriel = courriel_depuis_environnement(os.environ)
     if courriel is None:
         print("[rappels] pas d'envoi de courriel configuré (COURTAGE_SMTP_URL) : aucun rappel du cycle annuel", flush=True)

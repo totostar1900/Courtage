@@ -352,3 +352,13 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
   `etude_a_renouveler` et `donnees_anciennes` (`DEJA_ALERTES`). Ne pas doubler.
 - Les rappels partent de `python -m courtage.purge` (`rappeler_partout`), au plus un par étape, état et année
   (`rappels_envoyes`), en envoi immédiat (`session.info["envoi_immediat"]`) : un fil mourrait avec la tâche.
+
+## Site public (spec 2026-09-29, site public)
+
+- `web/index.html` porte la description, Open Graph (image `web/public/apercu.png`, 1200×630), l'icône et un
+  `<noscript>` ; `__URL_PUBLIQUE__` y est remplacé par le serveur (`api/web.py`, `page_index`). Chaque page publique
+  pose son titre (`composants/Titre.tsx`). `/robots.txt` et `/sitemap.xml` : `api/public.py` (`routeur_racine`) ;
+  une nouvelle page publique s'ajoute à `PAGES_PUBLIQUES`, une page privée à `NON_INDEXEES`.
+- **Être rappelé** : `services/demandes_rappel.py`, `demandes_rappel` (plateforme, hors RLS, effacée à douze mois
+  par la tâche quotidienne), `POST /public/rappel` (limité, champ piège `site_web`), `GET/PUT /rappels` (courtier).
+  L'avis au courtier ne porte ni numéro ni message.

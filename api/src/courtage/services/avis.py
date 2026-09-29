@@ -75,6 +75,10 @@ EVENEMENTS: dict[str, tuple[str, str, str]] = {
         "Votre conseiller a répondu sur un dossier de prise en charge",
         "Il y a du nouveau sur un dossier de prise en charge de {entreprise}.",
         "/dossier/{org}/dossiers/{dossier}"),
+    "demande_rappel": (
+        "Une demande de rappel vous attend",
+        "Un visiteur de la vitrine demande à être rappelé. Son numéro et son créneau sont sur la plateforme.",
+        "/"),
     "rappel_annuel": (
         "Rappel : {etape}",
         "Pour {entreprise} : « {etape} » {quand} le {echeance}. L'engagement se remesure chaque année à la même date.",
