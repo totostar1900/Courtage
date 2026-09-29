@@ -55,7 +55,7 @@ describe("inscription", () => {
     await userEvent.clear(code);
     await userEvent.type(code, "123456");
     await userEvent.click(within(tel).getByRole("button", { name: "Vérifier" }));
-    await waitFor(() => expect(document.querySelector('p[data-canal="telephone"]')).toHaveTextContent("✓ Téléphone : 699123456 vérifié"));
+    await waitFor(() => expect(document.querySelector('p[data-canal="telephone"]')).toHaveTextContent("✓ Téléphone : +237699123456 vérifié"));
 
     const suite = screen.getByRole("button", { name: "Continuer" });
     expect(suite).toBeDisabled();            // le courriel n'est pas encore vérifié
@@ -87,7 +87,7 @@ describe("inscription", () => {
     expect(await screen.findByText(/Inscription en attente de confirmation/)).toBeInTheDocument();
     const envoi = appels.find((a) => a.chemin === "/inscription" && a.init?.method === "POST")!;
     expect(JSON.parse(envoi.init!.body as string)).toEqual({
-      telephone: "699123456", preuve_telephone: "preuve-telephone", courriel: "drh@azito.cm", preuve_courriel: "preuve-courriel",
+      telephone: "+237699123456", preuve_telephone: "preuve-telephone", courriel: "drh@azito.cm", preuve_courriel: "preuve-courriel",
       nom: "Mme DRH", fonction: "DRH",
       entreprise: { nom: "AZITO", pays: "GA", rccm: "RC/LBV/2020/B/99", taille: "moins_de_50", secteur: null, adresse: null,
                     ville: "Libreville" },

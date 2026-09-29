@@ -7,6 +7,7 @@ import { useMesure } from "../mesure";
 import { Erreur } from "../composants/communs";
 import { t } from "../i18n";
 import { reprendreEssai } from "./Essai";
+import { ChampTelephone } from "../composants/ChampTelephone";
 
 type Nature = "telephone" | "courriel";
 interface Canal { cible: string; codeDemande: boolean; message: string | null; preuve: string | null }
@@ -194,10 +195,12 @@ function VerificationCanal({ nature, canal, onChange }: { nature: Nature; canal:
     <div className="section" data-canal={nature}>
       {!canal.codeDemande ? (
         <form key="cible" className="formulaire" onSubmit={demander}>
+          {tel ? <ChampTelephone libelle={libelle} valeur={canal.cible} required
+                                 onChange={(v) => onChange({ ...CANAL_VIDE, cible: v })} /> : (
           <label>{libelle}
-            <input type={tel ? "tel" : "email"} inputMode={tel ? "tel" : "email"} autoComplete={tel ? "tel" : "email"}
+            <input type="email" inputMode="email" autoComplete="email"
                    required value={canal.cible} onChange={(e) => onChange({ ...CANAL_VIDE, cible: e.target.value })}
-                   placeholder={tel ? "6 99 12 34 56" : "prenom.nom@entreprise.cm"} /></label>
+                   placeholder="prenom.nom@entreprise.cm" /></label>)}
           <div className="actions"><button>{t("Recevoir un code", "Get a code")}</button></div>
         </form>
       ) : (

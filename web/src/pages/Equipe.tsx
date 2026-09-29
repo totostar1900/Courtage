@@ -11,6 +11,7 @@ import { useConfirmation } from "../composants/Confirmer";
 import { useDossier } from "./Dossier";
 import { langue, t } from "../i18n";
 import { raisonActivation } from "../activation";
+import { ChampTelephone } from "../composants/ChampTelephone";
 
 // Lus au rendu (la langue peut changer) : des fonctions, pas des constantes figées à l'import.
 export const libellesRoles = (): Record<Role, string> => ({
@@ -147,7 +148,7 @@ function FormulaireMembre({ equipe: e, membre, onFermer, onFait }: {
               {droits.map((r) => <option key={r.role} value={r.role}>{r.libelle}</option>)}
             </select>
           </label>
-          {!membre && <label>{t("Téléphone", "Phone")}<input name="telephone" type="tel" required placeholder="+237 6 …" /></label>}
+          {!membre && <ChampTelephone libelle={t("Téléphone", "Phone")} name="telephone" required />}
         </div>
         <datalist id="fonctions-equipe">{e.fonctions.map((x) => <option key={x} value={x} />)}</datalist>
         <p className="discret">{membre ? t("Le numéro de téléphone est l'identité de connexion : il ne se modifie pas.", "The phone number is the sign-in identity: it cannot be changed.") :

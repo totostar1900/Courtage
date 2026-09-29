@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, seConnecter } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
 import { t } from "../i18n";
+import { ChampTelephone } from "../composants/ChampTelephone";
 
 interface Personne { id: string; nom_affiche: string | null; email: string | null; admin_plateforme: boolean }
 
@@ -46,10 +47,7 @@ export default function Connexion() {
           {!codeDemande ? (
             <form key="numero" className="formulaire" onSubmit={demander}>
               <p>{t("Saisissez votre numéro : vous recevez un code par message.", "Enter your number: you will receive a code by message.")}</p>
-              <label>{t("Téléphone", "Phone")}
-                <input id="telephone" type="tel" inputMode="tel" autoComplete="tel" required value={telephone}
-                       onChange={(e) => setTelephone(e.target.value)} placeholder="6 99 12 34 56" />
-              </label>
+              <ChampTelephone libelle={t("Téléphone", "Phone")} valeur={telephone} onChange={setTelephone} required />
               <div className="actions"><button className="principal">{t("Recevoir un code", "Get a code")}</button></div>
             </form>
           ) : (

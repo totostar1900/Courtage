@@ -26,7 +26,7 @@ describe("être rappelé", () => {
     await userEvent.click(bouton);
     expect(await within(zone).findByText("Merci : le courtier vous rappelle au créneau choisi.")).toBeInTheDocument();
     const corps = JSON.parse(String(appels.find((a) => a.chemin === "/public/rappel")!.init!.body));
-    expect(corps).toEqual({ nom: "Paul Mbarga", entreprise: "Brasseries du Littoral", telephone: "699123456", courriel: null,
+    expect(corps).toEqual({ nom: "Paul Mbarga", entreprise: "Brasseries du Littoral", telephone: "+237699123456", courriel: null,
       creneau: "matin", message: null, accord: true, site_web: null });
   });
 

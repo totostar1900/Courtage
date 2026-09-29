@@ -24,7 +24,7 @@ describe("connexion", () => {
     await userEvent.click(screen.getByRole("button", { name: "Se connecter" }));
     expect(await screen.findByText("Vos dossiers")).toBeInTheDocument();
     const verification = appels.find((a) => a.chemin === "/auth/verification")!;
-    expect(JSON.parse(verification.init!.body as string)).toEqual({ telephone: "699123456", code: "123456" });
+    expect(JSON.parse(verification.init!.body as string)).toEqual({ telephone: "+237699123456", code: "123456" });
     expect(new Headers(verification.init!.headers).get("X-Courtage")).toBe("1");
     expect(screen.queryByText("Mode développement")).not.toBeInTheDocument();
   });
@@ -657,7 +657,7 @@ describe("une plateforme neuve", () => {
     await userEvent.click(screen.getByRole("button", { name: "Inscrire" }));
     await waitFor(() => expect(appels.some((a) => a.chemin === `/organisations/${ORG}/membres`)).toBe(true));
     const envoi = appels.find((a) => a.chemin === `/organisations/${ORG}/membres`)!;
-    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", fonction: "", telephone: "699001122", role: "admin_client" });
+    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", fonction: "", telephone: "+237699001122", role: "admin_client" });
   });
 });
 
@@ -1256,7 +1256,7 @@ describe("l'équipe du dossier", () => {
     await userEvent.click(screen.getByRole("button", { name: "Inscrire" }));
     await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
     expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string)).toEqual(
-      { nom_affiche: "M. DAF", fonction: "DAF", role: "contributeur_client", telephone: "+237 6 99 00 00 22" });
+      { nom_affiche: "M. DAF", fonction: "DAF", role: "contributeur_client", telephone: "+237699000022" });
   });
 
   it("le menu ⋮ d'un membre : modifier ; retirer, grisé avec sa raison pour le dernier administrateur", async () => {

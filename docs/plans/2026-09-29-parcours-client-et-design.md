@@ -4,7 +4,7 @@ Spécification : `docs/specs/2026-09-29-parcours-client-et-design-design.md`.
 
 1. [x] **Essai.** `DepotFichier` ; l'essai daté, expiré à 30 min, « Retirer » ; « Et ensuite ? ». — *L'essai : un
    fichier visible, qui se retire, et la suite*
-2. [ ] **Téléphone.** `ChampTelephone` avec indicatif ; connexion, inscription, rappel, équipe. — *Le téléphone et son
+2. [x] **Téléphone.** `ChampTelephone` avec indicatif ; connexion, inscription, rappel, équipe. — *Le téléphone et son
    indicatif*
 3. [ ] **Simuler dans l'étude.** Le comparatif en volet de la page Étude ; page et menu retirés. — *Simuler rejoint
    l'étude*

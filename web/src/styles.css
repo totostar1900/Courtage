@@ -708,3 +708,19 @@ tr.choisie > td { background: var(--indigo-doux); }
 a.bouton.whatsapp, button.whatsapp { background: #1f8f4e; border-color: #1f8f4e; color: #fff; }
 a.bouton.whatsapp:hover, button.whatsapp:hover { background: #17753f; }
 .lien-discret { color: var(--discret); font-size: 14px; }
+
+/* Le téléphone et son indicatif (composants/ChampTelephone.tsx) : une puce drapeau + indicatif, le vrai menu posé
+   dessus (invisible mais au clavier et au lecteur d'écran), puis le numéro. */
+.champ-telephone { display: grid; gap: 6px; }
+.champ-telephone > label { font-weight: 600; font-size: 13px; color: var(--encre-2); }
+.champ-telephone-ligne { display: flex; align-items: stretch; border: 1px solid var(--trait); border-radius: 10px;
+  background: var(--surface); overflow: hidden; }
+.champ-telephone-ligne:focus-within { border-color: var(--indigo-vif); box-shadow: 0 0 0 3px #2f419a22; }
+.champ-telephone-pays { position: relative; display: flex; flex: none; border-right: 1px solid var(--trait); background: #fafbfe; }
+.champ-telephone-puce { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 12px; font-weight: 600;
+  color: var(--encre); font-variant-numeric: tabular-nums; }
+.champ-telephone-puce .drapeau { font-size: 18px; line-height: 1; }
+.champ-telephone-puce svg { color: var(--discret); }
+.champ-telephone-pays select { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.champ-telephone-pays:focus-within .champ-telephone-puce { background: var(--indigo-doux); }
+.champ-telephone-ligne input { border: 0; border-radius: 0; flex: 1; min-width: 0; box-shadow: none; outline: none; }
