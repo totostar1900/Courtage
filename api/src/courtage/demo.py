@@ -173,8 +173,41 @@ def societe_demo(client, h) -> dict:
                                    "transfert_penalite": penalite, "accepte_etude_plateforme": True,
                                    "reporting_annuel": True})}))
 
+    _placement(client, h, ok, org)
     return {"org": org, "fichier": fichier, "version": version, "projet": projet, "dossier": dossier,
             "etude": etude, "brouillon": brouillon, "fiche": fiche}
+
+
+def _placement(client, h, ok, org: str) -> None:
+    """La police en cours chez l'assureur fictif : reçue, signée, première prime virée puis encaissée sur quittance,
+    un relevé ; et un appel de 2026 dont le compte n'est PAS celui du registre — « Ne pas payer » jusqu'au
+    contre-appel du conseiller. Tout est fictif, y compris les coordonnées bancaires."""
+    pdf = ("document-fictif.pdf", b"%PDF-1.4\n% document fictif de demonstration\n%%EOF", "application/pdf")
+    client.post(f"{V1}/assureurs/comptes", headers=h("admin"), json={
+        "assureur": "Assureur A (fictif)", "banque": "Banque fictive du Littoral", "titulaire": "Assureur A (fictif) SA",
+        "iban": "CM00 00000 00000 0000000000 01", "verifie_aupres": "Service financier (fictif)",
+        "verifie_telephone": "+237 600 00 00 00", "verifie_le": "2024-12-15"})
+    base = f"{V1}/organisations/{org}"
+    p = ok(client.post(f"{base}/polices", headers=h("conseiller"), json={
+        "assureur": "Assureur A (fictif)", "numero_police": "IFC-2025-0042", "date_effet": "2025-01-01",
+        "periodicite": "annuelle"}))
+    ok(client.post(f"{base}/polices/{p['id']}/pieces", headers=h("conseiller"), data={"nature": "police"}, files={"fichier": pdf}))
+    ok(client.post(f"{base}/polices/{p['id']}/signature", headers=h("drh"), json={"signee_le": "2024-12-20"}))
+    a = ok(client.post(f"{base}/polices/{p['id']}/appels", headers=h("conseiller"), json={
+        "reference": "AP-2025-01", "montant": 18_500_000, "echeance": "2025-01-31", "premiere": True,
+        "banque": "Banque fictive du Littoral", "titulaire": "Assureur A (fictif) SA",
+        "iban": "CM00 00000 00000 0000000000 01"}))
+    ok(client.post(f"{base}/appels/{a['id']}/virement", headers=h("drh"), json={
+        "vire_le": "2025-01-24", "montant": 18_500_000, "reference": "VIR-2025-0124"}))
+    ok(client.post(f"{base}/polices/{p['id']}/pieces", headers=h("conseiller"), data={"nature": "quittance", "appel_id": a["id"]},
+                   files={"fichier": pdf}))
+    ok(client.post(f"{base}/appels/{a['id']}/encaissement", headers=h("conseiller"), json={"encaisse_le": "2025-01-29"}))
+    ok(client.post(f"{base}/polices/{p['id']}/pieces", headers=h("conseiller"), files={"fichier": pdf},
+                   data={"nature": "releve", "releve_le": "2025-12-31", "montant_fonds": "19240000"}))
+    ok(client.post(f"{base}/polices/{p['id']}/appels", headers=h("conseiller"), json={
+        "reference": "AP-2026-01", "montant": 19_800_000, "echeance": (date.today() + timedelta(days=21)).isoformat(),
+        "banque": "Autre banque (fictive)", "titulaire": "Assureur A (fictif) SA",
+        "iban": "CM00 99999 00000 0000000000 99"}))
 
 
 def personnel_fictif(n: int = 40, graine: int = 2026) -> bytes:
@@ -213,8 +246,9 @@ def _fichier() -> bytes:
 
 
 # La version de la démonstration : à monter quand le code sait montrer ce que les études déjà semées ne
-# portent pas (elles sont figées). v2 : l'échéancier découpé par catégorie (26/09/2026).
-VERSION_DEMO = 2
+# portent pas (elles sont figées). v2 : l'échéancier découpé par catégorie (26/09/2026). v3 : le placement — une police,
+# ses primes, un appel aux coordonnées à confirmer (29/09/2026).
+VERSION_DEMO = 3
 
 
 def depuis_environnement(env, version: int = VERSION_DEMO) -> str | None:

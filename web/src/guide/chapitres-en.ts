@@ -189,6 +189,23 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "In both cases, the recorded departure feeds the actual experience in your reports." ] },
     ],
   },
+  placement: {
+    titre: "Placement: policy, premiums, transfers",
+    resume: "From the chosen offer to the policy in force; premiums are paid by bank transfer, never on the platform.",
+    sections: [
+      { titre: "The policy", texte: [
+        "Once the offer is chosen, the adviser creates the policy. It moves forward through facts, each with its proof: policy received (the document is uploaded), signed with the insurer (you record the date), first premium received (the insurer's receipt), then in force on its effective date.",
+        "Nothing is ticked by hand: the timeline reads the documents and dates. Riders are added to the policy." ] },
+      { titre: "Paying a premium", texte: [
+        "The platform pays nothing and receives nothing. The insurer sends a premium call with its bank details; the adviser records it here; you transfer from your bank to the insurer's account, then declare the transfer (date, amount, reference) and attach your bank's advice.",
+        "The adviser uploads the insurer's receipt and confirms it: the call moves from “paid (declared)” to “received (confirmed)”. A due date passed with no declared transfer shows as overdue." ] },
+      { titre: "Bank details, against fraud", texte: [
+        "Each call is checked against the account the broker registered for that insurer, after having it confirmed by phone. A different or unknown account shows in red: “Do not pay”. The adviser then calls the insurer back on the number they know, never the one on the call received, and records who confirmed.",
+        "Bank details are never sent by email: the notice only says a call is waiting. A “new bank account” received by email is not paid before being confirmed here." ] },
+      { titre: "Fund statements", texte: [
+        "The adviser uploads the insurer's statements with the fund amount. The page reconciles them with the premiums received and the fund your latest study uses: a difference is a finding to explain, never a blocking error." ] },
+    ],
+  },
   departs: {
     titre: "Departures and history",
     resume: "Record each departure by staff number; the platform recalculates what was due.",

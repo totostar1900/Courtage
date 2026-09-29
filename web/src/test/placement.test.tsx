@@ -30,6 +30,9 @@ describe("le placement", () => {
     expect(screen.getByText("CM2199999000000000000001")).toBeInTheDocument();
     expect(screen.getByText(/Différentes du compte enregistré/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Enregistrer le contre-appel" })).toBeNull();   // le conseiller seul
+    // Le formulaire ne s'offre pas à côté de « Ne pas payer » : un virement déjà fait se déclare sur demande.
+    expect(screen.queryByRole("button", { name: "Déclarer le virement" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Un virement a déjà été fait ? Le déclarer" }));
     await userEvent.type(screen.getByLabelText("Viré le"), "2026-09-29");
     await userEvent.type(screen.getByLabelText("Référence bancaire"), "VIR-778");
     await userEvent.click(screen.getByRole("button", { name: "Déclarer le virement" }));

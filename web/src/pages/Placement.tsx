@@ -279,6 +279,9 @@ function FicheAppel({ orgId, policeId, role, a, onFait }: { orgId: string; polic
     onFait();
   };
   const quittance = a.pieces.some((x) => x.nature === "quittance");
+  // Tant que les coordonnées ne sont pas confirmées, le formulaire ne s'offre pas à côté de « Ne pas payer » :
+  // un virement déjà fait se déclare quand même (c'est un fait), mais il faut le demander.
+  const [declarerQuandMeme, setDeclarerQuandMeme] = useState(false);
   return (
     <details className="appel" open={a.ne_pas_payer || a.etat === "en_retard"}>
       <summary>
@@ -312,7 +315,11 @@ function FicheAppel({ orgId, policeId, role, a, onFait }: { orgId: string; polic
       {conseiller && !a.pieces.some((x) => x.nature === "appel") && (
         <Depot libelle={t("Joindre l'appel de prime reçu", "Attach the premium call received")} envoyer={piece("appel")} />
       )}
-      {entreprise && !a.virement && !a.encaisse_le && (
+      {entreprise && !a.virement && !a.encaisse_le && a.ne_pas_payer && !declarerQuandMeme && (
+        <p className="discret"><button type="button" className="lien" onClick={() => setDeclarerQuandMeme(true)}>
+          {t("Un virement a déjà été fait ? Le déclarer", "Already made a transfer? Declare it")}</button></p>
+      )}
+      {entreprise && !a.virement && !a.encaisse_le && (!a.ne_pas_payer || declarerQuandMeme) && (
         <form className="formulaire" onSubmit={(ev) => { ev.preventDefault(); const f = new FormData(ev.currentTarget);
           envoyer(`/appels/${a.id}/virement`, { vire_le: String(f.get("vire_le")), montant: Number(f.get("montant")),
             reference: String(f.get("reference") ?? "").trim() || null }); }}>

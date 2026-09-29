@@ -13,4 +13,4 @@ Spécification : `docs/specs/2026-09-29-cloture-du-placement-design.md`.
 5. [x] **Les relevés du fonds.** Dépôt avec montant, rapprochement avec les primes et l'étude. — *Relevés du fonds*
 6. [x] **Écrans.** Page « Placement » (police, appels, relevés), registre sur l'accueil du courtier, rail. —
    *L'écran du placement*
-7. [ ] Guide, démonstration, CLAUDE.md, carte du parcours ; suites vertes, `tsc` propre.
+7. [x] Guide, démonstration, CLAUDE.md, carte du parcours ; suites vertes, `tsc` propre.

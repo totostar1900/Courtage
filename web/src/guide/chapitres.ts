@@ -211,6 +211,24 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
     termes: ["courtage", "mandat"],
   },
   {
+    id: "placement", groupe: "Le parcours", titre: "Le placement : police, primes, virements", ecran: "placement",
+    resume: "De l'offre retenue à la police en vigueur ; les primes se paient par virement, jamais sur la plateforme.",
+    sections: [
+      { titre: "La police", texte: [
+        "Une fois l'offre choisie, le conseiller crée la police. Elle avance par des faits, chacun avec sa preuve : police reçue (le document est déposé), signée avec l'assureur (vous en déclarez la date), première prime encaissée (la quittance de l'assureur), puis en vigueur à sa date d'effet.",
+        "Rien ne se coche à la main : la frise se lit sur les pièces et les dates. Les avenants s'ajoutent à la police." ] },
+      { titre: "Payer une prime", texte: [
+        "La plateforme ne paie rien et ne reçoit rien. L'assureur envoie un appel de prime avec ses coordonnées bancaires ; le conseiller l'enregistre ici ; vous virez depuis votre banque, sur le compte de l'assureur, puis vous déclarez le virement (date, montant, référence) et joignez l'avis de votre banque.",
+        "Le conseiller dépose la quittance de l'assureur et confirme l'encaissement : l'appel passe de « payé (déclaré) » à « encaissé (confirmé) ». Une échéance dépassée sans virement déclaré s'affiche en retard." ] },
+      { titre: "Les coordonnées bancaires, contre la fraude", texte: [
+        "Chaque appel est confronté au compte que le courtier a enregistré pour cet assureur, après l'avoir fait confirmer par téléphone. Un compte différent ou inconnu s'affiche en rouge : « Ne pas payer ». Le conseiller rappelle alors l'assureur au numéro qu'il connaît, jamais celui de l'appel reçu, et enregistre qui a confirmé.",
+        "Les coordonnées ne partent jamais par courriel : l'avis dit seulement qu'un appel vous attend. Un « nouveau RIB » reçu par courriel ne se paie pas avant d'avoir été confirmé ici." ] },
+      { titre: "Les relevés du fonds", texte: [
+        "Le conseiller dépose les relevés de l'assureur avec le montant du fonds. La page les rapproche des primes encaissées et du fonds que retient votre dernière étude : un écart est un constat à expliquer, jamais une erreur bloquante." ] },
+    ],
+    termes: ["courtage"],
+  },
+  {
     id: "departs", groupe: "Le parcours", titre: "Les départs et l'historique", ecran: "departs",
     resume: "Enregistrer chaque départ par matricule ; la plateforme recalcule ce qui était dû.",
     sections: [
