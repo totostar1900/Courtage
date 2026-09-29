@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { useCabinet } from "../cabinet";
+import EtreRappele from "../composants/EtreRappele";
 import { t } from "../i18n";
 
 /** La première page d'un visiteur : ce que fait le service, ce qu'il coûte, qui l'exploite, et par où entrer. */
@@ -55,6 +56,7 @@ export default function Vitrine() {
         <div className="actions">
           <Link to="/essai" className="bouton principal">{t("Essayer sans compte", "Try without an account")}</Link>
           <Link to="/inscription" className="bouton">{t("S'inscrire", "Sign up")}</Link>
+          <a href="#vitrine-rappel" className="lien-discret">{t("Être rappelé", "Be called back")}</a>
           <Link to="/connexion" className="lien-discret">{t("Déjà un compte ? Se connecter", "Already have an account? Sign in")}</Link>
         </div>
         <p className="vitrine-gratuit"><strong>{t("Gratuit pour l'entreprise.", "Free for the company.")}</strong>{" "}
@@ -84,6 +86,13 @@ export default function Vitrine() {
           {questions.map(([q, r]) => <details key={q} className="carte"><summary>{q}</summary><p>{r}</p></details>)}
         </div>
         <p className="discret">{t("Pour aller plus loin : ", "To go further: ")}<Link to="/guide">{t("le guide", "the guide")}</Link>.</p>
+      </section>
+
+      <section aria-labelledby="vitrine-rappel" className="carte">
+        <h2 id="vitrine-rappel" style={{ marginTop: 0 }}>{t("Parler à un conseiller", "Talk to an adviser")}</h2>
+        <p>{t("Vous préférez en parler avant d'essayer ? Laissez votre numéro : le courtier vous rappelle, au créneau que vous choisissez.",
+          "Rather talk it through before trying? Leave your number: the broker calls you back at the time you choose.")}</p>
+        <EtreRappele />
       </section>
 
       <section aria-labelledby="vitrine-cabinet" className="carte vitrine-cabinet">

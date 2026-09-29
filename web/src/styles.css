@@ -659,3 +659,6 @@ tr.choisie > td { background: var(--indigo-doux); }
 .annee-etapes li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 0; border-top: 1px solid var(--trait); }
 .annee-etapes li:first-child { border-top: 0; }
 .annee-etapes li .etat { margin-left: auto; }
+
+/* Le champ piège du formulaire de rappel : hors de l'écran, hors du parcours au clavier */
+.piege { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }

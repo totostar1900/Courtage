@@ -6,6 +6,7 @@ import { DecompteAlertes } from "../composants/Alertes";
 import { Erreur, useCharge, Volet } from "../composants/communs";
 import FileInscriptions from "../composants/FileInscriptions";
 import RegistreComptes from "../composants/RegistreComptes";
+import DemandesRappel from "../composants/DemandesRappel";
 import { ilYa, lireReprise } from "../reprise";
 import type { Alerte, Moi } from "../types";
 import { t } from "../i18n";
@@ -39,6 +40,7 @@ export default function Accueil() {
       <Erreur erreur={erreur} />
       {moi && <Reprendre moi={moi} />}
       {ouvrir && <NouveauDossier onFermer={() => setOuvrir(false)} />}
+      {moi?.admin_plateforme && <DemandesRappel />}
       {moi?.admin_plateforme && <FileInscriptions onDecision={relireMoi} />}
       {moi?.admin_plateforme && <RegistreComptes />}
       {moi && moi.organisations.length === 0 && (

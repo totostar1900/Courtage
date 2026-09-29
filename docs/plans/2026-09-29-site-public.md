@@ -7,6 +7,6 @@ Spécification : `docs/specs/2026-09-29-site-public-design.md`.
 2. [x] **Être rappelé.** Migration 0030 `demandes_rappel` ; `POST /public/rappel` (limité, champ piège) ; la liste et
    le suivi du courtier ; avis ; effacement à douze mois ; confidentialité (nouvelle version). — *Les demandes de
    rappel*
-3. [ ] **Écrans.** Le formulaire sur la vitrine ; la liste sur l'accueil du courtier. — *Être rappelé, depuis la
+3. [x] **Écrans.** Le formulaire sur la vitrine ; la liste sur l'accueil du courtier. — *Être rappelé, depuis la
    vitrine*
 4. [ ] Guide, CLAUDE.md, DEPLOY.md ; suites vertes, `tsc` propre.
