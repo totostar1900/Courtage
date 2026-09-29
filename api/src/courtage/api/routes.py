@@ -217,13 +217,29 @@ class NouvelleAdhesion(_Corps):
     role: Droits
 
 
+def _conseiller_ou_plateforme(organisation_id: uuid.UUID, session: Session = Depends(session_db, scope="function"),
+                              utilisateur: Utilisateur = Depends(identite)) -> Utilisateur:
+    """Une dépendance, pas un test dans la route : elle passe avant la lecture du corps, et un étranger au dossier
+    est refusé avant d'apprendre la forme de la requête."""
+    if not (utilisateur.admin_plateforme or _role_de(session, utilisateur, organisation_id) == "conseiller"):
+        raise ErreurMetier("acces_refuse", t("Seuls la plateforme et le conseiller du dossier ajoutent un membre.", "Only the platform and the file's adviser add a member."), 403)
+    return utilisateur
+
+
+def _membre_ou_plateforme(organisation_id: uuid.UUID, session: Session = Depends(session_db, scope="function"),
+                          utilisateur: Utilisateur = Depends(identite)) -> str | None:
+    """Le rôle de l'appelant dans le dossier (None pour la plateforme) ; refuse avant la lecture du corps."""
+    if session.get(Organisation, organisation_id) is None:
+        raise ErreurMetier("introuvable", t("Organisation introuvable.", "Organisation not found."), 404)
+    role = _role_de(session, utilisateur, organisation_id)
+    if not (utilisateur.admin_plateforme or role):
+        raise ErreurMetier("acces_refuse", t("Vous n'êtes pas membre de cette organisation.", "You are not a member of this organisation."), 403)
+    return role
+
+
 @routeur.post("/organisations/{organisation_id}/adhesions", status_code=201)
 def ajouter_adhesion(organisation_id: uuid.UUID, corps: NouvelleAdhesion, session: Session = Depends(session_db, scope="function"),
-                     utilisateur: Utilisateur = Depends(identite)):
-    role_appelant = session.scalar(select(Adhesion.role).where(
-        Adhesion.utilisateur_id == utilisateur.id, Adhesion.organisation_id == organisation_id))
-    if not (utilisateur.admin_plateforme or role_appelant == "conseiller"):
-        raise ErreurMetier("acces_refuse", t("Seuls la plateforme et le conseiller du dossier ajoutent un membre.", "Only the platform and the file's adviser add a member."), 403)
+                     utilisateur: Utilisateur = Depends(_conseiller_ou_plateforme)):
     if session.get(Organisation, organisation_id) is None or session.get(Utilisateur, corps.utilisateur_id) is None:
         raise ErreurMetier("introuvable", t("Organisation ou utilisateur introuvable.", "Organisation or user not found."), 404)
     if session.get(Adhesion, (corps.utilisateur_id, organisation_id)) is not None:
@@ -255,15 +271,10 @@ class NouveauMembre(_Corps):
 
 @routeur.post("/organisations/{organisation_id}/membres", status_code=201)
 def inscrire_membre(organisation_id: uuid.UUID, corps: NouveauMembre, session: Session = Depends(session_db, scope="function"),
-                    utilisateur: Utilisateur = Depends(identite)):
+                    utilisateur: Utilisateur = Depends(identite), role: str | None = Depends(_membre_ou_plateforme)):
     """Inscrire quelqu'un par son numéro : le conseiller (ou la plateforme) tout le monde, l'administrateur de
     l'entreprise ses collègues."""
     org = session.get(Organisation, organisation_id)
-    if org is None:
-        raise ErreurMetier("introuvable", t("Organisation introuvable.", "Organisation not found."), 404)
-    role = _role_de(session, utilisateur, organisation_id)
-    if not (utilisateur.admin_plateforme or role):
-        raise ErreurMetier("acces_refuse", t("Vous n'êtes pas membre de cette organisation.", "You are not a member of this organisation."), 403)
     cycle.exiger_ecriture(org)
     contexte(session.connection(), organisation_id)
     activation.exiger(session, org, "equipe")

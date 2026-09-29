@@ -9,7 +9,7 @@ import { changerLangue, t, useLangue } from "../i18n";
 
 interface Profil {
   id: string; nom_affiche: string | null; telephone: string | null; email: string | null; email_verifie_le: string | null;
-  admin_plateforme: boolean; cree_le: string; avis_courriel: boolean; conditions: { version: string; le: string } | null;
+  admin_plateforme: boolean; cree_le: string; avis_courriel: boolean; avis_whatsapp?: boolean; whatsapp_disponible?: boolean; conditions: { version: string; le: string } | null;
   dossiers: { id: string; nom: string; pays: string; role: string; fonction: string | null; activation: string }[];
   sessions: { id: string; cree_le: string; derniere_activite: string; agent: string | null; courante: boolean }[];
 }
@@ -120,6 +120,18 @@ export default function Profil() {
               "The email says nothing about the file: it gives the link to the page. Notices are in French.")
           : t("Aucune adresse sur votre compte : écrivez à votre conseiller pour en ajouter une.",
               "No address on your account: write to your adviser to add one.")}</p>
+        {p.whatsapp_disponible && <>
+          <label className="case">
+            <input type="checkbox" checked={!!p.avis_whatsapp} disabled={!p.telephone} onChange={async (e) => {
+              setErreurAction(null);
+              try { await api.patch("/moi/profil", { avis_whatsapp: e.target.checked }); recharger(); }
+              catch (err) { setErreurAction(err); }
+            }} />{" "}{t("Me prévenir aussi sur WhatsApp", "Also notify me on WhatsApp")}</label>
+          <p className="discret">{p.telephone
+            ? t(`Au numéro de votre compte (${p.telephone}) : le sujet de l'avis et le lien, rien d'autre.`,
+                `To your account's number (${p.telephone}): the notice's subject and the link, nothing else.`)
+            : t("Aucun numéro sur votre compte.", "No number on your account.")}</p>
+        </>}
       </section>
 
       <section className="carte section" aria-labelledby="profil-securite">

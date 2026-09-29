@@ -153,6 +153,8 @@ def inscrire(session: Session, *, telephone: str, preuve_telephone: str, courrie
                          fonction=(fonction or "").strip() or None))
     session.flush()
     contexte(session.connection(), org.id)
+    from . import mesure
+    mesure.compter(session, "inscription_faite")
     journaliser(session, org.id, utilisateur.id, "inscription.demandee", org.id,
                 {"rccm": rccm, "taille": org.taille, "pays": org.pays})
     return utilisateur, org

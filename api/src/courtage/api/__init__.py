@@ -44,7 +44,7 @@ _SANS_ECRITURE = ("/simulations", "/financement", "/cycle")
 def creer_app(moteur: Engine, authentification: ModeAuthentification = "session",
               cle_sceau: bytes | None = None, url_publique: str | None = None,
               expediteur=None, cle_auth: bytes | None = None, dossier_web: Path | str | None = None,
-              extracteur=None, courriel=None) -> FastAPI:
+              extracteur=None, courriel=None, whatsapp=None) -> FastAPI:
     """`dossier_web` : l'interface construite (`web/dist`), servie par la même application — une
     seule origine, donc un cookie de session sans CORS ni domaine tiers."""
     production = os.environ.get("COURTAGE_ENV") == "production"
@@ -66,6 +66,7 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     app.state.expediteur = expediteur or ExpediteurJournal()
     from courtage.messagerie import CourrielJournal
     app.state.courriel = courriel or CourrielJournal()
+    app.state.whatsapp = whatsapp                   # None : aucun avis sur WhatsApp (pas de modèle approuvé)
     app.state.cle_auth = cle_auth or auth.CLE_DE_DEVELOPPEMENT
     from courtage.extraction.regles import ExtracteurRegles
     app.state.extracteur = extracteur or ExtracteurRegles()
@@ -76,9 +77,10 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
         "demande_code": Limiteur(10, 15 * 60),   # des codes pour 10 numéros par quart d'heure et par adresse
         "essai_code": Limiteur(30, 15 * 60),
         "inscription": Limiteur(5, 60 * 60),     # 5 inscriptions par heure et par adresse
-        "essai": Limiteur(20, 60 * 60),
-        "offre": Limiteur(30, 15 * 60),
-        "rappel": Limiteur(5, 60 * 60),          # la demande de rappel de la vitrine : 5 par heure et par adresse          # le lien d'un assureur : 30 lectures ou dépôts par quart d'heure          # l'essai sans compte : 20 calculs par heure et par adresse
+        "essai": Limiteur(20, 60 * 60),          # l'essai sans compte : 20 calculs par heure et par adresse
+        "offre": Limiteur(30, 15 * 60),          # le lien d'un assureur : 30 lectures ou dépôts par quart d'heure
+        "rappel": Limiteur(5, 60 * 60),          # la demande de rappel de la vitrine : 5 par heure et par adresse
+        "mesure": Limiteur(120, 15 * 60),        # la mesure d'audience : 120 événements par quart d'heure et par adresse
     }
 
     @app.exception_handler(ErreurMetier)
@@ -124,6 +126,7 @@ def session_db(request: Request):
     with Session(request.app.state.moteur, expire_on_commit=False) as session:
         # Les avis par courriel partent à la validation (services/avis.py) : l'expéditeur et l'adresse du site.
         session.info["courriel"] = request.app.state.courriel
+        session.info["whatsapp"] = request.app.state.whatsapp
         session.info["url_publique"] = request.app.state.sceau.url_publique
         with session.begin():
             yield session

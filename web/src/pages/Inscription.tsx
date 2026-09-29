@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { api, seConnecter } from "../api";
 import { useCabinet } from "../cabinet";
+import { useMesure } from "../mesure";
 import { Erreur } from "../composants/communs";
 import { t } from "../i18n";
 import { reprendreEssai } from "./Essai";
@@ -45,6 +46,7 @@ export default function Inscription() {
   const [envoi, setEnvoi] = useState(false);
   const [accepte, setAccepte] = useState(false);
   const cabinet = useCabinet();
+  useMesure("inscription_ouverte");
   const etapes = [t("Vos coordonnées", "Your contact details"), t("Vous", "You"), t("L'entreprise", "The company")];
 
   async function inscrire(ev: FormEvent<HTMLFormElement>) {

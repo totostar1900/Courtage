@@ -7,6 +7,7 @@ import { Erreur, useCharge, Volet } from "../composants/communs";
 import FileInscriptions from "../composants/FileInscriptions";
 import RegistreComptes from "../composants/RegistreComptes";
 import DemandesRappel from "../composants/DemandesRappel";
+import Audience from "../composants/Audience";
 import { ilYa, lireReprise } from "../reprise";
 import type { Alerte, Moi } from "../types";
 import { t } from "../i18n";
@@ -33,6 +34,9 @@ export default function Accueil() {
     <>
       <div className="actions" style={{ marginTop: 0, justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>{t("Vos dossiers", "Your files")}</h1>
+        {moi && (moi.admin_plateforme || moi.organisations.some((o) => o.role === "conseiller")) && (
+          <Link to="/portefeuille" className="bouton">{t("Pipeline et portefeuille", "Pipeline and portfolio")}</Link>
+        )}
         {moi?.admin_plateforme && !ouvrir && (
           <button type="button" className="principal" onClick={() => setOuvrir(true)}>{t("Ouvrir un dossier client", "Open a client file")}</button>
         )}
@@ -43,6 +47,7 @@ export default function Accueil() {
       {moi?.admin_plateforme && <DemandesRappel />}
       {moi?.admin_plateforme && <FileInscriptions onDecision={relireMoi} />}
       {moi?.admin_plateforme && <RegistreComptes />}
+      {moi?.admin_plateforme && <Audience />}
       {moi && moi.organisations.length === 0 && (
         <p>{t("Aucun dossier pour l'instant.", "No files yet.")}{moi.admin_plateforme
           && t(" En tant que plateforme, vous ouvrez les dossiers des clients : « Ouvrir un dossier client », puis inscrivez la DRH par son numéro.",

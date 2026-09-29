@@ -43,7 +43,7 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "Your phone and your email address are each verified with a code. You give your name, your position and the company: company name, country, RCCM number (required), size, sector, address. You accept the terms of use and the privacy policy; the version accepted stays on your account (“My profile”).",
         "The RCCM document can follow: upload it from your file's banner. A company has only one file: an RCCM number already registered points to its administrator." ] },
       { titre: "While awaiting confirmation", texte: [
-        "Your adviser contacts you within two working days, checks the company and confirms the sign-up. Until then, all the work is open: staff, plan, simulations, on-screen studies, departures, messages to your adviser. An email tells you when something is waiting for you (the confirmation, a message, a mandate to sign); these notices can be turned off in “My profile”.",
+        "Your adviser contacts you within two working days, checks the company and confirms the sign-up. Until then, all the work is open: staff, plan, simulations, on-screen studies, departures, messages to your adviser. An email tells you when something is waiting for you (the confirmation, a message, a mandate to sign); these notices can be turned off in “My profile”, where you can also get them on WhatsApp, at your account's number — the subject and the link, nothing else.",
         "Anything that leaves the platform waits for confirmation: sealed reports, exports, notes, inviting colleagues, the anonymous catalogue, the mandate. An unconfirmed sign-up is erased after 30 days; you can also withdraw it yourself." ] },
     ],
   },

@@ -141,7 +141,7 @@ def rappeler(session: Session, org: Organisation, aujourd_hui: date) -> int:
     return envoyes
 
 
-def rappeler_partout(moteur, courriel, url_publique: str | None, aujourd_hui: date) -> int:
+def rappeler_partout(moteur, courriel, url_publique: str | None, aujourd_hui: date, whatsapp=None) -> int:
     """Pour la tâche programmée : chaque dossier confirmé et ouvert, dans son propre contexte."""
     from sqlalchemy import text
     with moteur.connect() as c:
@@ -150,7 +150,7 @@ def rappeler_partout(moteur, courriel, url_publique: str | None, aujourd_hui: da
     for org_id in ids:
         with Session(moteur) as session:
             # La tâche se termine aussitôt : l'envoi se fait avant, pas dans un fil qui mourrait avec elle.
-            session.info.update(courriel=courriel, url_publique=url_publique, envoi_immediat=True)
+            session.info.update(courriel=courriel, whatsapp=whatsapp, url_publique=url_publique, envoi_immediat=True)
             with session.begin():
                 contexte(session.connection(), org_id)
                 n += rappeler(session, session.get(Organisation, org_id), aujourd_hui)

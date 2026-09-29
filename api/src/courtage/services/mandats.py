@@ -269,6 +269,8 @@ def signer(session: Session, org: Organisation, m: MandatCourtage, auteur: uuid.
     session.flush()
     journaliser(session, org.id, auteur, "mandat.signe", m.id, {"numero": document.numero, "qualite": qualite,
                                                                 "delegation": str(m.delegation_id) if m.delegation_id else None})
+    from . import mesure
+    mesure.compter(session, "mandat_signe")
     avis.prevoir(session, "mandat_signe", avis.conseillers(session, org.id), auteur=auteur, org=org.id,
                  entreprise=org.nom, numero=document.numero)
     return document

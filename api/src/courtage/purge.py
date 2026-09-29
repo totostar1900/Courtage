@@ -16,7 +16,7 @@ from sqlalchemy import create_engine
 from courtage.deploiement import url_applicative
 from datetime import datetime, timezone
 
-from courtage.messagerie import courriel_depuis_environnement
+from courtage.messagerie import courriel_depuis_environnement, whatsapp_depuis_environnement
 from courtage.services.activation import effacer_expirees_partout
 from courtage.services.annuel import rappeler_partout
 from courtage.services.demandes_rappel import effacer_anciennes
@@ -38,5 +38,5 @@ if __name__ == "__main__":
         print("[rappels] pas d'envoi de courriel configuré (COURTAGE_SMTP_URL) : aucun rappel du cycle annuel", flush=True)
     else:
         r = rappeler_partout(moteur, courriel, os.environ.get("COURTAGE_URL_PUBLIQUE") or os.environ.get("RENDER_EXTERNAL_URL"),
-                             date.today())
+                             date.today(), whatsapp_depuis_environnement(os.environ))
         print(f"[rappels] {r} rappel(s) du cycle annuel", flush=True)

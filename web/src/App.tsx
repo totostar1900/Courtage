@@ -18,6 +18,7 @@ import DossierPriseEnCharge from "./pages/DossierPEC";
 import Equipe from "./pages/Equipe";
 import Essai from "./pages/Essai";
 import Inscription from "./pages/Inscription";
+import { PageIfc, PageIfcCameroun } from "./pages/Contenu";
 import { Conditions, Confidentialite, MentionsLegales } from "./pages/Legal";
 import Messages from "./pages/Messages";
 import Offre from "./pages/Offre";
@@ -26,6 +27,7 @@ import Etudes from "./pages/Etudes";
 import Financement from "./pages/Financement";
 import Guide from "./pages/Guide";
 import Personnel from "./pages/Personnel";
+import Portefeuille from "./pages/Portefeuille";
 import Placement from "./pages/Placement";
 import Profil from "./pages/Profil";
 import Regime from "./pages/Regime";
@@ -61,11 +63,14 @@ export default function App() {
           <Route path="/essai" element={<><Titre valeur={t("Essayer sans compte", "Try without an account")} /><Essai /></>} />
           <Route path="/offre/:jeton" element={<><Titre valeur={t("Consultation d'assureurs", "Insurer consultation")} /><Offre /></>} />
           <Route path="/guide/*" element={<><Titre valeur={t("Le guide", "The guide")} /><Guide /></>} />
+          <Route path="/ifc" element={<><Titre valeur={t("Les indemnités de fin de carrière", "End-of-service benefits")} /><PageIfc /></>} />
+          <Route path="/ifc/cameroun" element={<><Titre valeur={t("Les IFC au Cameroun", "End-of-service benefits in Cameroon")} /><PageIfcCameroun /></>} />
           <Route path="/mentions-legales" element={<><Titre valeur={t("Mentions légales", "Legal notice")} /><MentionsLegales /></>} />
           <Route path="/conditions" element={<><Titre valeur={t("Conditions d'utilisation", "Terms of use")} /><Conditions /></>} />
           <Route path="/confidentialite" element={<><Titre valeur={t("Confidentialité", "Privacy")} /><Confidentialite /></>} />
           <Route path="/" element={<Racine onVisiteur={setVisiteur} />} />
           <Route path="/profil" element={<Protege><Profil /></Protege>} />
+          <Route path="/portefeuille" element={<Protege><Portefeuille /></Protege>} />
           <Route path="/dossier/:org" element={<Protege><Dossier /></Protege>}>
             <Route index element={<TableauDeBord />} />
             <Route path="personnel" element={<Personnel />} />
@@ -112,7 +117,7 @@ function Protege({ children }: { children: React.ReactNode }) {
 }
 
 const PUBLIQUES = ["/connexion", "/verifier", "/guide", "/inscription", "/essai", "/mentions-legales", "/conditions",
-                   "/confidentialite", "/offre"];
+                   "/confidentialite", "/offre", "/ifc"];
 
 function Entete({ visiteur }: { visiteur: boolean }) {
   const { pathname } = useLocation();

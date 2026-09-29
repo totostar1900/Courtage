@@ -70,6 +70,12 @@ services:
         sync: false
       - key: TWILIO_CANAL                  # whatsapp | sms
         value: whatsapp
+      # Les avis sur WhatsApp (DEPLOY.md §3) : l'identifiant du modèle approuvé, et l'émetteur WhatsApp s'il
+      # n'est pas déjà TWILIO_EMETTEUR. Sans modèle, les avis restent par courriel.
+      - key: TWILIO_WHATSAPP_MODELE
+        sync: false
+      - key: TWILIO_WHATSAPP_EMETTEUR
+        sync: false
 
   # L'effacement quotidien des identités échues (douze mois après un paiement), avec le rôle applicatif.
   - type: cron
@@ -92,3 +98,15 @@ services:
         fromService: { type: web, name: courtage, envVarKey: COURTAGE_COURRIEL_EXPEDITEUR }
       - key: COURTAGE_URL_PUBLIQUE
         fromService: { type: web, name: courtage, envVarKey: COURTAGE_URL_PUBLIQUE }
+      - key: TWILIO_COMPTE
+        fromService: { type: web, name: courtage, envVarKey: TWILIO_COMPTE }
+      - key: TWILIO_JETON
+        fromService: { type: web, name: courtage, envVarKey: TWILIO_JETON }
+      - key: TWILIO_EMETTEUR
+        fromService: { type: web, name: courtage, envVarKey: TWILIO_EMETTEUR }
+      - key: TWILIO_CANAL
+        fromService: { type: web, name: courtage, envVarKey: TWILIO_CANAL }
+      - key: TWILIO_WHATSAPP_MODELE
+        fromService: { type: web, name: courtage, envVarKey: TWILIO_WHATSAPP_MODELE }
+      - key: TWILIO_WHATSAPP_EMETTEUR
+        fromService: { type: web, name: courtage, envVarKey: TWILIO_WHATSAPP_EMETTEUR }

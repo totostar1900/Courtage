@@ -1,6 +1,7 @@
 """Envoi de messages courts (SMS, WhatsApp) : le seul point de contact avec un fournisseur.
 
-La plateforme n'envoie aujourd'hui qu'une chose : le code de connexion. Le
+Deux choses partent par là : le code de connexion (SMS ou WhatsApp), et les avis
+d'événement sur WhatsApp pour qui les a demandés (un modèle approuvé, `WhatsAppAvis`). Le
 fournisseur est interchangeable (Twilio ici ; Africa's Talking, Orange ou un
 agrégateur local se branchent de la même façon). En développement,
 `ExpediteurJournal` écrit le message dans le journal au lieu de l'envoyer.
@@ -31,6 +32,11 @@ class ExpediteurJournal:
         self.envoyes.append(Message(telephone, texte))
         journal.warning("[développement] message pour %s : %s", telephone, texte)
 
+    def envoyer_modele(self, telephone: str, modele: str, variables: dict[str, str]) -> None:
+        texte = " — ".join(variables[k] for k in sorted(variables))
+        self.envoyes.append(Message(telephone, texte))
+        journal.warning("[développement] modèle %s pour %s : %s", modele, telephone, texte)
+
 
 @dataclass
 class ExpediteurTwilio:
@@ -47,6 +53,42 @@ class ExpediteurTwilio:
                        auth=(self.compte, self.jeton), timeout=10)
         if r.status_code >= 300:
             raise ErreurEnvoi(f"Twilio a refusé l'envoi ({r.status_code})")
+
+    def envoyer_modele(self, telephone: str, modele: str, variables: dict[str, str]) -> None:
+        """Un message par modèle approuvé : WhatsApp refuse un texte libre qu'une entreprise envoie la première."""
+        import json
+
+        import httpx
+        r = httpx.post(f"https://api.twilio.com/2010-04-01/Accounts/{self.compte}/Messages.json",
+                       data={"From": self.emetteur, "To": f"whatsapp:{telephone}", "ContentSid": modele,
+                             "ContentVariables": json.dumps(variables, ensure_ascii=False)},
+                       auth=(self.compte, self.jeton), timeout=10)
+        if r.status_code >= 300:
+            raise ErreurEnvoi(f"Twilio a refusé l'envoi ({r.status_code})")
+
+
+@dataclass(frozen=True)
+class WhatsAppAvis:
+    """Les avis sur WhatsApp : un expéditeur WhatsApp et l'identifiant du modèle générique approuvé
+    (« Courtage : {{1}} — {{2}} » : le sujet de l'avis, puis le lien)."""
+    expediteur: object
+    modele: str
+
+    def envoyer(self, telephone: str, sujet: str, lien: str) -> None:
+        self.expediteur.envoyer_modele(telephone, self.modele, {"1": sujet, "2": lien})
+
+
+def whatsapp_depuis_environnement(env) -> WhatsAppAvis | None:
+    """TWILIO_WHATSAPP_MODELE, et un émetteur WhatsApp : TWILIO_WHATSAPP_EMETTEUR, ou TWILIO_EMETTEUR quand
+    TWILIO_CANAL vaut whatsapp. Sans l'un ou l'autre, rien ne part sur WhatsApp."""
+    emetteur = env.get("TWILIO_WHATSAPP_EMETTEUR") or (
+        env.get("TWILIO_EMETTEUR") if env.get("TWILIO_CANAL") == "whatsapp" else None)
+    if not (env.get("TWILIO_COMPTE") and env.get("TWILIO_JETON") and emetteur and env.get("TWILIO_WHATSAPP_MODELE")):
+        return None
+    if not emetteur.startswith("whatsapp:"):
+        emetteur = f"whatsapp:{emetteur}"
+    return WhatsAppAvis(ExpediteurTwilio(env["TWILIO_COMPTE"], env["TWILIO_JETON"], emetteur, "whatsapp"),
+                        env["TWILIO_WHATSAPP_MODELE"])
 
 
 def expediteur_depuis_environnement(env) -> object | None:

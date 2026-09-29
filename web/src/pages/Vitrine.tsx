@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 
 import { useCabinet } from "../cabinet";
+import { useMesure } from "../mesure";
 import EtreRappele from "../composants/EtreRappele";
 import { t } from "../i18n";
 
 /** La première page d'un visiteur : ce que fait le service, ce qu'il coûte, qui l'exploite, et par où entrer. */
 export default function Vitrine() {
   const cabinet = useCabinet();
+  useMesure("vitrine");
   const etapes = [
     { titre: t("Essayer, sans compte", "Try it, no account"),
       texte: t("Déposez votre fichier du personnel, décrivez votre régime et votre fonds : l'étude se calcule à l'écran. Rien n'est gardé.",
@@ -85,7 +87,10 @@ export default function Vitrine() {
         <div className="vitrine-questions">
           {questions.map(([q, r]) => <details key={q} className="carte"><summary>{q}</summary><p>{r}</p></details>)}
         </div>
-        <p className="discret">{t("Pour aller plus loin : ", "To go further: ")}<Link to="/guide">{t("le guide", "the guide")}</Link>.</p>
+        <p className="discret">{t("Pour aller plus loin : ", "To go further: ")}
+          <Link to="/ifc">{t("les indemnités de fin de carrière", "end-of-service benefits")}</Link>{" · "}
+          <Link to="/ifc/cameroun">{t("les IFC au Cameroun", "end-of-service benefits in Cameroon")}</Link>{" · "}
+          <Link to="/guide">{t("le guide", "the guide")}</Link>.</p>
       </section>
 
       <section aria-labelledby="vitrine-rappel" className="carte">

@@ -1,6 +1,7 @@
 # Sécurité — ce qui est en place, ce qui reste
 
-Tenu à jour avec le code. Dernière revue : 2026-09-29 (lot P1, `docs/specs/2026-09-29-plateforme-ouverte-p1-design.md`).
+Tenu à jour avec le code. Dernière revue : 2026-09-29 (lot contenus, mesure, portefeuille, WhatsApp, préparation du test d'intrusion,
+`docs/specs/2026-09-29-contenu-mesure-portefeuille-whatsapp-design.md`).
 
 ## En place
 
@@ -18,6 +19,9 @@ Tenu à jour avec le code. Dernière revue : 2026-09-29 (lot P1, `docs/specs/202
   aucune table et n'est pas exempté de RLS. Le démarrage lit ces conditions dans la base et s'arrête sur un FAIL.
 - Droits par rôle déclarés sur chaque route (`acces(...)`) ; l'interface ne cache un bouton que pour la clarté.
 - Ce qui sort de la plateforme attend la confirmation de l'inscription ; ce qui touche aux assureurs, un mandat signé.
+- Contrôlé sur **toutes** les routes, lues dans l'application (`tests/test_isolation.py`) : une route de dossier refuse
+  un étranger avant même de lire le corps ; rien ne répond sans connexion hors une liste publique déclarée ; chaque
+  route publique qui écrit ou devine est limitée en fréquence ; chaque écriture par cookie exige l'en-tête anti-CSRF.
 
 **Intégrité**
 - Journal, sceaux et catalogue en ajout seul pour le rôle applicatif ; études émises, versions adoptées, mandats
@@ -28,7 +32,10 @@ Tenu à jour avec le code. Dernière revue : 2026-09-29 (lot P1, `docs/specs/202
 - Aucun nom de salarié lu ni gardé ; l'identité d'un bénéficiaire n'existe qu'en courtage, effacée douze mois après le
   paiement ; inscription non confirmée effacée à 30 jours.
 - Lecture d'un texte par Claude seulement avec l'accord explicite de la personne, le document non gardé.
-- Avis par courriel sans contenu du dossier : le lien seulement.
+- Avis par courriel sans contenu du dossier : le lien seulement. Sur WhatsApp, pour qui l'a demandé : un modèle
+  approuvé, le sujet et le lien.
+- Mesure d'audience sans témoin ni adresse gardée : des compteurs par jour, événement et catégorie de référent ;
+  rien ne part quand le navigateur demande à ne pas être suivi.
 
 **Transport et navigateur** (`api/securite.py`)
 - CSP stricte (`script-src 'self'`, aucune ressource tierce, polices servies par la plateforme), `frame-ancestors
@@ -36,6 +43,10 @@ Tenu à jour avec le code. Dernière revue : 2026-09-29 (lot P1, `docs/specs/202
   Vérifiée dans un navigateur sur la vitrine, l'essai, l'inscription, la connexion, le guide et les pages légales :
   aucune violation.
 - Pièces déposées limitées à PDF, JPEG, PNG et 10 Mo, servies avec leur type et `nosniff`.
+
+**Dépendances**
+- `pip-audit` et `npm audit` : aucune vulnérabilité connue au 2026-09-29 (vitest passé en 4.1.11 pour la seule
+  trouvée, un outil de test qui ne part pas en production).
 
 **Exploitation**
 - Erreur inattendue : 500 sans détail interne, numéro d'incident au journal, alerte limitée (`COURTAGE_ALERTE_URL`).
@@ -46,7 +57,7 @@ Tenu à jour avec le code. Dernière revue : 2026-09-29 (lot P1, `docs/specs/202
 
 | | Pourquoi | Quand |
 |---|---|---|
-| **Test d'intrusion externe** | un regard indépendant sur l'authentification, la séparation des dossiers et les téléversements | avant l'ouverture au public |
+| **Test d'intrusion externe** | un regard indépendant sur l'authentification, la séparation des dossiers et les téléversements ; le cahier est prêt : `docs/securite/test-intrusion.md` | avant l'ouverture au public |
 | Limites de fréquence partagées | elles vivent en mémoire, par processus : à plusieurs instances, chacune compte seule | avant de passer à plus d'une instance |
 | Analyse des dépendances en continu | `pip-audit` et `npm audit` dans l'intégration continue, alerte sur une faille connue | P2 |
 | Rotation des clés, écrite | `COURTAGE_CLE_AUTH` se change sans perte ; `COURTAGE_CLE_SCEAU` jamais : écrire qui la détient et où | P2 |

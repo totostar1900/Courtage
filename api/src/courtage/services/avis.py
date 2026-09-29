@@ -9,6 +9,9 @@
 - **Qui ne reçoit pas** : l'auteur de l'acte, un compte sans adresse, un compte qui a coupé les avis dans son profil.
 - En français, comme les SMS, les documents et le mandat.
 - Ce sont des avis d'événement ; l'envoi hebdomadaire des alertes reste suspendu (décision antérieure).
+- **Sur WhatsApp aussi**, pour qui l'a demandé dans son profil (désactivé par défaut), au numéro vérifié du compte :
+  un modèle approuvé, avec le sujet et le lien seulement. Sans modèle ni émetteur WhatsApp (`session.info["whatsapp"]`),
+  rien n'y part. Conception : docs/specs/2026-09-29-contenu-mesure-portefeuille-whatsapp-design.md §4.
 
 La session reçoit l'expéditeur et l'adresse publique de `session_db` (`session.info`). Sans expéditeur (une tâche
 programmée, un script), `prevoir` ne fait rien.
@@ -137,20 +140,23 @@ def plateforme(session: Session) -> list[uuid.UUID]:
 
 def prevoir(session: Session, evenement: str, destinataires: Iterable[uuid.UUID], *, auteur: uuid.UUID | None,
             org: uuid.UUID | None = None, **valeurs) -> int:
-    """Range un avis par destinataire ; rend leur nombre. Il part après la validation de la transaction."""
-    courriel = session.info.get("courriel")
-    if courriel is None:
+    """Range un avis par destinataire ; rend le nombre de courriels. Il part après la validation de la transaction.
+    Qui l'a demandé dans son profil le reçoit aussi sur WhatsApp, au numéro de son compte : le sujet et le lien."""
+    courriel, whatsapp = session.info.get("courriel"), session.info.get("whatsapp")
+    if courriel is None and whatsapp is None:
         return 0
     sujet, texte, chemin = EVENEMENTS[evenement]
     valeurs = {"org": org, **valeurs}
     ids = {d for d in destinataires if d and d != auteur}
     if not ids:
         return 0
-    adresses = [u.email for u in session.scalars(select(Utilisateur).where(Utilisateur.id.in_(ids)))
-                if u.email and u.avis_courriel]
+    comptes = list(session.scalars(select(Utilisateur).where(Utilisateur.id.in_(ids))))
+    sujet = sujet.format(**valeurs)
     lien = f"{(session.info.get('url_publique') or '').rstrip('/')}{chemin.format(**valeurs)}"
     corps = f"Bonjour,\n\n{texte.format(**valeurs)}\n\nOuvrir : {lien}{PIED}"
-    _ranger(session, [(a, sujet, corps, evenement) for a in adresses])
+    adresses = [u.email for u in comptes if u.email and u.avis_courriel] if courriel is not None else []
+    numeros = [u.telephone for u in comptes if u.telephone and u.avis_whatsapp] if whatsapp is not None else []
+    _ranger(session, [(a, sujet, corps, evenement) for a in adresses], [(n, sujet, lien, evenement) for n in numeros])
     return len(adresses)
 
 
@@ -163,32 +169,47 @@ def prevoir_adresse(session: Session, adresse: str, sujet: str, corps: str, even
     return True
 
 
-def _ranger(session: Session, avis: list[tuple[str, str, str, str]]) -> None:
-    en_attente = session.info.setdefault("avis", [])
-    if not en_attente:
+def _ranger(session: Session, avis: list[tuple[str, str, str, str]],
+            whatsapp: list[tuple[str, str, str, str]] = ()) -> None:
+    if not avis and not whatsapp:
+        return
+    if "avis" not in session.info:
         event.listen(session, "after_commit", _envoyer, once=True)
         event.listen(session, "after_rollback", _oublier, once=True)
-    en_attente.extend(avis)
+    session.info.setdefault("avis", []).extend(avis)
+    session.info.setdefault("avis_whatsapp", []).extend(whatsapp)
 
 
 def _oublier(session: Session) -> None:
     session.info.pop("avis", None)
+    session.info.pop("avis_whatsapp", None)
 
 
 def _envoyer(session: Session) -> None:
-    avis, courriel = session.info.pop("avis", []), session.info.get("courriel")
-    if not avis or courriel is None:
+    avis, messages = session.info.pop("avis", []), session.info.pop("avis_whatsapp", [])
+    courriel, whatsapp = session.info.get("courriel"), session.info.get("whatsapp")
+    avis = avis if courriel is not None else []
+    messages = messages if whatsapp is not None else []
+    if not avis and not messages:
         return
     # Le journal du développement et des tests, ou une tâche programmée (qui se termine aussitôt) : tout de suite.
-    if getattr(courriel, "envoyes", None) is not None or session.info.get("envoi_immediat"):
-        _expedier(courriel, avis)
+    journaux = getattr(courriel, "envoyes", None) is not None or getattr(
+        getattr(whatsapp, "expediteur", None), "envoyes", None) is not None
+    if journaux or session.info.get("envoi_immediat"):
+        _expedier(courriel, avis, whatsapp, messages)
     else:                                                   # un vrai serveur : sans faire attendre la réponse
-        threading.Thread(target=_expedier, args=(courriel, avis), daemon=True).start()
+        threading.Thread(target=_expedier, args=(courriel, avis, whatsapp, messages), daemon=True).start()
 
 
-def _expedier(courriel, avis: list[tuple[str, str, str, str]]) -> None:
+def _expedier(courriel, avis: list[tuple[str, str, str, str]], whatsapp=None,
+              messages: list[tuple[str, str, str, str]] = ()) -> None:
     for adresse, sujet, corps, evenement in avis:
         try:
             courriel.envoyer(adresse, sujet, corps)
         except Exception as e:                              # noqa: BLE001 — un avis manqué ne défait pas l'acte
             journal.warning("[avis] %s non envoyé à %s… : %s", evenement, adresse[:2], type(e).__name__)
+    for numero, sujet, lien, evenement in messages:
+        try:
+            whatsapp.envoyer(numero, sujet, lien)
+        except Exception as e:                              # noqa: BLE001
+            journal.warning("[avis] %s non envoyé sur WhatsApp à …%s : %s", evenement, numero[-2:], type(e).__name__)

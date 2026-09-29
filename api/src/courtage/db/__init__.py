@@ -87,6 +87,7 @@ class Utilisateur(Base):
     conditions_version: Mapped[str | None] = mapped_column(Text)
     conditions_acceptees_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     avis_courriel: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
+    avis_whatsapp: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
 
 
 class CodeVerification(Base):
@@ -685,3 +686,12 @@ class DemandeRappel(Base):
     traitee_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
     traitee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(Text)
+
+
+class Mesure(Base):
+    """Un compteur d'audience : un jour, un événement, une source. Ni identifiant, ni adresse."""
+    __tablename__ = "mesures"
+    jour: Mapped[date] = mapped_column(Date, primary_key=True)
+    evenement: Mapped[str] = mapped_column(Text, primary_key=True)
+    source: Mapped[str] = mapped_column(Text, primary_key=True)
+    n: Mapped[int] = mapped_column(Integer, server_default=FetchedValue())

@@ -15,9 +15,9 @@ from sqlalchemy.orm import Session
 from courtage.db import Utilisateur
 from courtage.erreurs import ErreurMetier
 from courtage.langue import t
-from courtage.services import activation, annuel, comptes_assureurs, placement
+from courtage.services import activation, annuel, comptes_assureurs, placement, portefeuille
 
-from . import Acces, acces, session_db
+from . import Acces, acces, identite, session_db
 from .inscription import _plateforme
 
 routeur_placement = APIRouter()
@@ -199,3 +199,16 @@ def confirmer_encaissement(appel_id: uuid.UUID, corps: Encaissement, a: Acces = 
 def lire_calendrier(a: Acces = Depends(acces(*TOUS))):
     """Le cycle de l'année : les étapes, leur échéance et leur état, calculés (services/annuel.py)."""
     return annuel.calendrier(a.session, date.today())
+
+
+
+@routeur_placement.get("/portefeuille")
+def lire_portefeuille(session: Session = Depends(session_db, scope="function"), moi: Utilisateur = Depends(identite)):
+    """Le pipeline et le portefeuille : tous les dossiers pour l'administrateur de la plateforme, les siens pour un
+    conseiller ; personne d'autre."""
+    from sqlalchemy import select
+    from courtage.db import Adhesion
+    if not moi.admin_plateforme and not session.scalar(select(Adhesion.organisation_id).where(
+            Adhesion.utilisateur_id == moi.id, Adhesion.role == "conseiller").limit(1)):
+        raise ErreurMetier("acces_refuse", t("Réservé au courtier et à ses conseillers.", "Reserved for the broker and its advisers."), 403)
+    return portefeuille.tableau(session, moi, date.today())
