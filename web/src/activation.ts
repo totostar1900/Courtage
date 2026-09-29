@@ -2,7 +2,7 @@
 import { t } from "./i18n";
 
 export type Capacite = "rapport_scelle" | "export_etude" | "notes_regime" | "fiche_de_calcul" | "equipe" | "catalogue"
-  | "extraction_claude" | "mandat" | "cahier";
+  | "extraction_claude" | "mandat" | "cahier" | "departs";
 
 export interface Activation {
   etat: "en_attente" | "confirmee" | "refusee";
@@ -17,7 +17,7 @@ export interface Activation {
 export const CONFIRMEE: Activation = {
   etat: "confirmee", libelles: {} as Record<Capacite, string>,
   capacites: { rapport_scelle: true, export_etude: true, notes_regime: true, fiche_de_calcul: true, equipe: true,
-               catalogue: true, extraction_claude: true, mandat: true, cahier: true },
+               catalogue: true, extraction_claude: true, mandat: true, cahier: true, departs: true },
   rccm: null, taille: null, adresse: null, ville: null, demandee_le: null, decidee_le: null, motif: null,
 };
 
@@ -26,6 +26,7 @@ export function raisonActivation(a: Activation | undefined, c: Capacite): string
   if (!a || a.capacites[c]) return null;
   if (a.etat !== "confirmee") return t("Après confirmation de votre inscription par votre conseiller.",
     "Once your adviser has confirmed your sign-up.");
+  if (c === "departs") return t("Une fois le contrat d'assurance signé et en vigueur.", "Once the insurance contract is signed and in force.");
   return t("Sous mandat de courtage signé.", "Under a signed brokerage mandate.");
 }
 

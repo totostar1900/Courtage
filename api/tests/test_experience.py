@@ -1,9 +1,17 @@
+import pytest
 """P5 : l'expérience réelle — attendu contre réel, rotation observée (proposée, jamais appliquée), historique publiable."""
 import json
 from datetime import date
 
 from courtage.experience import (Depart, attendu_contre_reel, delais_constates, historique_publiable,
                                  paiements_du_fonds, rotation_observee)
+
+@pytest.fixture(autouse=True)
+def _sous_contrat(request):
+    """Les départs s'ouvrent sous un contrat en vigueur (activation « departs ») : AZITO y est, depuis 2021."""
+    if "azito" in request.fixturenames:
+        sous_contrat(request.getfixturevalue("client"), request.getfixturevalue("azito"))
+
 
 D = date(2025, 12, 31)
 
@@ -83,7 +91,7 @@ def test_les_delais():
 
 from datetime import timedelta  # noqa: E402
 
-from tests.outils import AZITO, V1, en_tant_que, etude  # noqa: E402
+from tests.outils import AZITO, V1, en_tant_que, etude, sous_contrat  # noqa: E402
 from tests.test_prestations import DEPART  # noqa: E402
 
 

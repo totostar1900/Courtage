@@ -119,7 +119,12 @@ export default function Dossier() {
             <li><NavLink to="placement" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="placement" />{t("Placement", "Placement")}</NavLink></li>
             <li><NavLink to="departs" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="departs" />{t("Départs", "Departures")}</NavLink></li>
+              <Icone nom="departs" />{t("Départs", "Departures")}
+              {donnee.activation.capacites.departs === false && (
+                <span className="verrou-rail" title={t("Une fois le contrat d'assurance signé et en vigueur", "Once the insurance contract is signed and in force")}
+                      aria-label={t("pas encore ouvert", "not open yet")}>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg></span>)}</NavLink></li>
             <li><NavLink to="contact" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="messages" />{t("Contact", "Contact")}
               {donnee.nonLus > 0 && <span className="pastille-rail" aria-label={t(`${donnee.nonLus} non lu(s)`, `${donnee.nonLus} unread`)}>{donnee.nonLus}</span>}</NavLink></li>

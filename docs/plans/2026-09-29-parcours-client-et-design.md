@@ -10,7 +10,7 @@ Spécification : `docs/specs/2026-09-29-parcours-client-et-design-design.md`.
    l'étude*
 4. [x] **Contact.** Messages → Nous contacter ; bandeau ; plus de retrait d'inscription ni de nettoyage à l'écran. —
    *Nous contacter, et moins de bruit*
-5. [ ] **Départs.** Capacité `departs` (police en vigueur ou contrat de courtage avec assureur) ; page verrouillée. —
+5. [x] **Départs.** Capacité `departs` (police en vigueur ou contrat de courtage avec assureur) ; page verrouillée. —
    *Les départs attendent le contrat*
 6. [ ] **Accompagnement.** Quatrième étape de l'inscription ; en tête du parcours. — *L'accompagnement dès
    l'inscription*

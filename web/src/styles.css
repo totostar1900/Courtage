@@ -741,3 +741,7 @@ details.pli[open] > summary { border-bottom: 1px solid var(--trait); }
 details.pli > .pli-corps { padding: 20px 22px 24px; }
 details.pli > .pli-corps > .carte { border: 0; padding: 0; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { details.pli > summary::after { transition: none; } }
+.frise.frise-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .frise.frise-3 { grid-template-columns: 1fr; } }
+.carte.verrou { border-color: #d8dcef; background: linear-gradient(180deg, #fbfbfe 0%, #f3f5fc 100%); }
+.verrou-rail { margin-left: auto; color: var(--discret); display: inline-flex; }

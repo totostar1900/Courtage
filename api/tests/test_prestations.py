@@ -8,8 +8,15 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, ProgrammingError
 
 from courtage.db import contexte
-from tests.outils import V1, en_tant_que, etude
+from tests.outils import V1, en_tant_que, etude, sous_contrat
 from tests.test_regime import CADRES, adopter, categorie, regime
+
+@pytest.fixture(autouse=True)
+def _sous_contrat(request):
+    """Les départs s'ouvrent sous un contrat en vigueur (activation « departs ») : AZITO y est, depuis 2021."""
+    if "azito" in request.fixturenames:
+        sous_contrat(request.getfixturevalue("client"), request.getfixturevalue("azito"))
+
 
 # CI_CCI : 30 % d'un mois par an jusqu'à 5 ans, 35 % jusqu'à 10, 40 % au-delà.
 # 20 ans : 5 × 0,30 + 5 × 0,35 + 10 × 0,40 = 7,25 mois.

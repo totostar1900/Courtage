@@ -26,7 +26,9 @@ export default function Departs() {
   const { donnee: contrat } = useCharge(() => api.get<ContratsDossier>(`/organisations/${d.org.id}/contrats`), []);
   const [volet, setVolet] = useState<null | "declarer" | "importer" | { corriger: Prestation } | { demander: Prestation } | { orienter: Prestation }>(null);
   const [ouverte, setOuverte] = useState<string | null>(null);
-  const peutEcrire = d.role !== "lecteur_client";
+  // Les départs s'ouvrent une fois le contrat d'assurance signé et en vigueur (le serveur le contrôle aussi).
+  const ouverts = d.activation?.capacites.departs !== false;
+  const peutEcrire = d.role !== "lecteur_client" && ouverts;
   const detail = donnee?.prestations.find((p) => p.id === ouverte) ?? null;
   const fait = () => { setVolet(null); recharger(); };
 
@@ -51,6 +53,8 @@ export default function Departs() {
             {contrat.service === "courtage" ? t("Votre contrat", "Your contract") : t("Demander un accompagnement", "Request brokerage support")}</Link>
         </p>
       )}
+
+      {!ouverts && <DepartsFermes />}
 
       <div className="grille g4 section">
         <Cle etiquette={t("Départs enregistrés", "Departures recorded")} valeur={String(tot.nombre)}
@@ -327,5 +331,27 @@ function ImportHistorique({ onFermer, onFait }: { onFermer: () => void; onFait: 
         </div>
       )}
     </Volet>
+  );
+}
+
+/** Avant le contrat : ce qui ouvre les départs, et où en est le chemin. */
+function DepartsFermes() {
+  const pas: [string, string, string][] = [
+    [t("Le mandat de courtage", "The brokerage mandate"), t("Demandé, proposé, signé en ligne.", "Requested, proposed, signed online."), "../accompagnement"],
+    [t("Les offres des assureurs", "The insurers' offers"), t("Votre conseiller les apporte ; vous choisissez.", "Your adviser brings them; you choose."), "../financement"],
+    [t("Le contrat signé et en vigueur", "The contract signed and in force"), t("Police reçue, signée, première prime encaissée.", "Policy received, signed, first premium received."), "../placement"],
+  ];
+  return (
+    <section className="carte section verrou" aria-labelledby="departs-fermes">
+      <p className="surtitre">{t("Pas encore ouvert", "Not open yet")}</p>
+      <h2 id="departs-fermes">{t("Les départs s'ouvrent avec votre contrat", "Departures open with your contract")}</h2>
+      <p>{t("Déclarer un départ et demander une prise en charge n'ont de sens qu'une fois le contrat d'assurance signé et en vigueur : c'est l'assureur qui paie, et votre conseiller qui porte le dossier.",
+        "Reporting a departure and requesting a benefit payment only make sense once the insurance contract is signed and in force: the insurer pays, and your adviser handles the claim.")}</p>
+      <ol className="frise frise-3">
+        {pas.map(([titre, texte, vers], i) => (
+          <li key={titre}><span className="frise-num">{i + 1}</span><strong><Link to={vers}>{titre}</Link></strong><span>{texte}</span></li>
+        ))}
+      </ol>
+    </section>
   );
 }

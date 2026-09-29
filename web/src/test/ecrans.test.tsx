@@ -1431,3 +1431,18 @@ describe("nettoyer le dossier", () => {
     expect(screen.queryByRole("button", { name: /Nettoyer le dossier/ })).toBeNull();
   });
 });
+
+describe("les départs attendent le contrat", () => {
+  it("avant le contrat : la page dit ce qui l'ouvre, et rien ne se déclare", async () => {
+    const d = dossier("admin_client");
+    const act = d[`/organisations/${ORG}/activation`] as { capacites: Record<string, boolean> };
+    act.capacites.departs = false;
+    simulerApi({ ...d, [`/organisations/${ORG}/prestations`]: { prestations: [], totaux: { nombre: 0, retraites: 0,
+      autres_departs: 0, du: 0, verse: 0, part_fonds_payee: 0 } }, [`/organisations/${ORG}/contrats`]: { service: "comparaison" } });
+    ouvrir(`/dossier/${ORG}/departs`);
+    expect(await screen.findByRole("heading", { name: "Les départs s'ouvrent avec votre contrat" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Déclarer un départ" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Le contrat signé et en vigueur" })).toHaveAttribute("href", `/dossier/${ORG}/placement`);
+    expect(screen.getByLabelText("pas encore ouvert")).toBeInTheDocument();
+  });
+});

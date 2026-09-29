@@ -58,3 +58,16 @@ def sous_mandat(client, a, depuis: str = "2019-01-01") -> None:
     r = client.post(f"{V1}/organisations/{a['org']}/contrats", headers=en_tant_que(a["conseiller"]),
                     json={"en_vigueur_du": depuis, "service": "courtage", "mandat_reference": "Mandat de test"})
     assert r.status_code in (201, 409), r.text
+
+
+# Un contrat d'assurance en vigueur : les départs et les prises en charge ne s'ouvrent qu'ainsi (activation
+# « departs »). Daté de 2021 : un départ de 2020 reste d'avant le mandat.
+CONTRAT_EN_VIGUEUR = {"en_vigueur_du": "2021-01-01", "service": "courtage", "assureur": "Assureur A",
+                      "numero_police": "IFC-2021-1", "mandat_reference": "Mandat du 15/12/2020"}
+
+
+def sous_contrat(client, a, **champs):
+    r = client.post(f"{V1}/organisations/{a['org']}/contrats", json={**CONTRAT_EN_VIGUEUR, **champs},
+                    headers=en_tant_que(a["conseiller"]))
+    assert r.status_code == 201, r.text
+    return r.json()

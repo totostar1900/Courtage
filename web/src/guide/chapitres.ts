@@ -249,6 +249,7 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
     resume: "Enregistrer chaque départ par matricule ; la plateforme recalcule ce qui était dû.",
     sections: [
       { titre: "Déclarer un départ", texte: [
+        "La page s'ouvre une fois le contrat d'assurance signé et en vigueur (police reçue, signée, première prime encaissée ; ou le contrat que votre conseiller a enregistré) : c'est l'assureur qui paiera, et votre conseiller qui portera la prise en charge. Avant, elle dit ce qui manque.",
         "Matricule, motif, dates d'embauche et de départ, salaire mensuel de référence : « Calculer le dû » montre ce que la règle en vigueur ce jour-là accordait, et d'où vient le chiffre (votre régime, ou la convention).",
         "Vous déclarez ce qui a été versé. Moins que le dû est signalé — le salarié y avait droit ; plus est permis — l'entreprise est souveraine.",
         "Un départ hors retraite (démission, licenciement, décès) ne coûte pas d'IFC, mais il mesure la rotation réelle de votre personnel." ] },

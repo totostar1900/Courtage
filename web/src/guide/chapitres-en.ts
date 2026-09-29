@@ -226,6 +226,7 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
     resume: "Record each departure by staff number; the platform recalculates what was due.",
     sections: [
       { titre: "Declaring a departure", texte: [
+        "The page opens once the insurance contract is signed and in force (policy received, signed, first premium received; or the contract your adviser recorded): the insurer will pay, and your adviser will handle the claim. Before that, it says what is missing.",
         "Staff number, reason, hiring and departure dates, monthly reference salary: “Calculate the amount due” shows what the rule in force on that day granted, and where the figure comes from (your plan, or the collective agreement).",
         "You declare what was paid. Less than the amount due is flagged — the employee was entitled to it; more is allowed — the company decides.",
         "A departure other than retirement (resignation, dismissal, death) costs no IFC, but it measures your actual staff turnover." ] },
