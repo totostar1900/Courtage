@@ -21,7 +21,7 @@ export const mesures = (): Record<Mesure, { libelle: string; court: string; mont
 
 // La palette catégorielle validée (ordre fixe, jamais recyclé) ; au-delà, « Autres catégories ».
 export const COULEURS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
-const ENSEMBLE = "#2f419a";
+const ENSEMBLE = "#1f93c9";      // le cyan de Glacier, lisible sur fond clair comme sur fond nuit
 const MAX_SERIES = COULEURS.length;
 const AUTRES = "__autres__";
 

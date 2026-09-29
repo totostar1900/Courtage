@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { api, DEMO, ErreurApi } from "./api";
@@ -7,6 +7,7 @@ import { changerLangue, t, useLangue } from "./i18n";
 import PiedDePage from "./composants/PiedDePage";
 import Titre from "./composants/Titre";
 import Visionneuse from "./composants/Visionneuse";
+import { choisirTheme, lireTheme, type Theme } from "./theme";
 import Accueil from "./pages/Accueil";
 import Cahier from "./pages/Cahier";
 import Connexion from "./pages/Connexion";
@@ -126,11 +127,12 @@ function Entete({ visiteur }: { visiteur: boolean }) {
     <header className="entete">
       <div className="interieur">
         <Link to="/" className="marque">courtage<span>.</span></Link>
-        <span className="discret" style={{ color: "#c9cfee" }}>{t("Votre régime IFC, calculé avant d'être vendu",
+        <span className="discret">{t("Votre régime IFC, calculé avant d'être vendu",
           "Your end-of-service plan, costed before it is sold")}</span>
         <div className="droite">
-          <Link to="/guide" style={{ color: "#fff" }} data-visite="guide">{t("Guide", "Guide")}</Link>
-          <Link to="/verifier" style={{ color: "#fff" }}>{t("Vérifier un document", "Verify a document")}</Link>
+          <Link to="/guide" data-visite="guide">{t("Guide", "Guide")}</Link>
+          <Link to="/verifier">{t("Vérifier un document", "Verify a document")}</Link>
+          <BasculeTheme />
           <BasculeLangue />
           {visiteur && <Link to="/connexion" className="bouton-profil">{t("Se connecter", "Sign in")}</Link>}
           {connecte && (
@@ -148,6 +150,27 @@ function Entete({ visiteur }: { visiteur: boolean }) {
 }
 
 /** FR | EN : la langue de l'interface, gardée dans ce navigateur. */
+/** Automatique (celui de l'appareil), clair, sombre : trois icônes, à côté de FR · EN. */
+function BasculeTheme() {
+  const [theme, setTheme] = useState<Theme>(lireTheme);
+  const choix: [Theme, string, ReactNode][] = [
+    ["auto", t("Thème de l'appareil", "Device theme"), <><circle cx="12" cy="12" r="8" /><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" /></>],
+    ["clair", t("Thème clair", "Light theme"), <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>],
+    ["sombre", t("Thème sombre", "Dark theme"), <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />],
+  ];
+  return (
+    <div className="theme" role="group" aria-label={t("Thème", "Theme")}>
+      {choix.map(([x, libelle, dessin]) => (
+        <button key={x} type="button" aria-pressed={theme === x} aria-label={libelle} title={libelle}
+                onClick={() => { choisirTheme(x); setTheme(x); }}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8"
+               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{dessin}</svg>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function BasculeLangue() {
   const l = useLangue();
   return (

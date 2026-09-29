@@ -406,3 +406,12 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
   conseiller ; il ne se retient pas (`offre_pour_comparaison`).
 - **Le socle visuel** est le dernier bloc de `styles.css` ; les plis s'écrivent `<details className="pli">` avec
   `<summary>` puis `<div className="pli-corps">`. L'audit et ce qui reste : `docs/design/audit-2026-09-29.md`.
+
+## Identité Glacier (2026-09-29, docs/design/identite-glacier.md)
+
+- Geist (texte) et Geist Mono (chiffres, étiquettes), servies par la plateforme (`@fontsource/geist-sans`,
+  `@fontsource/geist-mono`) : la CSP n'admet aucune police tierce.
+- Clair et sombre : les jetons en tête de `styles.css` (clair, sombre, impression) ; `theme.ts` pose `data-theme`.
+  **Jamais une couleur en dur dans une règle** : un jeton, sinon le thème sombre casse.
+- La forme (angles de 2 px, traits d'un pixel, chiffres en chasse fixe) et la vitrine : le dernier bloc de
+  `styles.css`. L'ancien socle (ombres, rayons de 16 px, Young Serif, Figtree) n'existe plus.
