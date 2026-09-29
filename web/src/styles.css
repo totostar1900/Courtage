@@ -653,3 +653,9 @@ tr.choisie > td { background: var(--indigo-doux); }
 .coordonnees.a-confirmer { border-color: var(--grave); }
 .formulaire.en-ligne { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 10px; }
 .formulaire.depot { margin-top: 8px; }
+
+/* L'année du dossier : les étapes du cycle annuel */
+.annee-etapes { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 8px; }
+.annee-etapes li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 0; border-top: 1px solid var(--trait); }
+.annee-etapes li:first-child { border-top: 0; }
+.annee-etapes li .etat { margin-left: auto; }
