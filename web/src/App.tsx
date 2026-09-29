@@ -24,6 +24,7 @@ import Etudes from "./pages/Etudes";
 import Financement from "./pages/Financement";
 import Guide from "./pages/Guide";
 import Personnel from "./pages/Personnel";
+import Placement from "./pages/Placement";
 import Profil from "./pages/Profil";
 import Regime from "./pages/Regime";
 import Reponses from "./pages/Reponses";
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="cahier" element={<Cahier />} />
             <Route path="cahier/:fiche" element={<Reponses />} />
             <Route path="contrat" element={<Contrat />} />
+            <Route path="placement" element={<Placement />} />
             <Route path="accompagnement" element={<Accompagnement />} />
             <Route path="departs" element={<Departs />} />
             <Route path="equipe" element={<Equipe />} />

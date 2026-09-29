@@ -86,6 +86,7 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     from .connexion import routeur_connexion
     from .inscription import routeur_inscription
     from .essai import routeur_essai
+    from .placement import routeur_placement
     from .profil import routeur_profil
     from .public import routeur_public
     from .routes import routeur
@@ -98,6 +99,7 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     app.include_router(routeur_inscription, prefix="/api/v1")
     app.include_router(routeur_essai, prefix="/api/v1")
     app.include_router(routeur_profil, prefix="/api/v1")
+    app.include_router(routeur_placement, prefix="/api/v1")
     app.include_router(routeur, prefix="/api/v1")
     if authentification == "entete_dev":
         from .dev import routeur_dev

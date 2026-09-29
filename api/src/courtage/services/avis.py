@@ -75,6 +75,26 @@ EVENEMENTS: dict[str, tuple[str, str, str]] = {
         "Votre conseiller a répondu sur un dossier de prise en charge",
         "Il y a du nouveau sur un dossier de prise en charge de {entreprise}.",
         "/dossier/{org}/dossiers/{dossier}"),
+    "police_recue": (
+        "Votre police est arrivée",
+        "La police {assureur} de {entreprise} est déposée : lisez-la, signez-la avec l'assureur, puis déclarez la "
+        "date de signature.",
+        "/dossier/{org}/placement"),
+    # Jamais de coordonnées bancaires ni de montant dans le courriel : la page seulement, où elles sont confrontées
+    # au registre des comptes (fraude au changement de RIB).
+    "appel_prime": (
+        "Un appel de prime vous attend",
+        "Un appel de prime est enregistré pour {entreprise}. Les coordonnées bancaires et le montant sont sur la "
+        "plateforme ; vérifiez-y qu'elles sont confirmées avant tout virement.",
+        "/dossier/{org}/placement"),
+    "virement_declare": (
+        "Un virement est déclaré",
+        "{entreprise} a déclaré un virement de prime : à rapprocher de la quittance de l'assureur.",
+        "/dossier/{org}/placement"),
+    "encaissement_confirme": (
+        "Votre prime est encaissée",
+        "L'assureur a confirmé l'encaissement d'une prime de {entreprise}.",
+        "/dossier/{org}/placement"),
 }
 
 PIED = ("\n\nVous recevez cet avis parce que vous suivez ce dossier sur la plateforme de courtage. Pour ne plus "

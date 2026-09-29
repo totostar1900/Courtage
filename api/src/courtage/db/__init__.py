@@ -540,3 +540,88 @@ class SessionUtilisateur(Base):
     derniere_activite: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
     revoquee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     agent: Mapped[str | None] = mapped_column(Text)
+
+
+class CompteAssureur(Base):
+    """Le compte bancaire d'un assureur, tenu par le courtier, avec son contre-appel. Une ligne remplace, jamais ne
+    se modifie ; le compte en vigueur est celui qu'aucune autre ligne ne remplace."""
+    __tablename__ = "comptes_assureurs"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    assureur: Mapped[str] = mapped_column(Text)
+    assureur_cle: Mapped[str] = mapped_column(Text)
+    banque: Mapped[str] = mapped_column(Text)
+    titulaire: Mapped[str] = mapped_column(Text)
+    iban: Mapped[str] = mapped_column(Text)
+    bic: Mapped[str | None] = mapped_column(Text)
+    verifie_aupres: Mapped[str] = mapped_column(Text)
+    verifie_telephone: Mapped[str] = mapped_column(Text)
+    verifie_le: Mapped[date] = mapped_column(Date)
+    note: Mapped[str | None] = mapped_column(Text)
+    remplace_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("comptes_assureurs.id"))
+    enregistre_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    enregistre_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class Police(Base):
+    """Le contrat placé chez l'assureur : son statut se calcule sur ses pièces, sa signature et ses appels."""
+    __tablename__ = "polices"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    choix_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("choix_fiche.id"))
+    assureur: Mapped[str] = mapped_column(Text)
+    numero_police: Mapped[str | None] = mapped_column(Text)
+    date_effet: Mapped[date] = mapped_column(Date)
+    periodicite: Mapped[str] = mapped_column(Text)
+    signee_le: Mapped[date | None] = mapped_column(Date)
+    signee_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class AppelPrime(Base):
+    """Un appel de prime et les coordonnées qu'il porte, confrontées au registre ; puis le virement déclaré et
+    l'encaissement confirmé. La plateforme ne paie rien."""
+    __tablename__ = "appels_prime"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    police_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("polices.id"))
+    reference: Mapped[str] = mapped_column(Text)
+    montant: Mapped[int] = mapped_column(BigInteger)
+    echeance: Mapped[date] = mapped_column(Date)
+    premiere: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
+    banque: Mapped[str] = mapped_column(Text)
+    titulaire: Mapped[str] = mapped_column(Text)
+    iban: Mapped[str] = mapped_column(Text)
+    bic: Mapped[str | None] = mapped_column(Text)
+    compte_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("comptes_assureurs.id"))
+    controle: Mapped[str] = mapped_column(Text)
+    contre_appel: Mapped[dict | None] = mapped_column(JSONB)
+    contre_appel_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    vire_le: Mapped[date | None] = mapped_column(Date)
+    montant_vire: Mapped[int | None] = mapped_column(BigInteger)
+    reference_virement: Mapped[str | None] = mapped_column(Text)
+    declare_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    declare_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    encaisse_le: Mapped[date | None] = mapped_column(Date)
+    confirme_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    confirme_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cree_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class PiecePolice(Base):
+    """Un document du placement, en ajout seul. Un relevé porte sa date et le montant du fonds."""
+    __tablename__ = "pieces_police"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    police_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("polices.id"))
+    appel_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("appels_prime.id"))
+    nature: Mapped[str] = mapped_column(Text)
+    nom_fichier: Mapped[str] = mapped_column(Text)
+    type_contenu: Mapped[str] = mapped_column(Text)
+    contenu: Mapped[bytes] = mapped_column(LargeBinary)
+    empreinte: Mapped[str] = mapped_column(Text)
+    releve_le: Mapped[date | None] = mapped_column(Date)
+    montant_fonds: Mapped[int | None] = mapped_column(BigInteger)
+    depose_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    depose_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())

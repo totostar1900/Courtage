@@ -313,3 +313,21 @@ Une valeur introuvable est signalée, jamais reprise en silence.
   alerte `COURTAGE_ALERTE_URL`. Ce qui reste : `docs/securite.md`.
 - **Sauvegardes** : `deploiement/verifier_sauvegarde.sh` restaure dans une base jetable et lit les contrôles
   (`python -m courtage.sauvegarde`). DEPLOY.md §7.
+
+## Placement (spec 2026-09-29, clôture du placement)
+
+**La plateforme ne paie rien.** Les primes partent par virement, de la banque de l'entreprise au compte de
+l'assureur ; ici, on range l'appel, on confronte ses coordonnées, on reçoit la déclaration et la quittance. Ni lien
+de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'existe pas ici.
+
+- `services/placement.py`, `api/placement.py`, migration 0027, page `pages/Placement.tsx`. Sous mandat (capacité
+  `cahier`) pour écrire.
+- **La police** avance par des faits (reçue = document déposé, signée = date déclarée, première prime encaissée =
+  quittance) ; le statut se CALCULE (`statut`), rien ne se coche.
+- **Le registre des comptes** (`comptes_assureurs`, plateforme, en ajout seul) : l'administrateur de la plateforme
+  seul, chaque ligne avec son contre-appel ; un changement remplace sans effacer. Chaque appel y est confronté
+  (`controle` : conforme | modifie | non_enregistre). Un écart se lève par le contre-appel du conseiller, jamais par
+  un clic ; l'encaissement ne se confirme pas avant (la base le refuse aussi).
+- **Les coordonnées bancaires ne sortent jamais** : ni courriel, ni message ; l'avis dit « un appel vous attend ».
+  Ne pas ajouter de montant ni d'IBAN dans `avis.EVENEMENTS`.
+- Un virement déclaré sur un appel non confirmé est enregistré (c'est un fait) et journalisé `avant_contre_appel`.
