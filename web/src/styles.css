@@ -1060,7 +1060,7 @@ a.bouton.bouton-rappel:hover { background: var(--surface-2); }
 .vitrine-intro { font-size: 17px; color: var(--encre-2); max-width: 62ch; margin: -12px 0 28px; }
 .vitrine .grille.g3 > .carte-vedette { box-shadow: inset 0 2px 0 var(--accent); }
 .vitrine .grille.g3 > .carte-vedette h3 { font-size: 18px; }
-/* Qui est derrière Nitch : le texte, et trois repères en chasse fixe. */
+/* L'expérience à votre service : le texte, et trois repères. */
 .vitrine-equipe { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 48px; align-items: center; }
 .vitrine-equipe p:not(.surtitre) { font-size: 16.5px; line-height: 1.65; color: var(--encre-2); max-width: 60ch; }
 .vitrine-chiffres { margin: 0; display: grid; border: 1px solid var(--trait); background: var(--surface); }

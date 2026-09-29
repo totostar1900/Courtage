@@ -141,7 +141,7 @@ export default function Vitrine() {
       <section aria-labelledby="vitrine-equipe" className="vitrine-bloc vitrine-equipe">
         <div>
           <p className="surtitre">{t("L'équipe", "The team")}</p>
-          <h2 id="vitrine-equipe">{t("Qui est derrière Nitch", "Who is behind Nitch")}</h2>
+          <h2 id="vitrine-equipe">{t("L'expérience à votre service", "Experience at your service")}</h2>
           <p>{t(
             "Une équipe de professionnels de l'assurance et d'actuaires chevronnés, forte de plus de 50 ans d'expérience cumulée sur les marchés du Cameroun, d'Afrique, d'Europe et d'Amérique.",
             "A team of insurance professionals and seasoned actuaries, with more than 50 years of cumulated experience in the markets of Cameroon, Africa, Europe and America.")}</p>

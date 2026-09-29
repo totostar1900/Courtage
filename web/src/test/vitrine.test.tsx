@@ -26,7 +26,7 @@ describe("vitrine et pages légales", () => {
     expect(screen.getByRole("link", { name: "Être rappelé" })).toHaveAttribute("href", "#vitrine-rappel");
     // Ce que vous obtenez : les assureurs en concurrence d'abord ; puis l'équipe.
     expect(screen.getByRole("heading", { name: "Les assureurs en concurrence pour vous" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Qui est derrière Nitch" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "L'expérience à votre service" })).toBeInTheDocument();
     expect(screen.getByText(/plus de 50 ans d'expérience cumulée/)).toBeInTheDocument();
     expect(await screen.findAllByText(/Purpose Capital Courtage/, {}, { timeout: 4000 })).not.toHaveLength(0);
     // L'en-tête propose de se connecter, pas le profil.
