@@ -56,8 +56,8 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "Votre téléphone et votre adresse électronique sont vérifiés par un code chacun. Vous indiquez votre nom, votre fonction et l'entreprise : raison sociale, pays, numéro RCCM (obligatoire), taille, secteur, adresse. Vous acceptez les conditions d'utilisation et la politique de confidentialité ; la version acceptée reste sur votre compte (« Mon profil »).",
         "Le document RCCM peut suivre : déposez-le depuis le bandeau de votre dossier. Une entreprise n'a qu'un dossier : un numéro RCCM déjà inscrit renvoie vers son administrateur." ] },
       { titre: "En attendant la confirmation", texte: [
-        "Votre conseiller vous contacte sous deux jours ouvrés, vérifie l'entreprise et confirme l'inscription. D'ici là, tout le travail est ouvert : personnel, régime, simulations, études à l'écran, départs, messages à votre conseiller. Un courriel vous prévient de ce qui vous attend (la confirmation, un message, un mandat à signer) ; ces avis se coupent dans « Mon profil », où vous pouvez aussi les recevoir sur WhatsApp, au numéro de votre compte — le sujet et le lien, rien d'autre.",
-        "Ce qui sort de la plateforme attend la confirmation : rapports scellés, exports, notes, invitation de collègues, catalogue anonyme, mandat. Une inscription non confirmée est effacée au bout de 30 jours ; vous pouvez aussi la retirer vous-même." ] },
+        "Votre conseiller vous contacte sous deux jours ouvrés, vérifie l'entreprise et confirme l'inscription. D'ici là, tout le travail est ouvert : personnel, régime, comparaisons, études à l'écran ; votre conseiller se joint sur WhatsApp, par courriel ou au téléphone, depuis « Contact ». Un courriel vous prévient de ce qui vous attend (la confirmation, un message, un mandat à signer) ; ces avis se coupent dans « Mon profil », où vous pouvez aussi les recevoir sur WhatsApp, au numéro de votre compte — le sujet et le lien, rien d'autre.",
+        "Ce qui sort de la plateforme attend la confirmation : rapports scellés, exports, notes, invitation de collègues, catalogue anonyme, mandat. Une inscription non confirmée est effacée au bout de 30 jours." ] },
     ],
   },
   {
@@ -291,11 +291,6 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "Clôturé (fin du mandat, changement de courtier, cessation) : lecture seule pour tous. Le conseiller peut encore le reprendre pendant 90 jours ; au-delà, le dossier est archivé.",
         "Archivé : le personnel déposé est effacé et le dossier ne s'ouvre plus. Les études, les rapports scellés et le journal sont conservés : chaque document reste vérifiable par son numéro.",
         "Seul un dossier vide, ouvert par erreur, se supprime. Dès qu'un document a été émis, son numéro circule : le dossier se clôture, il ne disparaît pas." ] },
-      { titre: "Nettoyer le dossier", texte: [
-        "La plateforme sert à souscrire et suivre une assurance IFC, pas à garder le personnel. « Nettoyer le dossier », en bas de la page Équipe (administrateur de l'entreprise ou conseiller), se fait en trois temps.",
-        "Télécharger l'archive : chaque document scellé en PDF, chaque étude émise en Excel, et un sommaire des numéros à vérifier.",
-        "Choisir ce qui part : le personnel (allégé, lignes vidées et empreinte gardée, ou supprimé quand aucune étude émise ne le cite), les brouillons, les études émises et leur rapport (sauf celles qu'un cahier des charges cite).",
-        "Confirmer en écrivant NETTOYER. Les sceaux et le journal restent : chaque numéro de document se vérifie toujours, pour la vie de l'entreprise." ] },
     ],
   },
   {

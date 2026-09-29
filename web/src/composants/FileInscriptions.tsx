@@ -4,13 +4,13 @@ import { api } from "../api";
 import type { Inscription } from "../activation";
 import { dateFr } from "../format";
 import { t } from "../i18n";
-import { Conversation } from "../pages/Messages";
+import { BoutonsContact } from "../pages/Messages";
 import { Erreur, Tiroir, useCharge, Volet } from "./communs";
 
 type Piece = { id: string; nom_fichier: string; depose_le: string };
 type Ligne = Inscription & { justificatifs?: Piece[] };
 interface FileAttente { inscriptions: Ligne[]; delai_jours_ouvres: number }
-type Ouvert = { ins: Ligne; acte: "confirmer" | "refuser" | "ecrire" };
+type Ouvert = { ins: Ligne; acte: "confirmer" | "refuser" };
 
 const tailles = (): Record<string, string> => ({
   moins_de_50: t("moins de 50 salariés", "fewer than 50 employees"),
@@ -29,9 +29,7 @@ export default function FileInscriptions({ onDecision }: { onDecision?: () => vo
   const [erreurPiece, setErreurPiece] = useState<unknown>(null);
 
   function fermer() {
-    const relire = ouvert?.acte === "ecrire";     // les messages de l'entreprise viennent d'être lus
     setOuvert(null);
-    if (relire) recharger();
   }
   function decide() {
     setOuvert(null);
@@ -104,8 +102,11 @@ export default function FileInscriptions({ onDecision }: { onDecision?: () => vo
               <button type="button" className="principal" onClick={() => setOuvert({ ins: i, acte: "confirmer" })}>
                 {t("Confirmer", "Confirm")}</button>
               <button type="button" onClick={() => setOuvert({ ins: i, acte: "refuser" })}>{t("Refuser", "Refuse")}</button>
-              <button type="button" onClick={() => setOuvert({ ins: i, acte: "ecrire" })}>{t("Écrire", "Write")}</button>
             </div>
+            {i.demandeur && <BoutonsContact telephone={i.demandeur.telephone} courriel={i.demandeur.courriel}
+              sujet={t(`Votre inscription : ${i.nom}`, `Your sign-up: ${i.nom}`)}
+              message={t(`Bonjour, je suis votre conseiller sur la plateforme de courtage, au sujet de l'inscription de ${i.nom}.`,
+                         `Hello, I am your adviser on the brokerage platform, about the sign-up of ${i.nom}.`)} />}
           </article>
         ))}
       </div>
@@ -113,13 +114,6 @@ export default function FileInscriptions({ onDecision }: { onDecision?: () => vo
         <Tiroir onFermer={fermer} etiquette={ouvert.ins.nom}>
           {ouvert.acte === "confirmer" && <Confirmer ins={ouvert.ins} onFermer={fermer} onFait={decide} />}
           {ouvert.acte === "refuser" && <Refuser ins={ouvert.ins} onFermer={fermer} onFait={decide} />}
-          {ouvert.acte === "ecrire" && (
-            <Volet titre={t(`Écrire à ${ouvert.ins.nom}`, `Write to ${ouvert.ins.nom}`)} onFermer={fermer}>
-              <Conversation chemin={`/inscriptions/${ouvert.ins.id}/messages`}
-                vide={t("Aucun message pour l'instant. L'entreprise lit ce fil dans son dossier, à « Messages ».",
-                        "No messages yet. The company reads this thread in its file, under “Messages”.")} />
-            </Volet>
-          )}
         </Tiroir>
       )}
     </section>

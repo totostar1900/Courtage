@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { dossier, ORG, ouvrir, simulerApi } from "./outils";
+import { dossier, equipe, ORG, ouvrir, simulerApi } from "./outils";
 
 const COURTIER = { id: "adm", email: null, admin_plateforme: true, organisations: [] };
 
@@ -106,44 +106,29 @@ describe("la file des inscriptions", () => {
   });
 });
 
-describe("les messages du dossier", () => {
-  it("un lecteur écrit à son conseiller et voit son message", async () => {
+describe("nous contacter", () => {
+  it("l'entreprise écrit à son conseiller sur WhatsApp ou par courriel ; l'ancien fil se lit, replié", async () => {
     const fil = { cote: "entreprise", messages: [
       { id: "m1", cote: "courtier", auteur: "Awa Nkoulou", texte: "Bonjour, je vous appelle demain.",
         le: "2026-09-27T10:00:00+00:00", lu_le: "2026-09-27T11:00:00+00:00" },
     ] };
-    const appels = simulerApi({
-      ...dossier("lecteur_client"),
-      [`/organisations/${ORG}/messages`]: fil,
-      [`POST /organisations/${ORG}/messages`]: { ...fil, messages: [...fil.messages,
-        { id: "m2", cote: "entreprise", auteur: "Mme DRH", texte: "Merci, à demain.", le: "2026-09-28T08:00:00+00:00", lu_le: null }] },
-    });
-    ouvrir(`/dossier/${ORG}/messages`);
+    const eq = equipe("lecteur_client");
+    eq.membres = eq.membres.map((m) => (m.role === "conseiller" ? { ...m, telephone: "+237699000011" } : m));
+    simulerApi({ ...dossier("lecteur_client"), [`/organisations/${ORG}/equipe`]: eq, [`/organisations/${ORG}/messages`]: fil });
+    ouvrir(`/dossier/${ORG}/contact`);
+    expect(await screen.findByRole("heading", { name: "Nous contacter" })).toBeInTheDocument();
+    const whatsapp = await screen.findByRole("link", { name: "Écrire sur WhatsApp" });
+    expect(whatsapp.getAttribute("href")).toMatch(/^https:\/\/wa\.me\/237\d+\?text=/);
+    expect(screen.getByRole("link", { name: "Écrire un courriel" }).getAttribute("href")).toMatch(/^mailto:/);
+    // L'historique reste lisible, on n'y écrit plus.
     expect(await screen.findByText("Bonjour, je vous appelle demain.")).toBeInTheDocument();
-    // la lecture relit le dossier : le compteur du rail se met à jour
-    await waitFor(() => expect(appels.filter((a) => a.chemin === `/organisations/${ORG}/messages/non-lus`).length).toBeGreaterThan(1));
-    await userEvent.type(screen.getByLabelText("Votre message"), "Merci, à demain.");
-    await userEvent.click(screen.getByRole("button", { name: "Envoyer" }));
-    expect(await screen.findByText("Merci, à demain.")).toBeInTheDocument();
-    const envoi = appels.find((a) => a.chemin === `/organisations/${ORG}/messages` && a.init?.method === "POST")!;
-    expect(JSON.parse(envoi.init!.body as string)).toEqual({ texte: "Merci, à demain." });
-    expect(screen.getByLabelText("Votre message")).toHaveValue("");
+    expect(screen.queryByLabelText("Votre message")).toBeNull();
   });
 
-  it("un fil vide dit qui répond", async () => {
-    simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/messages`]: { cote: "entreprise", messages: [] } });
-    ouvrir(`/dossier/${ORG}/messages`);
-    expect(await screen.findByText(/Votre conseiller vous répond ici/)).toBeInTheDocument();
-  });
-
-  it("Ctrl+Entrée envoie", async () => {
-    const appels = simulerApi({ ...dossier("admin_client"),
-      [`/organisations/${ORG}/messages`]: { cote: "entreprise", messages: [] },
-      [`POST /organisations/${ORG}/messages`]: { cote: "entreprise", messages: [
-        { id: "m2", cote: "entreprise", auteur: "Mme DRH", texte: "Question", le: "2026-09-28T08:00:00+00:00", lu_le: null }] } });
-    ouvrir(`/dossier/${ORG}/messages`);
-    await userEvent.type(await screen.findByLabelText("Votre message"), "Question{Control>}{Enter}{/Control}");
-    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
-    expect(await screen.findByText("Question")).toBeInTheDocument();
+  it("le conseiller voit les personnes de l'entreprise, avec leurs boutons", async () => {
+    simulerApi({ ...dossier("conseiller"), [`/organisations/${ORG}/messages`]: { cote: "courtier", messages: [] } });
+    ouvrir(`/dossier/${ORG}/messages`);        // l'ancienne adresse mène à la même page
+    expect(await screen.findByRole("heading", { name: "Contacter l'entreprise" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Écrire sur WhatsApp" }).length).toBeGreaterThan(0);
   });
 });

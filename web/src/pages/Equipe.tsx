@@ -5,7 +5,6 @@ import { api } from "../api";
 import { Erreur, useCharge, Volet } from "../composants/communs";
 import { EtatDuDossier } from "../composants/CycleDossier";
 import { MenuActions } from "../composants/MenuActions";
-import { NettoyerDossier } from "../composants/Nettoyage";
 import type { Equipe as DonneesEquipe, Membre, Role } from "../types";
 import { useConfirmation } from "../composants/Confirmer";
 import { useDossier } from "./Dossier";
@@ -110,7 +109,6 @@ export default function Equipe() {
       {modifier && <FormulaireMembre equipe={e} membre={modifier} onFermer={() => setModifier(null)}
                                      onFait={() => { setModifier(null); rafraichir(); }} />}
       <EtatDuDossier orgId={d.org.id} conseiller={conseil} onChange={d.recharger} />
-      {(conseil || d.role === "admin_client") && ouvert && <NettoyerDossier orgId={d.org.id} onFait={rafraichir} />}
     </>
   );
 }

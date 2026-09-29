@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { oublierCabinet } from "../cabinet";
 
@@ -155,7 +155,7 @@ describe("inscription en attente", () => {
     const bandeau = (await screen.findByText(/Inscription en attente de confirmation/)).closest(".bandeau-activation") as HTMLElement;
     expect(bandeau).toHaveTextContent("votre conseiller vous contacte d'ici le 30/09/2026 (2 jours ouvrés)");
     expect(bandeau).toHaveTextContent("Une inscription non confirmée est effacée le 28/10/2026.");
-    expect(within(bandeau).getByRole("link", { name: "Écrire à votre conseiller" })).toHaveAttribute("href", `/dossier/${ORG}/messages`);
+    expect(within(bandeau).getByRole("link", { name: "Contacter votre conseiller" })).toHaveAttribute("href", `/dossier/${ORG}/contact`);
 
     const fichier = new File(["%PDF-1.4"], "rccm.pdf", { type: "application/pdf" });
     await userEvent.upload(within(bandeau).getByLabelText(/Votre document RCCM/), fichier);
@@ -184,35 +184,20 @@ describe("inscription en attente", () => {
     expect(document.querySelector(".resultats-brouillon")).toHaveAttribute("data-filigrane", "Estimation — non scellée");
   });
 
-  it("l'inscription se retire en écrivant SUPPRIMER", async () => {
-    const appels = simulerApi(enAttente({ [`DELETE /organisations/${ORG}/inscription`]: { efface: true } }));
-    ouvrir(`/dossier/${ORG}`);
-    await userEvent.click(await screen.findByRole("button", { name: "Retirer mon inscription" }));
-    const fenetre = await screen.findByRole("dialog");
-    const confirmer = within(fenetre).getByRole("button", { name: "Retirer mon inscription" });
-    expect(confirmer).toBeDisabled();
-    await userEvent.type(within(fenetre).getByLabelText("Confirmation"), "supprimer");
-    await userEvent.click(confirmer);
-    await waitFor(() => expect(appels.some((a) => a.init?.method === "DELETE")).toBe(true));
-    const url = vi.mocked(fetch).mock.calls.map(([u]) => String(u)).find((u) => u.includes("/inscription?"));
-    expect(url).toBe(`/api/v1/organisations/${ORG}/inscription?confirmation=SUPPRIMER`);
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  });
-
-  it("un contributeur ne retire pas l'inscription", async () => {
-    simulerApi({ ...dossier("contributeur_client"), [`/organisations/${ORG}/activation`]: EN_ATTENTE,
-                 [`/organisations/${ORG}/justificatifs`]: [] });
+  it("le retrait de l'inscription n'est plus offert à l'écran", async () => {
+    simulerApi(enAttente({}));
     ouvrir(`/dossier/${ORG}`);
     await screen.findByText(/Inscription en attente de confirmation/);
     expect(screen.queryByRole("button", { name: "Retirer mon inscription" })).not.toBeInTheDocument();
   });
 
-  it("refusée : le motif, et le retrait", async () => {
+  it("refusée : le motif, et le conseiller à contacter", async () => {
     simulerApi(enAttente({ [`/organisations/${ORG}/activation`]: { ...EN_ATTENTE, etat: "refusee",
       motif: "Le RCCM ne correspond pas à l'entreprise.", echeance: undefined, expire_le: undefined } }));
     ouvrir(`/dossier/${ORG}`);
     expect(await screen.findByText("Inscription refusée")).toBeInTheDocument();
     expect(screen.getByText(/Le RCCM ne correspond pas à l'entreprise\./)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retirer mon inscription" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Contacter votre conseiller" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retirer mon inscription" })).not.toBeInTheDocument();
   });
 });

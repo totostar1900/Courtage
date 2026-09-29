@@ -43,8 +43,8 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "Your phone and your email address are each verified with a code. You give your name, your position and the company: company name, country, RCCM number (required), size, sector, address. You accept the terms of use and the privacy policy; the version accepted stays on your account (“My profile”).",
         "The RCCM document can follow: upload it from your file's banner. A company has only one file: an RCCM number already registered points to its administrator." ] },
       { titre: "While awaiting confirmation", texte: [
-        "Your adviser contacts you within two working days, checks the company and confirms the sign-up. Until then, all the work is open: staff, plan, simulations, on-screen studies, departures, messages to your adviser. An email tells you when something is waiting for you (the confirmation, a message, a mandate to sign); these notices can be turned off in “My profile”, where you can also get them on WhatsApp, at your account's number — the subject and the link, nothing else.",
-        "Anything that leaves the platform waits for confirmation: sealed reports, exports, notes, inviting colleagues, the anonymous catalogue, the mandate. An unconfirmed sign-up is erased after 30 days; you can also withdraw it yourself." ] },
+        "Your adviser contacts you within two working days, checks the company and confirms the sign-up. Until then, all the work is open: staff, plan, comparisons, on-screen studies; your adviser can be reached on WhatsApp, by email or by phone, from “Contact”. An email tells you when something is waiting for you (the confirmation, a message, a mandate to sign); these notices can be turned off in “My profile”, where you can also get them on WhatsApp, at your account's number — the subject and the link, nothing else.",
+        "Anything that leaves the platform waits for confirmation: sealed reports, exports, notes, inviting colleagues, the anonymous catalogue, the mandate. An unconfirmed sign-up is erased after 30 days." ] },
     ],
   },
   connexion: {
@@ -267,11 +267,6 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "Closed (end of mandate, change of broker, cessation of business): read only for everyone. The adviser can still reopen it for 90 days; after that, the file is archived.",
         "Archived: the uploaded staff lists are erased and the file no longer opens. Studies, sealed reports and the log are kept: each document can still be verified by its number.",
         "Only an empty file, opened by mistake, can be deleted. As soon as a document has been issued, its number is in circulation: the file is closed, it does not disappear." ] },
-      { titre: "Cleaning up the file", texte: [
-        "The platform is for taking out and following an IFC insurance, not for keeping staff data. “Clean up the file”, at the bottom of the Team page (company administrator or adviser), is done in three steps.",
-        "Download the archive: each sealed document as a PDF, each issued study as Excel, and an index of the numbers to verify.",
-        "Choose what goes: the staff list (lightened, rows emptied and fingerprint kept, or deleted when no issued study cites it), the drafts, the issued studies and their report (except those cited by tender specifications).",
-        "Confirm by typing NETTOYER. The seals and the log stay: each document number can still be verified, for the life of the company." ] },
     ],
   },
   comprendre: {

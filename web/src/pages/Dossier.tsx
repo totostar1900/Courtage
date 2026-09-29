@@ -120,8 +120,8 @@ export default function Dossier() {
               <Icone nom="placement" />{t("Placement", "Placement")}</NavLink></li>
             <li><NavLink to="departs" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="departs" />{t("Départs", "Departures")}</NavLink></li>
-            <li><NavLink to="messages" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="messages" />{t("Messages", "Messages")}
+            <li><NavLink to="contact" className={({ isActive }) => (isActive ? "actif" : "")}>
+              <Icone nom="messages" />{t("Contact", "Contact")}
               {donnee.nonLus > 0 && <span className="pastille-rail" aria-label={t(`${donnee.nonLus} non lu(s)`, `${donnee.nonLus} unread`)}>{donnee.nonLus}</span>}</NavLink></li>
             <li><NavLink to="equipe" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="equipe" />{t("Équipe", "Team")}</NavLink></li>

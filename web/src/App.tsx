@@ -86,6 +86,7 @@ export default function App() {
             <Route path="accompagnement" element={<Accompagnement />} />
             <Route path="departs" element={<Departs />} />
             <Route path="equipe" element={<Equipe />} />
+            <Route path="contact" element={<Messages />} />
             <Route path="messages" element={<Messages />} />
             <Route path="dossiers/:id" element={<DossierPriseEnCharge />} />
           </Route>
