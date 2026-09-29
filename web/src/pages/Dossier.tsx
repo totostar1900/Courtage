@@ -118,6 +118,8 @@ export default function Dossier() {
               <Icone nom="accompagnement" />{t("Accompagnement", "Support")}</NavLink></li>
             <li><NavLink to="contrat" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="contrat" />{t("Contrat", "Contract")}</NavLink></li>
+            <li><NavLink to="placement" className={({ isActive }) => (isActive ? "actif" : "")}>
+              <Icone nom="placement" />{t("Placement", "Placement")}</NavLink></li>
             <li><NavLink to="departs" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="departs" />{t("Départs", "Departures")}</NavLink></li>
             <li><NavLink to="messages" className={({ isActive }) => (isActive ? "actif" : "")}>

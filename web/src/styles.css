@@ -637,3 +637,19 @@ tr.choisie > td { background: var(--indigo-doux); }
 .pied nav { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .pied a { color: var(--discret); }
 @media print { .pied { display: none; } }
+
+/* Le placement : la frise de la police, les appels, les coordonnées confrontées au registre */
+.frise-police { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 0; margin: 12px 0 18px; }
+.frise-police li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--discret); }
+.frise-police li[data-fait="true"] { color: var(--encre); font-weight: 600; }
+.frise-police .rond { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--trait); display: grid;
+  place-items: center; font-size: 12px; }
+.frise-police li[data-fait="true"] .rond { background: var(--bien); border-color: var(--bien); color: #fff; }
+.police h3 { margin-top: 22px; }
+.appel { border: 1px solid var(--trait); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; background: var(--surface); }
+.appel summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.appel[open] summary { margin-bottom: 10px; }
+.coordonnees { border-left: 4px solid var(--bien); padding: 8px 12px; margin: 8px 0; background: var(--fond); border-radius: 0 8px 8px 0; }
+.coordonnees.a-confirmer { border-color: var(--grave); }
+.formulaire.en-ligne { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 10px; }
+.formulaire.depot { margin-top: 8px; }

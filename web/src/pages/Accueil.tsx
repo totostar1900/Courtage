@@ -5,6 +5,7 @@ import { api } from "../api";
 import { DecompteAlertes } from "../composants/Alertes";
 import { Erreur, useCharge, Volet } from "../composants/communs";
 import FileInscriptions from "../composants/FileInscriptions";
+import RegistreComptes from "../composants/RegistreComptes";
 import { ilYa, lireReprise } from "../reprise";
 import type { Alerte, Moi } from "../types";
 import { t } from "../i18n";
@@ -39,6 +40,7 @@ export default function Accueil() {
       {moi && <Reprendre moi={moi} />}
       {ouvrir && <NouveauDossier onFermer={() => setOuvrir(false)} />}
       {moi?.admin_plateforme && <FileInscriptions onDecision={relireMoi} />}
+      {moi?.admin_plateforme && <RegistreComptes />}
       {moi && moi.organisations.length === 0 && (
         <p>{t("Aucun dossier pour l'instant.", "No files yet.")}{moi.admin_plateforme
           && t(" En tant que plateforme, vous ouvrez les dossiers des clients : « Ouvrir un dossier client », puis inscrivez la DRH par son numéro.",
