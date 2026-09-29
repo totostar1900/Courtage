@@ -4,7 +4,7 @@ Spécification : `docs/specs/2026-09-29-contenu-mesure-portefeuille-whatsapp-des
 
 1. [x] **Pages de contenu.** `/ifc` et `/ifc/cameroun` (barèmes lus dans le référentiel) ; plan du site, titres, liens.
    — *Deux pages de contenu : les IFC, et les IFC au Cameroun*
-2. [ ] **Mesure d'audience.** Migration 0031 `mesures` ; `POST /public/mesure` (liste fermée, limité) ; événements
+2. [x] **Mesure d'audience.** Migration 0031 `mesures` ; `POST /public/mesure` (liste fermée, limité) ; événements
    serveur ; `GET /mesures` ; Do Not Track respecté ; l'entonnoir sur l'accueil du courtier ; confidentialité. —
    *Une mesure d'audience sans témoin*
 3. [ ] **Portefeuille.** `services/portefeuille.py`, `GET /portefeuille`, page `/portefeuille`. — *Le pipeline et le

@@ -78,7 +78,8 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
         "inscription": Limiteur(5, 60 * 60),     # 5 inscriptions par heure et par adresse
         "essai": Limiteur(20, 60 * 60),
         "offre": Limiteur(30, 15 * 60),
-        "rappel": Limiteur(5, 60 * 60),          # la demande de rappel de la vitrine : 5 par heure et par adresse          # le lien d'un assureur : 30 lectures ou dépôts par quart d'heure          # l'essai sans compte : 20 calculs par heure et par adresse
+        "rappel": Limiteur(5, 60 * 60),
+        "mesure": Limiteur(120, 15 * 60),        # la mesure d'audience : 120 événements par quart d'heure et par adresse          # la demande de rappel de la vitrine : 5 par heure et par adresse          # le lien d'un assureur : 30 lectures ou dépôts par quart d'heure          # l'essai sans compte : 20 calculs par heure et par adresse
     }
 
     @app.exception_handler(ErreurMetier)

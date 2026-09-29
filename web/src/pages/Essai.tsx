@@ -5,6 +5,7 @@ import { api } from "../api";
 import { Cle, Erreur, useCharge } from "../composants/communs";
 import { Echeancier } from "../composants/Echeancier";
 import { dateFr, millions, montant } from "../format";
+import { mesurer, useMesure } from "../mesure";
 import { t } from "../i18n";
 import type { Annee, Totaux } from "../types";
 
@@ -81,6 +82,7 @@ export async function reprendreEssai(orgId: string): Promise<{ fichier: boolean;
 /** L'essai sans compte : son personnel, son fonds, un régime, et l'engagement à l'écran. Rien n'est gardé sur la
  *  plateforme ; rien ne s'imprime ; « Enregistrer mes résultats » mène à l'inscription, qui reprend la saisie. */
 export default function Essai() {
+  useMesure("essai_ouvert");
   const precedent = lireEssai();
   const { donnee: ref } = useCharge(() => api.get<{ conventions: Convention[]; pays_couverts: Record<string, string> }>("/referentiel/conventions"), []);
   const [pays, setPays] = useState(precedent?.pays ?? "CM");
@@ -114,6 +116,7 @@ export default function Essai() {
     setCalcul(true);
     try {
       setResultat(await api.post<Resultat>("/essai/etude", envoi));
+      mesurer("essai_calcule");
     } catch (e) { setErreur(e); setResultat(null); setCalcul(false); return; }
     setCalcul(false);
     try {

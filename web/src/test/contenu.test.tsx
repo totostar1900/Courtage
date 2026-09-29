@@ -35,3 +35,26 @@ describe("les pages de contenu", () => {
     expect(screen.queryByText(/à valider/i)).toBeNull();
   });
 });
+
+describe("la mesure d'audience", () => {
+  it("une visite de la vitrine part une fois, avec la seule catégorie de référent en tête", async () => {
+    sessionStorage.clear();
+    const NON = new Response(JSON.stringify({ code: "non_authentifie", message: "x" }), { status: 401, headers: { "content-type": "application/json" } });
+    const appels = simulerApi({ "/moi": () => NON.clone(), "/public/cabinet": {}, "POST /public/mesure": new Response(null, { status: 204 }) });
+    ouvrir("/", null);
+    await screen.findByRole("heading", { name: /chiffrées puis placées/ }, { timeout: 4000 });
+    const mesures = appels.filter((a) => a.chemin === "/public/mesure");
+    expect(mesures).toHaveLength(1);
+    expect(JSON.parse(String(mesures[0].init!.body))).toEqual({ evenement: "vitrine", referent: null });
+  });
+
+  it("rien ne part si le navigateur demande à ne pas être suivi", async () => {
+    sessionStorage.clear();
+    Object.defineProperty(navigator, "globalPrivacyControl", { value: true, configurable: true });
+    const appels = simulerApi({});
+    ouvrir("/ifc", null);
+    await screen.findByRole("heading", { name: "Les indemnités de fin de carrière", level: 1 });
+    expect(appels.some((a) => a.chemin === "/public/mesure")).toBe(false);
+    Object.defineProperty(navigator, "globalPrivacyControl", { value: undefined, configurable: true });
+  });
+});

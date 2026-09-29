@@ -4,6 +4,7 @@ import { api } from "../api";
 import { useCharge } from "../composants/communs";
 import { dateFr } from "../format";
 import { t } from "../i18n";
+import { useMesure } from "../mesure";
 
 /** Les pages de contenu publiques. Règle : rien d'inventé — un barème vient du référentiel, avec ses sources ; un point
  *  de droit reprend la rédaction prudente des notes juridiques de la plateforme. */
@@ -33,6 +34,7 @@ function Appel() {
 }
 
 export function PageIfc() {
+  useMesure("contenu_ifc");
   return (
     <article className="legal contenu">
       <h1>{t("Les indemnités de fin de carrière", "End-of-service benefits")}</h1>
@@ -105,6 +107,7 @@ function BaremesCameroun() {
 }
 
 export function PageIfcCameroun() {
+  useMesure("contenu_cameroun");
   return (
     <article className="legal contenu">
       <p><Link to="/ifc">{t("← Les indemnités de fin de carrière", "← End-of-service benefits")}</Link></p>

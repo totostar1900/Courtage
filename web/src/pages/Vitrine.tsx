@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 
 import { useCabinet } from "../cabinet";
+import { useMesure } from "../mesure";
 import EtreRappele from "../composants/EtreRappele";
 import { t } from "../i18n";
 
 /** La première page d'un visiteur : ce que fait le service, ce qu'il coûte, qui l'exploite, et par où entrer. */
 export default function Vitrine() {
   const cabinet = useCabinet();
+  useMesure("vitrine");
   const etapes = [
     { titre: t("Essayer, sans compte", "Try it, no account"),
       texte: t("Déposez votre fichier du personnel, décrivez votre régime et votre fonds : l'étude se calcule à l'écran. Rien n'est gardé.",

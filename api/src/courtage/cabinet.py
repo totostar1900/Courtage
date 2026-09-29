@@ -9,7 +9,7 @@ import os
 
 # La version des conditions d'utilisation et de la politique de confidentialité. Changer le texte (web/src/pages/
 # Legal.tsx), c'est changer cette version : l'inscription enregistre celle que la personne a acceptée.
-CONDITIONS_VERSION = "conditions-2026-09-29"   # + les demandes de rappel (confidentialité)
+CONDITIONS_VERSION = "conditions-2026-09-29-2"   # + la mesure d'audience sans témoin (confidentialité)
 
 _CHAMPS = {
     "nom": ("COURTAGE_COURTIER_NOM", "[raison sociale du cabinet]"),

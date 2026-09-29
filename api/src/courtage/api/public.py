@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from courtage import cabinet
 from courtage.db import Utilisateur
 from courtage.langue import t
-from courtage.services import demandes_rappel
+from courtage.services import demandes_rappel, mesure
 
 from . import session_db
 from .inscription import _plateforme
@@ -86,3 +86,26 @@ def lire_rappels(session: Session = Depends(session_db, scope="function"), _: Ut
 def traiter_rappel(demande_id: uuid.UUID, corps: Traitement, session: Session = Depends(session_db, scope="function"),
                    moi: Utilisateur = Depends(_plateforme)):
     return demandes_rappel.en_clair(session, demandes_rappel.traiter(session, moi.id, demande_id, corps.statut, corps.note))
+
+
+# --- La mesure d'audience (sans témoin, sans identifiant) ------------------------------------------
+
+class Evenement(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    evenement: str = Field(max_length=40)
+    referent: str | None = Field(default=None, max_length=500)
+
+
+@routeur_public.post("/public/mesure", status_code=204, dependencies=[Depends(limite("mesure"))])
+def mesurer(corps: Evenement, request: Request, session: Session = Depends(session_db, scope="function")):
+    if corps.evenement not in mesure.EVENEMENTS_PAGE:           # la page ne compte pas ce que compte le serveur
+        return Response(status_code=204)
+    mesure.compter(session, corps.evenement, mesure.source(corps.referent, request.url.hostname))
+    return Response(status_code=204)
+
+
+@routeur_public.get("/mesures")
+def lire_mesures(jours: int = 30, session: Session = Depends(session_db, scope="function"),
+                 _: Utilisateur = Depends(_plateforme)):
+    from datetime import date
+    return mesure.tableau(session, date.today(), max(1, min(jours, 365)))
