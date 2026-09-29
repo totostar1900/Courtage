@@ -45,10 +45,17 @@ describe("parcours", () => {
   it("le régime est facultatif : une étude émise sur la convention le rend fait", () => {
     const e = etapes({ ...vide, fichiers: 1, etudesEmises: 1 });
     expect(e.find((x) => x.cle === "regime")?.fait).toBe(true);
-    expect(e.find((x) => x.suivant)?.cle).toBe("financement");
+    expect(e.find((x) => x.suivant)?.cle).toBe("cahier");
   });
 
-  it("tout est fait quand le cahier des charges est parti", () => {
-    expect(etapes({ ...vide, fichiers: 1, etudesEmises: 1, fiches: 1 }).some((x) => x.suivant)).toBe(false);
+  it("le cahier parti, les offres viennent ; une offre retenue, tout est fait", () => {
+    expect(etapes({ ...vide, fichiers: 1, etudesEmises: 1, fiches: 1 }).find((x) => x.suivant)?.cle).toBe("financement");
+    expect(etapes({ ...vide, fichiers: 1, etudesEmises: 1, fiches: 1, offreRetenue: true }).some((x) => x.suivant)).toBe(false);
+  });
+
+  it("l'accompagnement ouvre le parcours ; un mandat à signer est l'étape suivante", () => {
+    expect(etapes(vide)[0].cle).toBe("accompagnement");
+    expect(etapes({ ...vide, mandat: "aucun" }).find((x) => x.suivant)?.cle).toBe("accompagnement");
+    expect(etapes({ ...vide, mandat: "demande" }).find((x) => x.suivant)?.cle).toBe("personnel");
   });
 });

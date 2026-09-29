@@ -65,7 +65,7 @@ export default function Regime() {
               <div className="actions">
                 <NouvelleVersion regimeId={r.id} />
                 <span className="discret">{t("Pour essayer un barème sans l'enregistrer : ", "To try a scale without saving it: ")}
-                  <Link to="../simulation">{t("Simuler", "Simulate")}</Link>.</span>
+                  <Link to="../etudes#comparer">{t("Comparer des régimes", "Compare plans")}</Link>.</span>
               </div>
             )}
           </div>
@@ -142,7 +142,7 @@ function CarteVersion({ version: v }: { version: Version }) {
     { libelle: t("Modifier", "Edit"), agir: () => setActe("modifier"), cache: !redacteur },
     { libelle: t("Dupliquer", "Duplicate"), agir: dupliquer, cache: !redacteur },
     { libelle: t("Analyser : légalité, pièges, coûts", "Review: legality, pitfalls, costs"), agir: () => setActe("analyser") },
-    { libelle: t("Comparer dans Simuler", "Compare in Simulate"), agir: () => aller(`../simulation?version=${v.id}`) },
+    { libelle: t("Comparer avec d'autres", "Compare with others"), agir: () => aller(`../etudes?version=${v.id}#comparer`) },
     { libelle: t("Adopter…", "Adopt…"), agir: () => setActe("adopter"), cache: !redacteur,
       raison: entreprise ? null : t("L'adoption appartient à l'administrateur de l'entreprise.", "Adoption is for the company administrator.") },
     { libelle: sup?.brouillons ? t(`Supprimer (et ${sup.brouillons} étude${sup.brouillons > 1 ? "s" : ""} en brouillon)`,
@@ -155,7 +155,7 @@ function CarteVersion({ version: v }: { version: Version }) {
       agir: () => note("assureurs"), raison: pourNote("assureurs") },
     { libelle: t("Dupliquer en brouillon", "Duplicate as a draft"), agir: dupliquer, cache: !redacteur },
     { libelle: t("Analyser : légalité, pièges, coûts", "Review: legality, pitfalls, costs"), agir: () => setActe("analyser") },
-    { libelle: t("Comparer dans Simuler", "Compare in Simulate"), agir: () => aller(`../simulation?version=${v.id}`) },
+    { libelle: t("Comparer avec d'autres", "Compare with others"), agir: () => aller(`../etudes?version=${v.id}#comparer`) },
     { libelle: t("Supprimer…", "Delete…"), agir: () => setActe("supprimer"), danger: true, cache: !redacteur,
       raison: !sup?.possible ? sup?.raison ?? t("Elle reste.", "It stays.") : !entreprise ? t("Revenir sur une adoption appartient à l'administrateur de l'entreprise.", "Reversing an adoption is for the company administrator.") : null },
   ];

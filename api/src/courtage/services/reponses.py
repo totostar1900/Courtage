@@ -66,14 +66,16 @@ def actives(session: Session, fiche: FicheRegime) -> list[ReponseFiche]:
 
 def enregistrer(session: Session, org: Organisation, auteur: uuid.UUID, fiche: FicheRegime, donnees: dict, *,
                 offre: tuple[str, bytes] | None = None, remplace: ReponseFiche | None = None,
-                motif_correction: str | None = None, consultation_id: uuid.UUID | None = None) -> ReponseFiche:
-    """`auteur` : le conseiller qui saisit ; vide quand l'assureur dépose lui-même par son lien (`consultation_id`)."""
+                motif_correction: str | None = None, consultation_id: uuid.UUID | None = None,
+                pour_comparaison: bool = False) -> ReponseFiche:
+    """`auteur` : le conseiller qui saisit ; vide quand l'assureur dépose lui-même par son lien (`consultation_id`).
+    `pour_comparaison` : un devis que l'entreprise a reçu directement et ajoute pour comparer ; classé, jamais retenu."""
     _ouverte(session, fiche)
     recue = donnees["recue_le"]
     if recue > date.today():
         raise ErreurMetier("date_a_venir", t("Une réponse se saisit une fois reçue : pas de date à venir.",
                                               "A response is entered once received: no future date."), 422)
-    if recue < fiche.emise_le.date():
+    if recue < fiche.emise_le.date() and not pour_comparaison:     # un devis reçu directement peut précéder le cahier
         raise ErreurMetier("reponse_avant_cahier", t("Une réponse ne précède pas l'émission du cahier des charges.",
                                                       "A response cannot be dated before the tender specifications "
                                                       "were issued."), 422)
@@ -99,12 +101,34 @@ def enregistrer(session: Session, org: Organisation, auteur: uuid.UUID, fiche: F
                         "offre_empreinte": remplace.offre_empreinte}
     r = ReponseFiche(organisation_id=org.id, fiche_id=fiche.id, **{k: donnees.get(k) for k in CHAMPS},
                      **champs_offre, remplace_id=remplace.id if remplace else None,
-                     motif_correction=motif_correction, saisie_par=auteur, consultation_id=consultation_id)
+                     motif_correction=motif_correction, saisie_par=auteur, consultation_id=consultation_id,
+                     pour_comparaison=pour_comparaison or bool(remplace and remplace.pour_comparaison))
     r.assureur = nom
     _inserer(session, r)
     journaliser(session, org.id, auteur, "reponse.corrigee" if remplace else "reponse.enregistree", r.id,
                 {"fiche": str(fiche.id), "assureur": nom})
     return r
+
+
+def ajouter_pour_comparaison(session: Session, org: Organisation, auteur: uuid.UUID, fiche: FicheRegime, donnees: dict,
+                             offre: tuple[str, bytes] | None = None) -> ReponseFiche:
+    """L'entreprise ajoute un devis reçu directement, pour le comparer aux offres que son conseiller lui a apportées.
+    Pas avant : la comparaison commence avec les offres du conseiller."""
+    if not any(not r.pour_comparaison for r in actives(session, fiche)):
+        raise ErreurMetier("aucune_offre_du_conseiller",
+                           t("La comparaison s'ouvre avec les offres que votre conseiller vous apporte : aucune n'est "
+                             "encore arrivée.",
+                             "The comparison opens with the offers your adviser brings you: none has arrived yet."), 409)
+    return enregistrer(session, org, auteur, fiche, donnees, offre=offre, pour_comparaison=True)
+
+
+def retirer_comparaison(session: Session, org: Organisation, auteur: uuid.UUID, fiche: FicheRegime,
+                        reponse_id: uuid.UUID) -> ReponseFiche:
+    """L'entreprise retire l'offre qu'elle avait ajoutée ; jamais une offre de la consultation."""
+    if not _active(session, fiche, reponse_id).pour_comparaison:
+        raise ErreurMetier("acces_refuse", t("Seul le conseiller retire une offre de la consultation.",
+                                             "Only the adviser withdraws an offer from the tender."), 403)
+    return retirer(session, org, auteur, fiche, reponse_id, "Retirée par l'entreprise (offre pour comparaison).")
 
 
 def corriger(session: Session, org: Organisation, auteur: uuid.UUID, fiche: FicheRegime, reponse_id: uuid.UUID,
@@ -118,7 +142,8 @@ def retirer(session: Session, org: Organisation, auteur: uuid.UUID, fiche: Fiche
     _ouverte(session, fiche)
     a = _active(session, fiche, reponse_id)
     r = ReponseFiche(organisation_id=org.id, fiche_id=fiche.id, **{k: getattr(a, k) for k in CHAMPS},
-                     remplace_id=a.id, retrait=True, motif_correction=_motif(motif), saisie_par=auteur)
+                     remplace_id=a.id, retrait=True, motif_correction=_motif(motif), saisie_par=auteur,
+                     pour_comparaison=a.pour_comparaison)
     _inserer(session, r)
     journaliser(session, org.id, auteur, "reponse.retiree", r.id, {"retire": str(a.id)})
     return r
@@ -128,12 +153,18 @@ def choisir(session: Session, org: Organisation, auteur: uuid.UUID, fiche: Fiche
             motif: str | None) -> ChoixFiche:
     _ouverte(session, fiche)
     r = _active(session, fiche, reponse_id)
+    if r.pour_comparaison:
+        raise ErreurMetier("offre_pour_comparaison",
+                           t("Une offre ajoutée pour comparaison ne se retient pas : demandez à votre conseiller de "
+                             "consulter cet assureur, son offre entrera alors dans la consultation.",
+                             "An offer added for comparison cannot be chosen: ask your adviser to consult this "
+                             "insurer, and its offer will then enter the tender."), 409)
     recommandee = comparer(session, fiche)["recommandee"]
     if str(r.id) != recommandee and not (motif or "").strip():
-        raise ErreurMetier("motif_requis", t("Ce n'est pas l'offre conforme la moins chère : dites pourquoi vous la "
-                                             "retenez (la raison figure au dossier).",
-                                             "This is not the cheapest compliant offer: say why you are choosing it "
-                                             "(the reason goes on file)."), 422)
+        raise ErreurMetier("motif_requis", t("Ce n'est pas l'offre conforme au meilleur rendement net : dites pourquoi "
+                                             "vous la retenez (la raison figure au dossier).",
+                                             "This is not the compliant offer with the best net return: say why you "
+                                             "are choosing it (the reason goes on file)."), 422)
     c = ChoixFiche(organisation_id=org.id, fiche_id=fiche.id, reponse_id=r.id, motif=(motif or "").strip() or None,
                    choisi_par=auteur)
     session.add(c)
@@ -215,24 +246,30 @@ def comparer(session: Session, fiche: FicheRegime, horizon: int = 10, amortissem
     rs = actives(session, fiche)
     conformes = {r.id: all(c["conforme"] is True for c in conformite(r, fiche.conditions)) for r in rs}
     if not rs:
-        return {"reponses": [], "comparaison": None, "recommandee": None, "rangs": {}}
+        return {"reponses": [], "comparaison": None, "recommandee": None, "rangs": {}, "couts": {}, "rendements": {}}
     etude = etudes.obtenir(session, fiche.etude_id)
     offres = [Offre(nom=r.assureur, taux_garanti=r.taux_garanti, participation_benefices=r.participation_benefices,
                     frais_sur_cotisations=r.frais_sur_cotisations, frais_sur_encours=r.frais_sur_encours) for r in rs]
     resultat = financement.financer(etude, offres=offres, scenarios=None, horizon=horizon,
                                     amortissement_annees=amortissement, taux_actualisation=None, croissance_salaires=None)
-    ordre = [n for n in resultat["classement"] if any(r.assureur == n for r in rs)]
+    # Le classement : par rendement net décroissant (ce que l'offre rapporte au fonds, tous frais payés).
+    ordre = [n for n in resultat["classement_rendement"] if any(r.assureur == n for r in rs)]
     par_nom = {r.assureur: r for r in rs}
     reference = resultat["scenario_de_reference"]
-    couts = {o["nom"]: next(s["cout_net_actualise"] for s in o["scenarios"] if s["scenario"] == reference)
-             for o in resultat["offres"]}
+    de_reference = {o["nom"]: next(s for s in o["scenarios"] if s["scenario"] == reference) for o in resultat["offres"]}
+    couts = {n: s["cout_net_actualise"] for n, s in de_reference.items()}
+    rendements = {n: {"rendement_net": s["rendement_net"], "taux_servi": s["taux_servi"]} for n, s in de_reference.items()}
     classees = [par_nom[n] for n in ordre]
-    recommandee = next((r for r in classees if conformes[r.id]), None)
+    # La recommandée : la meilleure des conformes que la consultation a apportées (une offre ajoutée pour comparaison
+    # se classe, elle ne se recommande pas).
+    recommandee = next((r for r in classees if conformes[r.id] and not r.pour_comparaison), None)
     return {"reponses": classees, "comparaison": resultat, "recommandee": str(recommandee.id) if recommandee else None,
-            "rangs": {r.id: i + 1 for i, r in enumerate(classees)}, "couts": couts, "conformes": conformes}
+            "rangs": {r.id: i + 1 for i, r in enumerate(classees)}, "couts": couts, "rendements": rendements,
+            "conformes": conformes}
 
 
-def en_clair(r: ReponseFiche, fiche: FicheRegime, rang: int | None = None, cout: int | None = None) -> dict:
+def en_clair(r: ReponseFiche, fiche: FicheRegime, rang: int | None = None, cout: int | None = None,
+             rendement: dict | None = None) -> dict:
     lignes = conformite(r, fiche.conditions)
     return {
         "id": str(r.id), **{k: (getattr(r, k).isoformat() if isinstance(getattr(r, k), date) else getattr(r, k))
@@ -241,7 +278,8 @@ def en_clair(r: ReponseFiche, fiche: FicheRegime, rang: int | None = None, cout:
         "tardive": r.recue_le > fiche.date_limite_reponse, "rang": rang, "cout_net_actualise": cout,
         "offre": {"nom_fichier": r.offre_nom_fichier, "empreinte": r.offre_empreinte.strip()} if r.offre_contenu else None,
         "remplace_id": str(r.remplace_id) if r.remplace_id else None, "motif_correction": r.motif_correction,
-        "deposee_par_assureur": r.consultation_id is not None,
+        "deposee_par_assureur": r.consultation_id is not None, "pour_comparaison": r.pour_comparaison,
+        "rendement_net": (rendement or {}).get("rendement_net"), "taux_servi": (rendement or {}).get("taux_servi"),
     }
 
 
@@ -252,7 +290,8 @@ def tout(session: Session, fiche: FicheRegime, horizon: int = 10, amortissement:
     return {
         "fiche_id": str(fiche.id), "date_limite_reponse": fiche.date_limite_reponse.isoformat(),
         "conditions": fiche.conditions,
-        "reponses": [en_clair(r, fiche, c["rangs"][r.id], c["couts"].get(r.assureur)) for r in c["reponses"]],
+        "reponses": [en_clair(r, fiche, c["rangs"][r.id], c["couts"].get(r.assureur), c["rendements"].get(r.assureur))
+                     for r in c["reponses"]],
         "recommandee": c["recommandee"], "comparaison": c["comparaison"],
         "choix": {"reponse_id": str(ch.reponse_id), "assureur": retenue.assureur, "motif": ch.motif,
                   "choisi_le": ch.choisi_le.isoformat(), "recommandee": str(ch.reponse_id) == c["recommandee"]}

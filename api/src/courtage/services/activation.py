@@ -1,5 +1,6 @@
 """Ce que l'état d'une inscription permet : tout le travail dès l'inscription ; ce qui sort de la plateforme après
-confirmation par le courtier ; ce qui touche aux assureurs sous mandat.
+confirmation par le courtier ; ce qui touche aux assureurs sous mandat ; les départs, une fois le contrat d'assurance
+signé et en vigueur (spec 2026-09-29 parcours client §5).
 
 Le contrôle est ici, côté serveur, pour chaque route concernée (`exiger`) ; l'écran grise l'action et dit pourquoi
 avec les mêmes libellés (`en_clair`). Spécification : docs/specs/2026-09-28-inscription-et-courtage-seul-design.md.
@@ -34,6 +35,10 @@ APRES_CONFIRMATION = {
 SOUS_MANDAT = {
     "cahier": "le cahier des charges et la consultation des assureurs",
 }
+# Ce qui suppose un contrat d'assurance signé et en vigueur : les départs et leurs prises en charge.
+SOUS_CONTRAT = {
+    "departs": "les départs et les prises en charge",
+}
 # Les mêmes libellés pour l'écran anglais : lus au moment de la requête (`libelle`, `libelles`), jamais figés.
 _EN = {
     "rapport_scelle": "issuing a sealed report",
@@ -45,16 +50,17 @@ _EN = {
     "extraction_claude": "having Claude read a text",
     "mandat": "proposing and signing the mandate",
     "cahier": "the tender specifications and the consultation of insurers",
+    "departs": "departures and benefit claims",
 }
 
 
 def libelle(capacite: str) -> str:
-    fr = APRES_CONFIRMATION.get(capacite) or SOUS_MANDAT[capacite]
+    fr = APRES_CONFIRMATION.get(capacite) or SOUS_MANDAT.get(capacite) or SOUS_CONTRAT[capacite]
     return t(fr, _EN[capacite])
 
 
 def libelles() -> dict[str, str]:
-    return {c: libelle(c) for c in APRES_CONFIRMATION | SOUS_MANDAT}
+    return {c: libelle(c) for c in APRES_CONFIRMATION | SOUS_MANDAT | SOUS_CONTRAT}
 
 
 def normaliser_rccm(saisi: str) -> str:
@@ -70,8 +76,22 @@ def sous_mandat(session: Session, aujourd_hui: date) -> bool:
     return contrats.service_a_la_date(session, aujourd_hui).service == "courtage"
 
 
+def contrat_en_vigueur(session: Session, aujourd_hui: date) -> bool:
+    """Un contrat d'assurance signé et en vigueur : une police du placement arrivée à « en vigueur », ou un contrat de
+    courtage en vigueur enregistré par le conseiller avec son assureur (un client venu avec son contrat), dont la date
+    d'effet, si elle est dite, est passée."""
+    from courtage.db import Police
+    from . import placement
+    if any(placement.statut(session, p, aujourd_hui)["code"] == "en_vigueur" for p in session.scalars(select(Police))):
+        return True
+    s = contrats.service_a_la_date(session, aujourd_hui)
+    c = s.contrat
+    return (s.service == "courtage" and c is not None and bool(c.assureur)
+            and (c.date_effet_police is None or c.date_effet_police <= aujourd_hui))
+
+
 def exiger(session: Session, org: Organisation, capacite: str, aujourd_hui: date | None = None) -> None:
-    if capacite not in APRES_CONFIRMATION and capacite not in SOUS_MANDAT:
+    if capacite not in APRES_CONFIRMATION and capacite not in SOUS_MANDAT and capacite not in SOUS_CONTRAT:
         raise ValueError(f"capacité inconnue : {capacite}")
     quoi = libelle(capacite)
     if org.activation != "confirmee":
@@ -84,6 +104,11 @@ def exiger(session: Session, org: Organisation, capacite: str, aujourd_hui: date
                            t(f"Sans mandat de courtage signé, {quoi} ne s'ouvre pas encore : demandez un "
                              "accompagnement.",
                              f"Without a signed brokerage mandate, {quoi} is not available yet: ask for support."),
+                           409, {"capacite": capacite})
+    if capacite in SOUS_CONTRAT and not contrat_en_vigueur(session, aujourd_hui or date.today()):
+        raise ErreurMetier("contrat_requis",
+                           t(f"{quoi.capitalize()} s'ouvrent quand le contrat d'assurance est signé et en vigueur.",
+                             f"{quoi.capitalize()} open once the insurance contract is signed and in force."),
                            409, {"capacite": capacite})
 
 
@@ -100,7 +125,9 @@ def echeance(demandee_le: datetime) -> date:
 def en_clair(session: Session, org: Organisation, aujourd_hui: date) -> dict:
     confirmee = org.activation == "confirmee"
     mandat = confirmee and sous_mandat(session, aujourd_hui)
-    capacites = {c: confirmee for c in APRES_CONFIRMATION} | {c: mandat for c in SOUS_MANDAT}
+    contrat = confirmee and contrat_en_vigueur(session, aujourd_hui)
+    capacites = ({c: confirmee for c in APRES_CONFIRMATION} | {c: mandat for c in SOUS_MANDAT}
+                 | {c: contrat for c in SOUS_CONTRAT})
     d = {"etat": org.activation, "capacites": capacites,
          "libelles": libelles(),
          "rccm": org.rccm, "taille": org.taille, "adresse": org.adresse, "ville": org.ville,

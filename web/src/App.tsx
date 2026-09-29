@@ -24,7 +24,7 @@ import Messages from "./pages/Messages";
 import Offre from "./pages/Offre";
 import EtudeDetail from "./pages/EtudeDetail";
 import Etudes from "./pages/Etudes";
-import Financement from "./pages/Financement";
+import OffresDossier from "./pages/OffresDossier";
 import Guide from "./pages/Guide";
 import Personnel from "./pages/Personnel";
 import Portefeuille from "./pages/Portefeuille";
@@ -32,7 +32,6 @@ import Placement from "./pages/Placement";
 import Profil from "./pages/Profil";
 import Regime from "./pages/Regime";
 import Reponses from "./pages/Reponses";
-import Simulation from "./pages/Simulation";
 import TableauDeBord from "./pages/TableauDeBord";
 import Verifier from "./pages/Verifier";
 import Vitrine from "./pages/Vitrine";
@@ -75,11 +74,11 @@ export default function App() {
             <Route index element={<TableauDeBord />} />
             <Route path="personnel" element={<Personnel />} />
             <Route path="regime" element={<Regime />} />
-            <Route path="simulation" element={<Simulation />} />
+            <Route path="simulation" element={<VersEtudes />} />
             <Route path="etudes" element={<Etudes />} />
             <Route path="etudes/:etude" element={<EtudeDetail />} />
-            <Route path="etudes/:etude/financement" element={<Financement />} />
-            <Route path="financement" element={<Financement />} />
+            <Route path="etudes/:etude/financement" element={<VersOffres />} />
+            <Route path="financement" element={<OffresDossier />} />
             <Route path="cahier" element={<Cahier />} />
             <Route path="cahier/:fiche" element={<Reponses />} />
             <Route path="contrat" element={<Contrat />} />
@@ -87,6 +86,7 @@ export default function App() {
             <Route path="accompagnement" element={<Accompagnement />} />
             <Route path="departs" element={<Departs />} />
             <Route path="equipe" element={<Equipe />} />
+            <Route path="contact" element={<Messages />} />
             <Route path="messages" element={<Messages />} />
             <Route path="dossiers/:id" element={<DossierPriseEnCharge />} />
           </Route>
@@ -158,4 +158,15 @@ function BasculeLangue() {
       ))}
     </div>
   );
+}
+
+/** « Simuler » a rejoint la page Étude : l'ancienne adresse y mène, versions cochées comprises. */
+function VersEtudes() {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: "../etudes", search }} replace />;
+}
+
+/** L'ancienne comparaison libre depuis une étude : les offres, désormais, viennent du conseiller. */
+function VersOffres() {
+  return <Navigate to="../financement" replace />;
 }

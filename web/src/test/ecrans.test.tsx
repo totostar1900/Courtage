@@ -24,7 +24,7 @@ describe("connexion", () => {
     await userEvent.click(screen.getByRole("button", { name: "Se connecter" }));
     expect(await screen.findByText("Vos dossiers")).toBeInTheDocument();
     const verification = appels.find((a) => a.chemin === "/auth/verification")!;
-    expect(JSON.parse(verification.init!.body as string)).toEqual({ telephone: "699123456", code: "123456" });
+    expect(JSON.parse(verification.init!.body as string)).toEqual({ telephone: "+237699123456", code: "123456" });
     expect(new Headers(verification.init!.headers).get("X-Courtage")).toBe("1");
     expect(screen.queryByText("Mode développement")).not.toBeInTheDocument();
   });
@@ -112,28 +112,14 @@ describe("l'adoption d'un régime", () => {
   });
 });
 
-describe("la comparaison des offres", () => {
-  it("la moins chère d'abord, marquée", async () => {
-    const scen = (cout: number) => [{ scenario: "central", rendement: 0.05, cout_total: 1, cout_net_actualise: cout,
-      frais_totaux: 0, fonds_final: 0, annees_decouvert: [], couverture_des_departs_restants: null, annees: [] }];
-    const cond = { nom: "", taux_garanti: 0.025, participation_benefices: 0.9, frais_sur_cotisations: 0.04, frais_sur_encours: 0 };
-    simulerApi({ ...dossier("admin_client"), [`POST /organisations/${ORG}/etudes/e1/financement`]: {
-      plan_amortissement: { deficit_initial: 0, annees: 1, annuite: 0 }, scenario_de_reference: "central",
-      classement: ["Sobre", "Chère", "Provision interne"],
-      offres: [{ nom: "Chère", interne: false, conditions: cond, scenarios: scen(9_000_000) },
-               { nom: "Provision interne", interne: true, conditions: cond, scenarios: scen(20_000_000) },
-               { nom: "Sobre", interne: false, conditions: cond, scenarios: scen(5_000_000) }] } });
-    ouvrir(`/dossier/${ORG}/etudes/e1/financement`);
-    await userEvent.click(await screen.findByRole("button", { name: "Comparer" }));
-    await waitFor(() => expect(document.querySelectorAll("[data-offre]")).toHaveLength(3));
-    const cartes = [...document.querySelectorAll("[data-offre]")].map((c) => c.getAttribute("data-offre"));
-    expect(cartes).toEqual(["Sobre", "Chère", "Provision interne"]);
-    expect(within(document.querySelector('[data-offre="Sobre"]') as HTMLElement).getByText("Le moins cher")).toBeInTheDocument();
-
-    // Le volet des résultats se referme ; le formulaire reste.
-    await userEvent.click(screen.getByRole("button", { name: "Fermer" }));
-    expect(document.querySelectorAll("[data-offre]")).toHaveLength(0);
-    expect(screen.getByRole("button", { name: "Comparer" })).toBeInTheDocument();
+describe("les offres", () => {
+  it("avant le cahier des charges : ce qui vient, et plus aucune comparaison sur des chiffres saisis au hasard", async () => {
+    simulerApi(dossier("admin_client"));
+    ouvrir(`/dossier/${ORG}/etudes/e1/financement`);            // l'ancienne adresse mène à la page des offres
+    expect(await screen.findByRole("heading", { name: "Ce qui vient avant les offres" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Le cahier des charges envoyé" })).toHaveAttribute("href", `/dossier/${ORG}/cahier`);
+    expect(screen.queryByLabelText("Taux garanti (%)")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Comparer" })).toBeNull();
   });
 });
 
@@ -504,20 +490,48 @@ describe("les réponses des assureurs", () => {
     reponses: [reponse("r1", "Piège", 1, 50_000_000, false), reponse("r2", "Assureur A", 2, 60_000_000, true)],
     recommandee: "r2", comparaison: null, choix });
 
-  it("classées, la recommandée est la moins chère des conformes ; un autre choix se motive", async () => {
+  it("classées par rendement net, la recommandée est la meilleure des conformes ; un autre choix se motive", async () => {
     const appels = simulerApi({ ...dossier("admin_client", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: reponses(),
       [`POST /organisations/${ORG}/fiches/f1/choix`]: reponses({ reponse_id: "r1", assureur: "Piège", motif: "Service", choisi_le: "2026-09-26T10:00:00", recommandee: false }) });
     ouvrir(`/dossier/${ORG}/cahier/f1`);
     const piege = within(await screen.findByText("1. Piège").then((h) => h.closest("[data-reponse]") as HTMLElement));
     expect(piege.getByText("1 écart")).toBeInTheDocument();
     const a = within(document.querySelector('[data-reponse="Assureur A"]') as HTMLElement);
-    expect(a.getByText("Recommandée")).toBeInTheDocument();
+    expect(a.getByText("Recommandée · meilleur rendement net")).toBeInTheDocument();
     expect(a.getByRole("button", { name: "Retenir Assureur A" })).toBeEnabled();
     expect(piege.getByRole("button", { name: "Retenir Piège" })).toBeDisabled();
     await userEvent.type(piege.getByLabelText("Pourquoi Piège"), "Service");
     await userEvent.click(piege.getByRole("button", { name: "Retenir Piège" }));
     await waitFor(() => expect(appels.some((x) => x.chemin.endsWith("/choix"))).toBe(true));
     expect(JSON.parse(appels.find((x) => x.chemin.endsWith("/choix"))!.init!.body as string)).toEqual({ reponse_id: "r1", motif: "Service" });
+  });
+
+  it("la page Offres montre les offres du dernier cahier ; l'entreprise en ajoute une pour comparer", async () => {
+    const avec = { ...reponses(), reponses: [reponse("r2", "Assureur A", 1, 60_000_000, true, { rendement_net: 0.0312, taux_servi: 0.0365 })] };
+    const appels = simulerApi({ ...dossier("admin_client", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: avec,
+      [`POST /organisations/${ORG}/fiches/f1/reponses/comparaison`]: reponse("r9", "Devis direct", 2, 1, true, { pour_comparaison: true }) });
+    ouvrir(`/dossier/${ORG}/financement`);
+    const a = within((await screen.findByText("1. Assureur A")).closest("[data-reponse]") as HTMLElement);
+    expect(a.getByText("3,12 %", { selector: ".gros" })).toBeInTheDocument();       // le rendement net, en grand
+    expect(a.getByText(/Taux servi 3,65 % − frais 0,53 %/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ajouter une offre pour comparer" }));
+    await userEvent.type(screen.getByLabelText("Assureur"), "Devis direct");
+    for (const [champ, v] of [["Taux garanti (%)", "3"], ["Participation (%)", "90"], ["Frais sur cotisations (%)", "1"], ["Frais sur encours (%/an)", "0.3"]])
+      await userEvent.type(screen.getByLabelText(champ), v);
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer la réponse" }));
+    await waitFor(() => expect(appels.some((x) => x.chemin === `/organisations/${ORG}/fiches/f1/reponses/comparaison`)).toBe(true));
+  });
+
+  it("une offre ajoutée pour comparer se classe, ne se retient pas, et se retire", async () => {
+    const avec = { ...reponses(), recommandee: "r2", reponses: [
+      reponse("r9", "Devis direct", 1, 1, true, { pour_comparaison: true, rendement_net: 0.04, taux_servi: 0.04 }),
+      reponse("r2", "Assureur A", 2, 60_000_000, true, { rendement_net: 0.03, taux_servi: 0.035 })] };
+    simulerApi({ ...dossier("admin_client", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: avec });
+    ouvrir(`/dossier/${ORG}/cahier/f1`);
+    const devis = within((await screen.findByText("1. Devis direct")).closest("[data-reponse]") as HTMLElement);
+    expect(devis.getByText("Ajoutée par vous · pour comparaison")).toBeInTheDocument();
+    expect(devis.queryByRole("button", { name: /Retenir/ })).toBeNull();
+    expect(devis.getByRole("button", { name: "Retirer mon offre" })).toBeInTheDocument();
   });
 
   it("l'étude et les réponses s'exportent en Excel, sous un nom qui dit ce qu'elles sont", async () => {
@@ -657,7 +671,7 @@ describe("une plateforme neuve", () => {
     await userEvent.click(screen.getByRole("button", { name: "Inscrire" }));
     await waitFor(() => expect(appels.some((a) => a.chemin === `/organisations/${ORG}/membres`)).toBe(true));
     const envoi = appels.find((a) => a.chemin === `/organisations/${ORG}/membres`)!;
-    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", fonction: "", telephone: "699001122", role: "admin_client" });
+    expect(JSON.parse(envoi.init!.body as string)).toEqual({ nom_affiche: "Mme DRH", fonction: "", telephone: "+237699001122", role: "admin_client" });
   });
 });
 
@@ -948,11 +962,11 @@ describe("reprendre où l'on s'était arrêté", () => {
 describe("l'aide propre à chaque page", () => {
   it("chaque page du dossier a son aide", async () => {
     const { chapitresDe } = await import("../composants/AidePage");
-    for (const page of ["", "personnel", "regime", "simulation", "etudes", "financement", "cahier",
+    for (const page of ["", "personnel", "regime", "etudes", "financement", "cahier",
                         "contrat", "departs", "dossiers", "equipe"]) {
       expect(chapitresDe(page).length, `page « ${page} »`).toBeGreaterThan(0);
     }
-    expect(chapitresDe("etudes").map((c) => c.id)).toEqual(["etude", "comprendre", "methode"]);
+    expect(chapitresDe("etudes").map((c) => c.id)).toEqual(["etude", "simulation", "comprendre", "methode"]);
   });
 
   it("le bouton ouvre le chapitre de la page, ses mots, et le lien vers le guide", async () => {
@@ -974,7 +988,7 @@ describe("l'aide propre à chaque page", () => {
     await userEvent.keyboard("?");
     const aide = screen.getByRole("dialog", { name: "Aide sur cette page" });
     expect(within(aide).getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(
-      ["3. L'étude et le rapport", "Comment se calcule l'engagement", "La méthode actuarielle en détail", "Les mots de cette page"]);
+      ["3. L'étude et le rapport", "Comparer des régimes", "Comment se calcule l'engagement", "La méthode actuarielle en détail", "Les mots de cette page"]);
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await userEvent.keyboard("{Control>}k{/Control}");
@@ -1082,8 +1096,11 @@ describe("le comparatif des régimes", () => {
       resultat("Accord, version 1", 1_200_000, { M1: 600_000, M2: 200_000 }, { Cadre: [0, 2, 4], "*": [0, 1, 2] }),
       resultat("Accord, version 2", 900_000, { M1: 300_000, M2: 250_000 }, { "*": [0, 1.5, 2.5] }),
     ] } });
-    ouvrir(`/dossier/${ORG}/simulation`);
-    await userEvent.click(await screen.findByRole("button", { name: "Simuler" }));
+    // « Simuler » a rejoint la page Étude : l'ancienne adresse y mène, le volet de comparaison s'y ouvre.
+    ouvrir(`/dossier/${ORG}/simulation?version=x`);
+    const pli = (await screen.findByText("Comparer des régimes avant d'étudier")).closest("details")!;
+    expect(pli).toHaveAttribute("open");
+    await userEvent.click(within(pli as HTMLElement).getByRole("button", { name: "Comparer" }));
     const bloc = within((await screen.findByRole("heading", { name: "Comparer les régimes" })).closest(".comparatif") as HTMLElement);
     // Les noms communs se raccourcissent : « version 1 », « version 2 », pas deux « Accord, … » identiques.
     expect(bloc.getAllByText("version 1").length).toBeGreaterThan(0);
@@ -1174,7 +1191,7 @@ describe("les versions du régime", () => {
     // Le lecteur : lire, analyser, comparer, télécharger ce qui est émis ; rien d'autre.
     const m = await menu(2);
     expect(m.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(
-      ["Note aux salariés (PDF)", "Émettre la note aux assureurs (PDF)Pas encore émise.", "Analyser : légalité, pièges, coûts", "Comparer dans Simuler"]);
+      ["Note aux salariés (PDF)", "Émettre la note aux assureurs (PDF)Pas encore émise.", "Analyser : légalité, pièges, coûts", "Comparer avec d'autres"]);
     expect(screen.queryByRole("button", { name: "Faire le ménage" })).toBeNull();
   });
 
@@ -1186,7 +1203,7 @@ describe("les versions du régime", () => {
     ouvrir(`/dossier/${ORG}/regime`);
     let m = await menu(3);
     expect(m.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Modifier", "Dupliquer",
-      "Analyser : légalité, pièges, coûts", "Comparer dans Simuler", "Adopter…", "Supprimer (et 2 études en brouillon)"]);
+      "Analyser : légalité, pièges, coûts", "Comparer avec d'autres", "Adopter…", "Supprimer (et 2 études en brouillon)"]);
     await userEvent.click(m.getByRole("menuitem", { name: "Modifier" }));
     await userEvent.click(screen.getByRole("button", { name: "Enregistrer les corrections" }));
     await waitFor(() => expect(appels.some((a) => a.init?.method === "PUT")).toBe(true));
@@ -1256,7 +1273,7 @@ describe("l'équipe du dossier", () => {
     await userEvent.click(screen.getByRole("button", { name: "Inscrire" }));
     await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
     expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string)).toEqual(
-      { nom_affiche: "M. DAF", fonction: "DAF", role: "contributeur_client", telephone: "+237 6 99 00 00 22" });
+      { nom_affiche: "M. DAF", fonction: "DAF", role: "contributeur_client", telephone: "+237699000022" });
   });
 
   it("le menu ⋮ d'un membre : modifier ; retirer, grisé avec sa raison pour le dernier administrateur", async () => {
@@ -1421,31 +1438,38 @@ describe("la bascule FR/EN", () => {
 });
 
 describe("nettoyer le dossier", () => {
-  const inventaire = { fichiers: { total: 2, actifs: 2, lignes: 46 }, brouillons: { etudes: 1, versions: 1 },
-    etudes_emises: { total: 2, supprimables: 1, citees_par_un_cahier: 1 }, documents: 3, confirmation: "NETTOYER" };
-
-  it("archive, choix, confirmation écrite ; puis ce qui est parti", async () => {
-    const appels = simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/nettoyage`]: inventaire,
-      [`POST /organisations/${ORG}/nettoyage`]: { etudes_brouillon: 1, versions_brouillon: 1, etudes_emises: 0,
-        fichiers_alleges: 2, fichiers_supprimes: 0 } });
-    ouvrir(`/dossier/${ORG}/equipe`);
-    await userEvent.click(await screen.findByRole("button", { name: "Nettoyer le dossier…" }));
-    expect(await screen.findByText(/1 citée\(s\) par un cahier des charges restent/)).toBeInTheDocument();
-    const nettoyer = screen.getByRole("button", { name: "Nettoyer" });
-    expect(nettoyer).toBeDisabled();
-    await userEvent.type(screen.getByLabelText("Confirmation"), "nettoyer");
-    expect(nettoyer).toBeEnabled();
-    await userEvent.click(nettoyer);
-    await waitFor(() => expect(appels.some((a) => a.init?.method === "POST")).toBe(true));
-    expect(JSON.parse(appels.find((a) => a.init?.method === "POST")!.init!.body as string)).toEqual(
-      { fichiers: "alleger", brouillons: true, etudes_emises: false, confirmation: "nettoyer" });
-    expect(await screen.findByText("2 fichier(s) du personnel allégé(s)")).toBeInTheDocument();
-  });
-
-  it("la lecture seule ne nettoie pas", async () => {
-    simulerApi(dossier("lecteur_client"));
+  it("n'est plus offert sur la page Équipe", async () => {
+    simulerApi(dossier("admin_client"));
     ouvrir(`/dossier/${ORG}/equipe`);
     await screen.findByRole("heading", { name: "Équipe du dossier" });
-    expect(screen.queryByRole("button", { name: "Nettoyer le dossier…" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Nettoyer le dossier/ })).toBeNull();
+  });
+});
+
+describe("les départs attendent le contrat", () => {
+  it("avant le contrat : la page dit ce qui l'ouvre, et rien ne se déclare", async () => {
+    const d = dossier("admin_client");
+    const act = d[`/organisations/${ORG}/activation`] as { capacites: Record<string, boolean> };
+    act.capacites.departs = false;
+    simulerApi({ ...d, [`/organisations/${ORG}/prestations`]: { prestations: [], totaux: { nombre: 0, retraites: 0,
+      autres_departs: 0, du: 0, verse: 0, part_fonds_payee: 0 } }, [`/organisations/${ORG}/contrats`]: { service: "comparaison" } });
+    ouvrir(`/dossier/${ORG}/departs`);
+    expect(await screen.findByRole("heading", { name: "Les départs s'ouvrent avec votre contrat" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Déclarer un départ" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Le contrat signé et en vigueur" })).toHaveAttribute("href", `/dossier/${ORG}/placement`);
+    expect(screen.getByLabelText("pas encore ouvert")).toBeInTheDocument();
+  });
+});
+
+describe("l'accompagnement en tête du parcours", () => {
+  it("un mandat proposé devient l'étape suivante, en tête du menu", async () => {
+    const d = dossier("admin_client");
+    (d[`/organisations/${ORG}/activation`] as { capacites: Record<string, boolean> }).capacites.cahier = false;  // pas encore sous mandat
+    simulerApi({ ...d, [`/organisations/${ORG}/mandats`]: { mandats: [{ statut: "propose" }] } });
+    ouvrir(`/dossier/${ORG}`);
+    const parcours = await screen.findByRole("link", { name: /^Accompagnement/ });
+    expect(parcours.closest("li")).toHaveClass("suivant");
+    expect(parcours.closest("ol")!.querySelector("li:nth-child(2) a")).toBe(parcours);   // après le tableau de bord
+    expect(await screen.findByText(/Un mandat de courtage vous attend/)).toBeInTheDocument();
   });
 });

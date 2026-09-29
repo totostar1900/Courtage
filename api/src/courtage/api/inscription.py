@@ -14,7 +14,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Justificatif, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.langue import t
-from courtage.services import activation, avis, inscription, journaliser, messages
+from courtage.services import activation, avis, inscription, journaliser, mandats, messages
 
 from . import COOKIE, identite, session_db
 from .limites import limite
@@ -45,6 +45,12 @@ class Entreprise(_Corps):
     ville: str | None = Field(default=None, max_length=120)
 
 
+class Accompagnement(_Corps):
+    """La demande d'accompagnement, dite dès l'inscription (spec 2026-09-29 parcours client §6)."""
+    besoins: list[str] = Field(min_length=1, max_length=10)
+    message: str | None = Field(default=None, max_length=2000)
+
+
 class Inscription(_Corps):
     telephone: str = Field(min_length=3, max_length=30)
     preuve_telephone: str = Field(max_length=200)
@@ -54,6 +60,7 @@ class Inscription(_Corps):
     fonction: str | None = Field(default=None, max_length=80)
     entreprise: Entreprise
     conditions: str | None = Field(default=None, max_length=60)   # la version acceptée
+    accompagnement: Accompagnement | None = None
     application: bool = False
 
 
@@ -93,6 +100,10 @@ def inscrire(corps: Inscription, request: Request, session: Session = Depends(se
         conditions=corps.conditions)
     avis.prevoir(session, "inscription_nouvelle", avis.plateforme(session), auteur=utilisateur.id, org=org.id,
                  entreprise=org.nom)
+    if corps.accompagnement:
+        # Dans la même transaction : une demande refusée (besoin inconnu) défait l'inscription, rien n'est à moitié fait.
+        mandats.demander(session, org, utilisateur.id, corps.accompagnement.besoins, corps.accompagnement.message,
+                         date.today())
     jeton = auth.ouvrir_session(session, utilisateur, request.headers.get("user-agent"))
     corps_reponse = {"organisation_id": str(org.id), "utilisateur": {"id": str(utilisateur.id), "nom_affiche": utilisateur.nom_affiche},
                      "activation": activation.en_clair(session, org, date.today())}

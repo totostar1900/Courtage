@@ -8,36 +8,46 @@ import { langue, t } from "../i18n";
 import type { CritereConformite, ReponseAssureur, ReponsesFiche } from "../types";
 import { useDossier } from "./Dossier";
 import Consultations from "../composants/Consultations";
-import { Comparaison } from "./Financement";
+import { Comparaison } from "../composants/ComparaisonOffres";
+import { DepotFichier } from "../composants/DepotFichier";
 
 const valeur = (c: CritereConformite, x: number | boolean | null) =>
   x === null ? t("non renseigné", "not stated") : typeof x === "boolean" ? (x ? t("oui", "yes") : t("non", "no"))
     : c.critere.endsWith("_jours") || c.critere.endsWith("_mois") ? String(x) : pct(x);
 
-/** Les réponses des assureurs à un cahier des charges : confrontées, classées ; l'entreprise choisit. */
+/** Les réponses des assureurs à un cahier des charges, à son adresse (« Cahier des charges › Réponses »). */
 export default function Reponses() {
-  const d = useDossier();
   const { fiche } = useParams();
+  return <ReponsesDeLaFiche fiche={fiche!} retour />;
+}
+
+/** Les offres des assureurs à un cahier des charges : apportées par le conseiller (ou déposées par l'assureur sur son
+ *  lien), confrontées aux conditions, classées par rendement net ; l'entreprise peut en ajouter une pour comparer, et
+ *  choisit. */
+export function ReponsesDeLaFiche({ fiche, retour }: { fiche: string; retour?: boolean }) {
+  const d = useDossier();
   const base = `/organisations/${d.org.id}/fiches/${fiche}`;
   const { donnee: x, erreur, recharger } = useCharge(() => api.get<ReponsesFiche>(`${base}/reponses`), [fiche]);
-  const [volet, setVolet] = useState<null | "saisir" | { corriger: ReponseAssureur }>(null);
+  const [volet, setVolet] = useState<null | "saisir" | "comparer" | { corriger: ReponseAssureur }>(null);
   const [erreurExport, setErreurExport] = useState<unknown>(null);
   const numero = d.fiches.find((f) => f.id === fiche)?.numero;
   if (erreur) return <Erreur erreur={erreur} />;
   if (!x) return <p className="discret">{t("Chargement…", "Loading…")}</p>;
-  // Le courtier saisit les réponses des assureurs ; l'entreprise les lit et choisit.
+  // Le courtier saisit les réponses des assureurs ; l'entreprise les lit, peut en ajouter une pour comparer, et choisit.
   const ecrit = d.role === "conseiller" && !x.choix;
+  const entreprise = d.role === "admin_client" || d.role === "contributeur_client";
+  const duConseiller = x.reponses.filter((r) => !r.pour_comparaison).length;
 
   return (
     <>
-      <p><Link to="..">{t("← Cahiers des charges", "← Tender specifications")}</Link></p>
-      <h1>{t("Réponses des assureurs", "Insurers' responses")}</h1>
-      <p className="discret">{t(`Cahier ${numero} · réponses attendues avant le ${dateFr(x.date_limite_reponse)}. Chaque réponse est `
-        + "confrontée aux conditions demandées, puis classée par son coût net actualisé ; la recommandée est la moins chère des "
-        + "conformes. Le choix appartient à l'entreprise.",
-        `Specifications ${numero} · responses due by ${dateFr(x.date_limite_reponse)}. Each response is checked against the `
-        + "required terms, then ranked by its discounted net cost; the recommended one is the cheapest of the compliant ones. "
-        + "The choice belongs to the company.")}</p>
+      {retour && <p><Link to="..">{t("← Cahiers des charges", "← Tender specifications")}</Link></p>}
+      <h1>{t("Les offres des assureurs", "The insurers' offers")}</h1>
+      <p className="discret">{t(`Cahier ${numero} · offres attendues avant le ${dateFr(x.date_limite_reponse)}. Chaque offre est `
+        + "confrontée aux conditions demandées, puis classée par son rendement net : ce qu'elle rapporte à votre fonds une fois "
+        + "tous les frais payés. La recommandée est la meilleure des conformes. Le choix vous appartient.",
+        `Specifications ${numero} · offers due by ${dateFr(x.date_limite_reponse)}. Each offer is checked against the `
+        + "required terms, then ranked by its net return: what it earns your fund once all charges are paid. The recommended "
+        + "one is the best of the compliant ones. The choice is yours.")}</p>
       {x.reponses.length > 0 && (
         <div className="actions" style={{ marginTop: 0 }}>
           <button type="button" onClick={() => { setErreurExport(null);
@@ -68,34 +78,49 @@ export default function Reponses() {
       {ecrit && !volet && (
         <div className="actions section"><button className="principal" onClick={() => setVolet("saisir")}>{t("Saisir une réponse", "Enter a response")}</button></div>
       )}
+      {entreprise && !x.choix && duConseiller > 0 && !volet && (
+        <div className="actions section">
+          <button onClick={() => setVolet("comparer")}>{t("Ajouter une offre pour comparer", "Add an offer to compare")}</button>
+          <span className="discret">{t("Un devis reçu directement : il se classe avec les autres, sans pouvoir être retenu.", "A quote you received directly: it is ranked with the others, but cannot be chosen.")}</span>
+        </div>
+      )}
       {volet === "saisir" && <FormulaireReponse base={base} onFermer={() => setVolet(null)} onFait={() => { setVolet(null); recharger(); }} />}
+      {volet === "comparer" && <FormulaireReponse base={base} comparaison onFermer={() => setVolet(null)} onFait={() => { setVolet(null); recharger(); }} />}
       {volet && typeof volet === "object" && (
         <FormulaireReponse base={base} corriger={volet.corriger} onFermer={() => setVolet(null)} onFait={() => { setVolet(null); recharger(); }} />
       )}
 
-      {x.reponses.length === 0 ? <p className="section">{t("Aucune réponse pour l'instant.", "No responses yet.")}</p> : (
+      {x.reponses.length === 0 ? (
+        <div className="carte section vide">
+          <h2>{t("Aucune offre pour l'instant", "No offers yet")}</h2>
+          <p>{t("Votre conseiller consulte les assureurs sur ce cahier des charges ; leurs offres arrivent ici, classées, dès qu'elles sont reçues.",
+            "Your adviser is consulting insurers on these specifications; their offers arrive here, ranked, as soon as they are received.")}</p>
+        </div>
+      ) : (
         <div className="grille g2 section">
           {x.reponses.map((r) => (
             <CarteReponse key={r.id} r={r} base={base} recommandee={r.id === x.recommandee} ecrit={ecrit}
-                          peutChoisir={d.role === "admin_client" && !x.choix}
+                          peutChoisir={d.role === "admin_client" && !x.choix && !r.pour_comparaison}
+                          peutRetirerComparaison={entreprise && !x.choix && Boolean(r.pour_comparaison)}
                           onCorriger={() => setVolet({ corriger: r })} onFait={recharger} />
           ))}
         </div>
       )}
 
       {x.comparaison && (
-        <details className="carte section repli">
-          <summary>{t("Le détail des projections (sous les trois scénarios)", "Projection details (under the three scenarios)")}</summary>
-          <Comparaison r={x.comparaison} />
+        <details className="pli section">
+          <summary><span>{t("Le détail des projections", "Projection details")}</span>
+            <span className="discret">{t("chaque offre sous les trois scénarios de rendement", "each offer under the three return scenarios")}</span></summary>
+          <div className="pli-corps"><Comparaison r={x.comparaison} /></div>
         </details>
       )}
     </>
   );
 }
 
-function CarteReponse({ r, base, recommandee, ecrit, peutChoisir, onCorriger, onFait }: {
+function CarteReponse({ r, base, recommandee, ecrit, peutChoisir, peutRetirerComparaison, onCorriger, onFait }: {
   r: ReponseAssureur; base: string; recommandee: boolean; ecrit: boolean; peutChoisir: boolean;
-  onCorriger: () => void; onFait: () => void;
+  peutRetirerComparaison?: boolean; onCorriger: () => void; onFait: () => void;
 }) {
   const [motif, setMotif] = useState("");
   const [retrait, setRetrait] = useState(false);
@@ -108,7 +133,8 @@ function CarteReponse({ r, base, recommandee, ecrit, peutChoisir, onCorriger, on
   }
   return (
     <div className={`carte offre ${recommandee ? "meilleure" : ""}`} data-reponse={r.assureur}>
-      {recommandee && <span className="badge">{t("Recommandée", "Recommended")}</span>}
+      {recommandee && <span className="badge">{t("Recommandée · meilleur rendement net", "Recommended · best net return")}</span>}
+      {r.pour_comparaison && <span className="badge badge-neutre">{t("Ajoutée par vous · pour comparaison", "Added by you · for comparison")}</span>}
       <div className="actions" style={{ marginTop: recommandee ? 6 : 0, justifyContent: "space-between" }}>
         <h3 style={{ margin: 0 }}>{r.rang}. {r.assureur}</h3>
         {r.conforme ? <span className="etat bien">{t("Conforme", "Compliant")}</span> : <span className="etat attention">
@@ -117,8 +143,14 @@ function CarteReponse({ r, base, recommandee, ecrit, peutChoisir, onCorriger, on
       </div>
       <div className="discret">{t("Reçue le", "Received on")} {dateFr(r.recue_le)}{r.tardive && t(" · après la date limite", " · after the deadline")}
         {r.deposee_par_assureur && <>{" · "}<span className="etat neutre">{t("déposée par l'assureur", "uploaded by the insurer")}</span></>}</div>
-      <div className="discret section" style={{ marginTop: 8 }}>{t("Coût net actualisé (scénario central)", "Discounted net cost (central scenario)")}</div>
-      <div className="gros">{r.cout_net_actualise === null ? "—" : millions(r.cout_net_actualise)}</div>
+      <div className="discret section" style={{ marginTop: 8 }}>{t("Rendement net pour votre fonds (scénario central)", "Net return for your fund (central scenario)")}</div>
+      <div className="gros">{pct(r.rendement_net ?? null, 2)}</div>
+      {r.taux_servi != null && r.rendement_net != null && (
+        <div className="decomposition discret">
+          {t("Taux servi", "Rate credited")} {pct(r.taux_servi, 2)} − {t("frais", "charges")} {pct(r.taux_servi - r.rendement_net, 2)} = <strong>{pct(r.rendement_net, 2)}</strong>
+        </div>
+      )}
+      <div className="discret">{t("Coût net actualisé sur 10 ans : ", "Discounted net cost over 10 years: ")}{r.cout_net_actualise === null ? "—" : millions(r.cout_net_actualise)}</div>
       <table className="section"><tbody>
         {r.conformite.map((c) => (
           <tr key={c.critere}><td>{c.libelle}</td>
@@ -135,6 +167,7 @@ function CarteReponse({ r, base, recommandee, ecrit, peutChoisir, onCorriger, on
         {r.offre && <button className="lien" onClick={() => api.ouvrir(`${base}/reponses/${r.id}/offre`)}>{t("L'offre (PDF)", "The offer (PDF)")}</button>}
         {ecrit && <button onClick={onCorriger}>{t("Corriger", "Correct")}</button>}
         {ecrit && !retrait && <button onClick={() => setRetrait(true)}>{t("Retirer", "Withdraw")}</button>}
+        {peutRetirerComparaison && <button onClick={() => agir(`reponses/${r.id}/retrait-comparaison`, {})}>{t("Retirer mon offre", "Remove my offer")}</button>}
       </div>
       {retrait && (
         <div className="actions">
@@ -156,8 +189,8 @@ function CarteReponse({ r, base, recommandee, ecrit, peutChoisir, onCorriger, on
   );
 }
 
-function FormulaireReponse({ base, corriger, onFermer, onFait }: {
-  base: string; corriger?: ReponseAssureur; onFermer: () => void; onFait: () => void;
+function FormulaireReponse({ base, corriger, comparaison, onFermer, onFait }: {
+  base: string; corriger?: ReponseAssureur; comparaison?: boolean; onFermer: () => void; onFait: () => void;
 }) {
   const [erreur, setErreur] = useState<unknown>(null);
   const [offre, setOffre] = useState<File | null>(null);
@@ -184,7 +217,10 @@ function FormulaireReponse({ base, corriger, onFermer, onFait }: {
     envoi.append("donnees", JSON.stringify(donnees));
     if (offre) envoi.append("offre", offre);
     setErreur(null);
-    try { await api.post(c ? `${base}/reponses/${c.id}/correction` : `${base}/reponses`, envoi); onFait(); }
+    try {
+      await api.post(c ? `${base}/reponses/${c.id}/correction` : comparaison ? `${base}/reponses/comparaison` : `${base}/reponses`, envoi);
+      onFait();
+    }
     catch (e) { setErreur(e); }
   }
   const choixOui = (nom: string, v: boolean | null | undefined) => (
@@ -193,7 +229,8 @@ function FormulaireReponse({ base, corriger, onFermer, onFait }: {
       <option value="non">{t("non", "no")}</option></select>
   );
   return (
-    <Volet titre={c ? t(`Corriger la réponse de ${c.assureur}`, `Correct ${c.assureur}'s response`) : t("Saisir une réponse", "Enter a response")} onFermer={onFermer} className="section">
+    <Volet titre={c ? t(`Corriger la réponse de ${c.assureur}`, `Correct ${c.assureur}'s response`)
+      : comparaison ? t("Ajouter une offre pour comparer", "Add an offer to compare") : t("Saisir une réponse", "Enter a response")} onFermer={onFermer} className="section">
       <form className="formulaire" onSubmit={envoyer}>
         <p className="discret">{t("La grille du cahier des charges, telle que l'assureur l'a remplie. Laissez vide ce qu'il n'a pas dit : "
           + "c'est signalé, pas deviné.", "The tender specifications grid, as the insurer filled it in. Leave blank what it did "
@@ -213,7 +250,7 @@ function FormulaireReponse({ base, corriger, onFermer, onFait }: {
           <label>{t("Participation servie (5 ans)", "Profit sharing paid (5 years)")}<input name="historique_participation" defaultValue={c?.historique_participation ?? ""} placeholder="3,1 % ; 3,4 % ; …" /></label>
         </div>
         <label>{t("Commentaire", "Comment")}<input name="commentaire" defaultValue={c?.commentaire ?? ""} /></label>
-        <label>{t("L'offre de l'assureur (PDF, facultatif)", "The insurer's offer (PDF, optional)")}<input type="file" accept=".pdf" onChange={(e) => setOffre(e.target.files?.[0] ?? null)} /></label>
+        <DepotFichier libelle={t("L'offre de l'assureur (PDF, facultatif)", "The insurer's offer (PDF, optional)")} accept=".pdf" fichier={offre} onChange={setOffre} />
         {c && <label>{t("Pourquoi cette correction ?", "Why this correction?")}<input name="motif_correction" required /></label>}
         <div className="actions"><button className="principal">{c ? t("Enregistrer la correction", "Save the correction") : t("Enregistrer la réponse", "Save the response")}</button></div>
         <Erreur erreur={erreur} />

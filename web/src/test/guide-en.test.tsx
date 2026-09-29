@@ -60,7 +60,7 @@ describe("the guide in English", () => {
     await userEvent.type(await screen.findByRole("searchbox", { name: "Search the guide" }), "tender specifications");
     const resultats = within(document.querySelector(".guide-texte") as HTMLElement);
     expect(resultats.getByRole("heading", { level: 2, name: "Chapters" })).toBeInTheDocument();
-    expect(resultats.getByRole("link", { name: "5. The tender specifications" })).toBeInTheDocument();
+    expect(resultats.getByRole("link", { name: "4. The tender specifications" })).toBeInTheDocument();
   });
 
   it("the lists follow the language without being re-imported", () => {

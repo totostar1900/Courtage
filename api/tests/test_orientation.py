@@ -1,11 +1,19 @@
 """Hors mandat : la fiche de calcul scellée, et ce que l'assureur a payé, déclaré par l'entreprise."""
 import pymupdf
+import pytest
 from sqlalchemy import text
 
-from tests.outils import V1, en_tant_que
+from tests.outils import V1, en_tant_que, sous_contrat
 from tests.test_dossiers import COURTAGE, IDENTITE
 from tests.test_prestations import DEPART
 
+
+
+@pytest.fixture(autouse=True)
+def _sous_contrat(request):
+    """Les départs s'ouvrent sous un contrat en vigueur (activation « departs ») : AZITO y est, depuis 2021."""
+    if "azito" in request.fixturenames:
+        sous_contrat(request.getfixturevalue("client"), request.getfixturevalue("azito"))
 
 
 def u(a, suite=""):

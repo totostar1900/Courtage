@@ -481,12 +481,14 @@ def lister_prestations(a: Acces = Depends(acces(*TOUS))):
 @routeur.post("/organisations/{organisation_id}/prestations/apercu")
 def apercu_prestation(corps: NouvellePrestation, a: Acces = Depends(acces(*CLIENT))):
     """Le dû et les constats d'une saisie, avant de l'enregistrer."""
+    activation.exiger(a.session, a.organisation, "departs")
     return prestations.apercu(a.session, corps.saisie())
 
 
 @routeur.post("/organisations/{organisation_id}/prestations/import")
 async def importer_prestations(fichier: UploadFile = File(...), convention_code: str | None = Form(default=None),
                                enregistrer: bool = Form(default=False), a: Acces = Depends(acces(*CLIENT))):
+    activation.exiger(a.session, a.organisation, "departs")
     r = prestations.importer(a.session, a.organisation, a.utilisateur.id, contenu=await fichier.read(),
                              nom_fichier=fichier.filename or "departs", convention_code=convention_code or None,
                              enregistrer_=enregistrer)
@@ -495,12 +497,14 @@ async def importer_prestations(fichier: UploadFile = File(...), convention_code:
 
 @routeur.post("/organisations/{organisation_id}/prestations", status_code=201)
 def enregistrer_prestation(corps: NouvellePrestation, a: Acces = Depends(acces(*CLIENT))):
+    activation.exiger(a.session, a.organisation, "departs")
     p = prestations.enregistrer(a.session, a.organisation, a.utilisateur.id, corps.saisie())
     return prestations.en_clair(a.session, p)
 
 
 @routeur.post("/organisations/{organisation_id}/prestations/{prestation_id}/correction", status_code=201)
 def corriger_prestation(prestation_id: uuid.UUID, corps: CorrectionPrestation, a: Acces = Depends(acces(*CLIENT))):
+    activation.exiger(a.session, a.organisation, "departs")
     donnees = corps.model_dump()
     motif = donnees.pop("motif_correction")
     p = prestations.corriger(a.session, a.organisation, a.utilisateur.id, prestation_id,
@@ -586,6 +590,7 @@ def lister_dossiers(a: Acces = Depends(acces(*TOUS))):
 
 @routeur.post("/organisations/{organisation_id}/dossiers")
 def ouvrir_dossier(corps: NouveauDossier, a: Acces = Depends(acces(*ENTREPRISE))):
+    activation.exiger(a.session, a.organisation, "departs")
     d = dossiers.ouvrir(a.session, a.organisation, a.utilisateur.id, prestation_id=corps.prestation_id,
                         montant_demande=corps.montant_demande, beneficiaire=corps.beneficiaire.model_dump(),
                         aujourd_hui=date.today())
@@ -1162,6 +1167,24 @@ async def saisir_reponse(fiche_id: uuid.UUID, donnees: str = Form(...), offre: U
     return reponses.en_clair(r, fiche)
 
 
+@routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/comparaison", status_code=201)
+async def ajouter_offre_comparaison(fiche_id: uuid.UUID, donnees: str = Form(...), offre: UploadFile | None = File(default=None),
+                                    a: Acces = Depends(acces("admin_client", "contributeur_client"))):
+    """Un devis reçu directement par l'entreprise, ajouté pour comparaison : classé avec les autres, jamais retenu."""
+    fiche = reponses.obtenir_fiche(a.session, fiche_id)
+    r = reponses.ajouter_pour_comparaison(a.session, a.organisation, a.utilisateur.id, fiche,
+                                          _donnees(donnees, SaisieReponse), offre=await _offre(offre))
+    return reponses.en_clair(r, fiche)
+
+
+@routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/{reponse_id}/retrait-comparaison",
+              status_code=201)
+def retirer_offre_comparaison(fiche_id: uuid.UUID, reponse_id: uuid.UUID,
+                              a: Acces = Depends(acces("admin_client", "contributeur_client"))):
+    fiche = reponses.obtenir_fiche(a.session, fiche_id)
+    return reponses.en_clair(reponses.retirer_comparaison(a.session, a.organisation, a.utilisateur.id, fiche, reponse_id), fiche)
+
+
 @routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/{reponse_id}/correction", status_code=201)
 async def corriger_reponse(fiche_id: uuid.UUID, reponse_id: uuid.UUID, donnees: str = Form(...),
                            offre: UploadFile | None = File(default=None), a: Acces = Depends(acces(*CONSEIL))):
@@ -1197,7 +1220,9 @@ def choisir_reponse(fiche_id: uuid.UUID, corps: Choix, a: Acces = Depends(acces(
 
 @routeur.get("/organisations/{organisation_id}/fiches")
 def lister_fiches(a: Acces = Depends(acces(*TOUS))):
-    return [{k: v for k, v in fiches.en_clair(f, n).items() if k != "contenu"} for f, n in fiches.lister(a.session)]
+    # « attribuee » : une offre a été retenue (le parcours de l'entreprise s'en sert).
+    return [{**{k: v for k, v in fiches.en_clair(f, n).items() if k != "contenu"},
+             "attribuee": reponses.choix(a.session, f) is not None} for f, n in fiches.lister(a.session)]
 
 
 @routeur.get("/organisations/{organisation_id}/fiches/{fiche_id}")

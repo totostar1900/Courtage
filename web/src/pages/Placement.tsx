@@ -6,6 +6,7 @@ import { Erreur, useCharge, Volet } from "../composants/communs";
 import { dateFr, montant } from "../format";
 import { t } from "../i18n";
 import { useDossier } from "./Dossier";
+import { DepotFichier } from "../composants/DepotFichier";
 
 interface Piece { id: string; nature: string; nom_fichier: string; depose_le: string; appel_id: string | null;
   releve_le: string | null; montant_fonds: number | null }
@@ -130,8 +131,7 @@ function Depot({ libelle, envoyer, children }: { libelle: string; envoyer: (fich
   return (
     <form className="formulaire depot" onSubmit={soumettre}>
       {children}
-      <label>{libelle}<input type="file" accept="application/pdf,image/jpeg,image/png"
-                             onChange={(e) => setFichier(e.target.files?.[0] ?? null)} /></label>
+      <DepotFichier libelle={libelle} accept="application/pdf,image/jpeg,image/png" fichier={fichier} onChange={setFichier} />
       <div className="actions"><button>{t("Déposer", "Upload")}</button></div>
       <Erreur erreur={erreur} />
     </form>

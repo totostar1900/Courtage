@@ -53,11 +53,11 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "« Essayer sans compte » calcule votre engagement à l'écran : votre personnel (300 salariés au plus), votre fonds, la convention seule ou un modèle type.",
         "Rien n'est gardé sur la plateforme ; l'estimation n'est ni scellée ni imprimable. « Enregistrer mes résultats » mène à l'inscription, qui reprend votre saisie." ] },
       { titre: "S'inscrire", texte: [
-        "Votre téléphone et votre adresse électronique sont vérifiés par un code chacun. Vous indiquez votre nom, votre fonction et l'entreprise : raison sociale, pays, numéro RCCM (obligatoire), taille, secteur, adresse. Vous acceptez les conditions d'utilisation et la politique de confidentialité ; la version acceptée reste sur votre compte (« Mon profil »).",
+        "Votre téléphone et votre adresse électronique sont vérifiés par un code chacun. Vous indiquez votre nom, votre fonction et l'entreprise : raison sociale, pays, numéro RCCM (obligatoire), taille, secteur, adresse. Vous dites enfin ce que vous attendez de votre courtier (placer l'engagement, remettre votre contrat en concurrence, faire porter vos départs, être conseillé) : c'est votre demande d'accompagnement, que votre conseiller transforme en mandat à signer. Vous acceptez les conditions d'utilisation et la politique de confidentialité ; la version acceptée reste sur votre compte (« Mon profil »).",
         "Le document RCCM peut suivre : déposez-le depuis le bandeau de votre dossier. Une entreprise n'a qu'un dossier : un numéro RCCM déjà inscrit renvoie vers son administrateur." ] },
       { titre: "En attendant la confirmation", texte: [
-        "Votre conseiller vous contacte sous deux jours ouvrés, vérifie l'entreprise et confirme l'inscription. D'ici là, tout le travail est ouvert : personnel, régime, simulations, études à l'écran, départs, messages à votre conseiller. Un courriel vous prévient de ce qui vous attend (la confirmation, un message, un mandat à signer) ; ces avis se coupent dans « Mon profil », où vous pouvez aussi les recevoir sur WhatsApp, au numéro de votre compte — le sujet et le lien, rien d'autre.",
-        "Ce qui sort de la plateforme attend la confirmation : rapports scellés, exports, notes, invitation de collègues, catalogue anonyme, mandat. Une inscription non confirmée est effacée au bout de 30 jours ; vous pouvez aussi la retirer vous-même." ] },
+        "Votre conseiller vous contacte sous deux jours ouvrés, vérifie l'entreprise et confirme l'inscription. D'ici là, tout le travail est ouvert : personnel, régime, comparaisons, études à l'écran ; votre conseiller se joint sur WhatsApp, par courriel ou au téléphone, depuis « Contact ». Un courriel vous prévient de ce qui vous attend (la confirmation, un message, un mandat à signer) ; ces avis se coupent dans « Mon profil », où vous pouvez aussi les recevoir sur WhatsApp, au numéro de votre compte — le sujet et le lien, rien d'autre.",
+        "Ce qui sort de la plateforme attend la confirmation : rapports scellés, exports, notes, invitation de collègues, catalogue anonyme, mandat. Une inscription non confirmée est effacée au bout de 30 jours." ] },
     ],
   },
   {
@@ -131,21 +131,6 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
     termes: ["regime", "plancher", "convention"],
   },
   {
-    id: "simulation", groupe: "Le parcours", titre: "Simuler", ecran: "simulation",
-    resume: "Comparer plusieurs versions de régime, ou tester une idée, avant de décider.",
-    sections: [
-      { titre: "Comparer", texte: [
-        "Cochez les versions à comparer, ou « Tester une idée de barème » : chaque variante est calculée sur le même personnel à la même date.",
-        "Chaque carte dit la dette, ce qu'elle ajoute à la convention, la charge, et qui en profite : si l'ajout va surtout aux mieux payés, la carte le signale.",
-        "Les résultats s'ouvrent dans un volet que la croix referme ; vos réglages restent." ] },
-      { titre: "Le comparatif", texte: [
-        "Sous les cartes, « Comparer les régimes » met les variantes côte à côte : la dette, la charge, la cotisation initiale et la dette par salarié, chacune avec son écart à la convention seule.",
-        "La courbe montre ce que chaque régime verse au départ, en mois de salaire, selon l'ancienneté ; elle s'ouvre sur la catégorie où les régimes diffèrent le plus. Survolez-la (ou touchez-la) pour lire les mois à une ancienneté.",
-        "« Qui gagne, qui perd » compare, salarié par salarié, l'indemnité au départ d'un régime à l'autre : combien gagnent, combien perdent, de combien en moyenne, et le plus gros écart, par matricule. Choisissez le point de comparaison et la catégorie.",
-        "« Voir le tableau » donne tous ces chiffres en un tableau." ] },
-    ],
-  },
-  {
     id: "etude", groupe: "Le parcours", titre: "3. L'étude et le rapport", ecran: "etudes",
     resume: "L'évaluation à une date de clôture, puis un rapport scellé.",
     sections: [
@@ -163,18 +148,22 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
     termes: ["dette", "charge", "fonds", "cotisation_nette", "frais_cotisation", "cotisation", "emission"],
   },
   {
-    id: "financer", groupe: "Le parcours", titre: "4. Financer l'engagement", ecran: "financement",
-    resume: "Assurance ou provision interne, sous plusieurs scénarios de rendement.",
+    id: "simulation", groupe: "Le parcours", titre: "Comparer des régimes", ecran: "etudes",
+    resume: "Comparer plusieurs versions de régime, ou tester une idée, avant de décider.",
     sections: [
-      { titre: "Comparer les offres", texte: [
-        "Saisissez les conditions de chaque offre : taux garanti, participation aux bénéfices, frais sur cotisations et sur encours. La provision interne est toujours ajoutée pour comparaison.",
-        "Chaque offre est projetée sur l'horizon choisi, sous trois scénarios de rendement : prudent (3,5 %), central (5 %) et favorable (6,5 %). La moins chère sur le scénario central est marquée.",
-        "Regardez aussi les « années sans fonds suffisant » : une offre moins chère qui laisse le fonds à découvert l'année d'un gros départ n'est pas la meilleure." ] },
+      { titre: "Comparer", texte: [
+        "Sur la page Étude, ouvrez « Comparer des régimes avant d'étudier ». Cochez les versions à comparer, ou « Tester une idée de barème » : chaque variante est calculée sur le même personnel à la même date.",
+        "Chaque carte dit la dette, ce qu'elle ajoute à la convention, la charge, et qui en profite : si l'ajout va surtout aux mieux payés, la carte le signale.",
+        "Les résultats s'ouvrent dans un volet que la croix referme ; vos réglages restent." ] },
+      { titre: "Le comparatif", texte: [
+        "Sous les cartes, « Comparer les régimes » met les variantes côte à côte : la dette, la charge, la cotisation initiale et la dette par salarié, chacune avec son écart à la convention seule.",
+        "La courbe montre ce que chaque régime verse au départ, en mois de salaire, selon l'ancienneté ; elle s'ouvre sur la catégorie où les régimes diffèrent le plus. Survolez-la (ou touchez-la) pour lire les mois à une ancienneté.",
+        "« Qui gagne, qui perd » compare, salarié par salarié, l'indemnité au départ d'un régime à l'autre : combien gagnent, combien perdent, de combien en moyenne, et le plus gros écart, par matricule. Choisissez le point de comparaison et la catégorie.",
+        "« Voir le tableau » donne tous ces chiffres en un tableau." ] },
     ],
-    termes: ["taux_garanti", "participation", "cout_net", "provision_interne", "frais_cotisation"],
   },
   {
-    id: "cahier", groupe: "Le parcours", titre: "5. Le cahier des charges", ecran: "cahier",
+    id: "cahier", groupe: "Le parcours", titre: "4. Le cahier des charges", ecran: "cahier",
     resume: "Mettre les assureurs en concurrence, sans jamais dévoiler un salarié.",
     sections: [
       { titre: "Ce qu'il contient", texte: [
@@ -183,7 +172,7 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
       { titre: "Les réponses des assureurs", texte: [
         "Chaque réponse se saisit dans la grille du cahier, avec l'offre de l'assureur en PDF si elle est jointe. Ce que l'assureur n'a pas dit reste vide : c'est signalé, pas deviné.",
         "La plateforme confronte chaque réponse aux conditions demandées, critère par critère — conforme, en écart, ou non renseigné — et signale une réponse arrivée après la date limite.",
-        "Les réponses sont classées par leur coût net actualisé, le même calcul que la comparaison d'offres. La recommandée est la moins chère des CONFORMES : une offre moins chère qui impose une pénalité de transfert ne l'est pas.",
+        "Les réponses sont classées par leur rendement net : ce qu'elles rapportent à votre fonds, tous frais payés. La recommandée est la meilleure des CONFORMES : une offre qui rapporte plus mais impose une pénalité de transfert ne l'est pas.",
         "Votre conseiller consulte chaque assureur depuis la page du cahier : l'assureur reçoit par courriel un lien personnel, valable jusqu'à la date limite, lit le cahier et dépose sa grille avec son offre en PDF, sans compte. Sa réponse rejoint les autres, marquée « déposée par l'assureur » ; « Assureurs consultés » dit qui a été consulté, quand, qui a ouvert et qui a répondu — la preuve d'une mise en concurrence loyale.",
         "Votre conseiller peut aussi saisir une réponse reçue autrement ; vous les lisez et choisissez. Retenir une autre offre que la recommandée est permis, et se motive : la raison figure au dossier. Un cahier attribué est clos ; le conseiller enregistre alors le contrat." ] },
       { titre: "Changer d'assureur", texte: [
@@ -191,6 +180,19 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "Les réponses s'exportent en Excel : le classement, la conformité critère par critère et la projection sous les trois scénarios de rendement." ] },
     ],
     termes: ["cahier", "anonymat"],
+  },
+  {
+    id: "financer", groupe: "Le parcours", titre: "5. Les offres", ecran: "financement",
+    resume: "Les offres que votre conseiller vous apporte, classées par rendement net ; vous choisissez.",
+    sections: [
+      { titre: "D'où viennent les offres", texte: [
+        "Votre conseiller consulte les assureurs sur votre cahier des charges ; leurs offres arrivent sur la page « Offres », saisies par lui ou déposées par l'assureur sur son lien. Avant la confirmation, le mandat et le cahier, la page dit ce qui vient : la plateforme ne compare pas des chiffres saisis au hasard.",
+        "Vous pouvez ajouter un devis reçu directement, « pour comparer » : il se classe avec les autres, marqué comme tel, mais ne se retient pas. Pour le retenir, demandez à votre conseiller de consulter cet assureur." ] },
+      { titre: "Le rendement net", texte: [
+        "L'offre la plus intéressante est celle qui rapporte le plus à votre fonds, une fois tout payé : le taux servi (taux garanti + participation aux bénéfices, dans le scénario central) moins les frais sur encours moins l'effet des frais sur cotisations. C'est le rendement net, calculé exactement sur vos cotisations et vos départs.",
+        "Chaque carte le montre en grand, avec sa décomposition ; la recommandée est la meilleure des offres conformes à vos conditions. Le détail des projections, sous les trois scénarios, reste replié en bas de page, avec le coût net actualisé." ] },
+    ],
+    termes: ["taux_garanti", "participation", "cout_net", "provision_interne", "frais_cotisation"],
   },
   {
     id: "contrat", groupe: "Le parcours", titre: "Le courtage", ecran: "contrat",
@@ -249,6 +251,7 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
     resume: "Enregistrer chaque départ par matricule ; la plateforme recalcule ce qui était dû.",
     sections: [
       { titre: "Déclarer un départ", texte: [
+        "La page s'ouvre une fois le contrat d'assurance signé et en vigueur (police reçue, signée, première prime encaissée ; ou le contrat que votre conseiller a enregistré) : c'est l'assureur qui paiera, et votre conseiller qui portera la prise en charge. Avant, elle dit ce qui manque.",
         "Matricule, motif, dates d'embauche et de départ, salaire mensuel de référence : « Calculer le dû » montre ce que la règle en vigueur ce jour-là accordait, et d'où vient le chiffre (votre régime, ou la convention).",
         "Vous déclarez ce qui a été versé. Moins que le dû est signalé — le salarié y avait droit ; plus est permis — l'entreprise est souveraine.",
         "Un départ hors retraite (démission, licenciement, décès) ne coûte pas d'IFC, mais il mesure la rotation réelle de votre personnel." ] },
@@ -291,11 +294,6 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "Clôturé (fin du mandat, changement de courtier, cessation) : lecture seule pour tous. Le conseiller peut encore le reprendre pendant 90 jours ; au-delà, le dossier est archivé.",
         "Archivé : le personnel déposé est effacé et le dossier ne s'ouvre plus. Les études, les rapports scellés et le journal sont conservés : chaque document reste vérifiable par son numéro.",
         "Seul un dossier vide, ouvert par erreur, se supprime. Dès qu'un document a été émis, son numéro circule : le dossier se clôture, il ne disparaît pas." ] },
-      { titre: "Nettoyer le dossier", texte: [
-        "La plateforme sert à souscrire et suivre une assurance IFC, pas à garder le personnel. « Nettoyer le dossier », en bas de la page Équipe (administrateur de l'entreprise ou conseiller), se fait en trois temps.",
-        "Télécharger l'archive : chaque document scellé en PDF, chaque étude émise en Excel, et un sommaire des numéros à vérifier.",
-        "Choisir ce qui part : le personnel (allégé, lignes vidées et empreinte gardée, ou supprimé quand aucune étude émise ne le cite), les brouillons, les études émises et leur rapport (sauf celles qu'un cahier des charges cite).",
-        "Confirmer en écrivant NETTOYER. Les sceaux et le journal restent : chaque numéro de document se vérifie toujours, pour la vie de l'entreprise." ] },
     ],
   },
   {
@@ -339,7 +337,7 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "L'étude recalcule la dette avec le taux d'actualisation, la croissance des salaires et la rotation à un point de moins et à un point de plus : ce sont les sensibilités." ] },
       { titre: "Le financement", texte: [
         "Chaque année, l'entreprise cotise : la charge indexée sur les salaires, plus une part du déficit initial (dette − fonds) amorti sur le nombre d'années choisi. L'assureur prélève ses frais, crédite le fonds au taux garanti plus sa participation aux bénéfices, puis les prestations probables de l'année sont payées par le fonds, dans la limite de ce qu'il contient.",
-        "Trois scénarios de rendement : prudent 3,5 %, central 5 %, favorable 6,5 %. Les offres se comparent sur leur coût net actualisé, dans le scénario central : cotisations et découverts actualisés, moins le fonds restant à l'horizon." ] },
+        "Trois scénarios de rendement : prudent 3,5 %, central 5 %, favorable 6,5 %. Les offres se classent par leur rendement net dans le scénario central : le taux r qui égalise ce qui entre dans le fonds (fonds initial, cotisations brutes, en début d'année) et ce qui en sort ou y reste (prestations payées en fin d'année, fonds à l'horizon). Le coût net actualisé — cotisations et découverts actualisés, moins le fonds restant — reste dans le détail." ] },
       { titre: "L'expérience réelle", texte: [
         "La rotation observée est le nombre de démissions et de licenciements ÷ (années × effectif), sur cinq ans au plus. Elle n'est crédible qu'à partir de cinq départs, et proposée seulement si elle s'écarte d'au moins un demi-point. Elle n'est jamais appliquée d'office." ] },
       { titre: "Ce que le calcul ne fait pas", texte: [

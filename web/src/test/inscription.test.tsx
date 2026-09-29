@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { oublierCabinet } from "../cabinet";
 
@@ -22,7 +22,10 @@ const enAttente = (extra: Record<string, unknown> = {}) =>
   ({ ...dossier("admin_client"), [`/organisations/${ORG}/activation`]: EN_ATTENTE,
      [`/organisations/${ORG}/justificatifs`]: [], ...extra });
 
-const CABINET = { "/public/cabinet": { nom: "Cabinet", agrement: "A1", adresse: "Douala", rccm: "R", courriel: "c@x.cm",
+const CABINET = { "/public/besoins": { besoins: [
+  { code: "placement", libelle: "Placer notre engagement IFC auprès d'un assureur" },
+  { code: "mise_en_concurrence", libelle: "Remettre en concurrence notre contrat actuel" }] },
+  "/public/cabinet": { nom: "Cabinet", agrement: "A1", adresse: "Douala", rccm: "R", courriel: "c@x.cm",
   telephone: "1", hebergeur: "Render", conditions_version: "conditions-2026-09", manquants: [] } };
 
 describe("inscription", () => {
@@ -55,7 +58,7 @@ describe("inscription", () => {
     await userEvent.clear(code);
     await userEvent.type(code, "123456");
     await userEvent.click(within(tel).getByRole("button", { name: "Vérifier" }));
-    await waitFor(() => expect(document.querySelector('p[data-canal="telephone"]')).toHaveTextContent("✓ Téléphone : 699123456 vérifié"));
+    await waitFor(() => expect(document.querySelector('p[data-canal="telephone"]')).toHaveTextContent("✓ Téléphone : +237699123456 vérifié"));
 
     const suite = screen.getByRole("button", { name: "Continuer" });
     expect(suite).toBeDisabled();            // le courriel n'est pas encore vérifié
@@ -78,6 +81,16 @@ describe("inscription", () => {
     await userEvent.type(screen.getByLabelText("Numéro RCCM"), "RC/LBV/2020/B/99");
     await userEvent.selectOptions(screen.getByLabelText("Taille"), "moins_de_50");
     await userEvent.type(screen.getByLabelText("Ville"), "Libreville");
+    await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    // Quatrième étape : les besoins, qui partent avec l'inscription comme demande d'accompagnement.
+    expect(await screen.findByRole("heading", { name: "Vos besoins" })).toBeInTheDocument();
+    expect(await screen.findByRole("checkbox", { name: /Placer notre engagement/ })).toBeChecked();
+    await userEvent.click(screen.getByRole("checkbox", { name: /Remettre en concurrence/ }));
+    await userEvent.type(screen.getByLabelText(/Précisions/), "Contrat actuel échu en mars.");
+    // Revenir en arrière ne perd pas l'entreprise.
+    await userEvent.click(screen.getByRole("button", { name: "Retour" }));
+    expect(screen.getByLabelText("Raison sociale")).toHaveValue("AZITO");
+    await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
     // Les conditions s'acceptent avant de créer le compte.
     expect(screen.getByRole("button", { name: "Créer mon compte" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "conditions d'utilisation" })).toHaveAttribute("href", "/conditions");
@@ -87,11 +100,12 @@ describe("inscription", () => {
     expect(await screen.findByText(/Inscription en attente de confirmation/)).toBeInTheDocument();
     const envoi = appels.find((a) => a.chemin === "/inscription" && a.init?.method === "POST")!;
     expect(JSON.parse(envoi.init!.body as string)).toEqual({
-      telephone: "699123456", preuve_telephone: "preuve-telephone", courriel: "drh@azito.cm", preuve_courriel: "preuve-courriel",
+      telephone: "+237699123456", preuve_telephone: "preuve-telephone", courriel: "drh@azito.cm", preuve_courriel: "preuve-courriel",
       nom: "Mme DRH", fonction: "DRH",
       entreprise: { nom: "AZITO", pays: "GA", rccm: "RC/LBV/2020/B/99", taille: "moins_de_50", secteur: null, adresse: null,
                     ville: "Libreville" },
       conditions: "conditions-2026-09",
+      accompagnement: { besoins: ["placement", "mise_en_concurrence"], message: "Contrat actuel échu en mars." },
     });
   });
 
@@ -118,7 +132,8 @@ describe("inscription", () => {
     await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
     await userEvent.type(screen.getByLabelText("Raison sociale"), "AZITO");
     await userEvent.type(screen.getByLabelText("Numéro RCCM"), "RC 1234");
-    await userEvent.click(screen.getByRole("checkbox", { name: /J'ai lu et j'accepte/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /J'ai lu et j'accepte/ }));
     await userEvent.click(screen.getByRole("button", { name: "Créer mon compte" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Cette entreprise est déjà inscrite");
   });
@@ -155,7 +170,7 @@ describe("inscription en attente", () => {
     const bandeau = (await screen.findByText(/Inscription en attente de confirmation/)).closest(".bandeau-activation") as HTMLElement;
     expect(bandeau).toHaveTextContent("votre conseiller vous contacte d'ici le 30/09/2026 (2 jours ouvrés)");
     expect(bandeau).toHaveTextContent("Une inscription non confirmée est effacée le 28/10/2026.");
-    expect(within(bandeau).getByRole("link", { name: "Écrire à votre conseiller" })).toHaveAttribute("href", `/dossier/${ORG}/messages`);
+    expect(within(bandeau).getByRole("link", { name: "Contacter votre conseiller" })).toHaveAttribute("href", `/dossier/${ORG}/contact`);
 
     const fichier = new File(["%PDF-1.4"], "rccm.pdf", { type: "application/pdf" });
     await userEvent.upload(within(bandeau).getByLabelText(/Votre document RCCM/), fichier);
@@ -184,35 +199,20 @@ describe("inscription en attente", () => {
     expect(document.querySelector(".resultats-brouillon")).toHaveAttribute("data-filigrane", "Estimation — non scellée");
   });
 
-  it("l'inscription se retire en écrivant SUPPRIMER", async () => {
-    const appels = simulerApi(enAttente({ [`DELETE /organisations/${ORG}/inscription`]: { efface: true } }));
-    ouvrir(`/dossier/${ORG}`);
-    await userEvent.click(await screen.findByRole("button", { name: "Retirer mon inscription" }));
-    const fenetre = await screen.findByRole("dialog");
-    const confirmer = within(fenetre).getByRole("button", { name: "Retirer mon inscription" });
-    expect(confirmer).toBeDisabled();
-    await userEvent.type(within(fenetre).getByLabelText("Confirmation"), "supprimer");
-    await userEvent.click(confirmer);
-    await waitFor(() => expect(appels.some((a) => a.init?.method === "DELETE")).toBe(true));
-    const url = vi.mocked(fetch).mock.calls.map(([u]) => String(u)).find((u) => u.includes("/inscription?"));
-    expect(url).toBe(`/api/v1/organisations/${ORG}/inscription?confirmation=SUPPRIMER`);
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  });
-
-  it("un contributeur ne retire pas l'inscription", async () => {
-    simulerApi({ ...dossier("contributeur_client"), [`/organisations/${ORG}/activation`]: EN_ATTENTE,
-                 [`/organisations/${ORG}/justificatifs`]: [] });
+  it("le retrait de l'inscription n'est plus offert à l'écran", async () => {
+    simulerApi(enAttente({}));
     ouvrir(`/dossier/${ORG}`);
     await screen.findByText(/Inscription en attente de confirmation/);
     expect(screen.queryByRole("button", { name: "Retirer mon inscription" })).not.toBeInTheDocument();
   });
 
-  it("refusée : le motif, et le retrait", async () => {
+  it("refusée : le motif, et le conseiller à contacter", async () => {
     simulerApi(enAttente({ [`/organisations/${ORG}/activation`]: { ...EN_ATTENTE, etat: "refusee",
       motif: "Le RCCM ne correspond pas à l'entreprise.", echeance: undefined, expire_le: undefined } }));
     ouvrir(`/dossier/${ORG}`);
     expect(await screen.findByText("Inscription refusée")).toBeInTheDocument();
     expect(screen.getByText(/Le RCCM ne correspond pas à l'entreprise\./)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retirer mon inscription" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Contacter votre conseiller" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retirer mon inscription" })).not.toBeInTheDocument();
   });
 });

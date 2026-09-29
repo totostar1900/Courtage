@@ -8,6 +8,7 @@ import { t } from "../i18n";
 import type { Fichier } from "../types";
 import { useConfirmation } from "../composants/Confirmer";
 import { useDossier } from "./Dossier";
+import { DepotFichier } from "../composants/DepotFichier";
 
 export default function Personnel() {
   const d = useDossier();
@@ -90,7 +91,7 @@ export default function Personnel() {
 
       {peutDeposer && (
         <form className="carte formulaire" onSubmit={deposer} style={{ maxWidth: 620 }}>
-          <label>{t("Fichier du personnel", "Staff file")}<input id="fichier" name="fichier" type="file" accept=".xlsx,.xlsm,.csv" required /></label>
+          <DepotFichier libelle={t("Fichier du personnel", "Staff file")} name="fichier" accept=".xlsx,.xlsm,.csv" required />
           <div className="grille g2">
             <label>{t("Données arrêtées au", "Data as at")}<input id="date_donnees" name="date_donnees" type="date" required /></label>
             <label>{t("Les salaires sont", "Salaries are")}

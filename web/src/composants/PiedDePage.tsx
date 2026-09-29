@@ -16,6 +16,7 @@ export default function PiedDePage() {
           <Link to="/conditions">{t("Conditions d'utilisation", "Terms of use")}</Link>
           <Link to="/confidentialite">{t("Confidentialité", "Privacy")}</Link>
           <Link to="/guide">{t("Guide", "Guide")}</Link>
+          <Link to="/verifier">{t("Vérifier un document", "Verify a document")}</Link>
         </nav>
       </div>
     </footer>

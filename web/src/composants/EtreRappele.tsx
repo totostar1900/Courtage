@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api";
 import { t } from "../i18n";
 import { Erreur } from "./communs";
+import { ChampTelephone } from "./ChampTelephone";
 
 /** « Être rappelé » : pour qui préfère parler à quelqu'un avant d'essayer. Le champ « site web » est un piège à
  *  robots, caché à l'œil et aux lecteurs d'écran. */
@@ -31,7 +32,7 @@ export default function EtreRappele() {
       <div className="grille-2">
         <label>{t("Votre nom", "Your name")}<input name="nom" required minLength={2} autoComplete="name" /></label>
         <label>{t("Entreprise", "Company")}<input name="entreprise" required minLength={2} autoComplete="organization" /></label>
-        <label>{t("Téléphone", "Phone")}<input name="telephone" required type="tel" autoComplete="tel" placeholder="6 99 12 34 56" /></label>
+        <ChampTelephone libelle={t("Téléphone", "Phone")} name="telephone" required />
         <label>{t("Courriel (facultatif)", "Email (optional)")}<input name="courriel" type="email" autoComplete="email" /></label>
         <label>{t("Quand vous appeler ?", "When should we call?")}
           <select name="creneau" defaultValue="indifferent">

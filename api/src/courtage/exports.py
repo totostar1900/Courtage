@@ -239,19 +239,21 @@ def reponses(t: dict, organisation: str) -> bytes:
     ws = wb.active
     ws.title = "Comparaison"
     _titre(ws, f"Réponses des assureurs — {organisation}",
-           "Classées par coût net actualisé dans le scénario central ; la recommandée est la moins chère des conformes.")
+           "Classées par rendement net (ce que l'offre rapporte au fonds, tous frais payés) dans le scénario central ; "
+           "la recommandée est la meilleure des conformes.")
     choix = t.get("choix")
-    colonnes = ["Rang", "Assureur", "Reçue le", "Conforme au cahier", "Coût net actualisé (F CFA)", "Taux garanti",
-                "Participation aux bénéfices", "Frais sur cotisations", "Frais sur encours", "Délai de paiement (jours)",
-                "Préavis de transfert (mois)", "Pénalité de transfert", "Recommandée", "Choisie"]
+    colonnes = ["Rang", "Assureur", "Reçue le", "Conforme au cahier", "Rendement net", "Coût net actualisé (F CFA)",
+                "Taux garanti", "Participation aux bénéfices", "Frais sur cotisations", "Frais sur encours",
+                "Délai de paiement (jours)", "Préavis de transfert (mois)", "Pénalité de transfert", "Recommandée", "Choisie",
+                "Ajoutée pour comparaison"]
     entete = _entete(ws, colonnes)
     for r in t["reponses"]:
-        ws.append([r.get("rang"), r["assureur"], _jj(r.get("recue_le")), _oui(r.get("conforme")), r.get("cout_net_actualise"),
-                   r.get("taux_garanti"), r.get("participation_benefices"), r.get("frais_sur_cotisations"),
+        ws.append([r.get("rang"), r["assureur"], _jj(r.get("recue_le")), _oui(r.get("conforme")), r.get("rendement_net"),
+                   r.get("cout_net_actualise"), r.get("taux_garanti"), r.get("participation_benefices"), r.get("frais_sur_cotisations"),
                    r.get("frais_sur_encours"), r.get("delai_paiement_jours"), r.get("transfert_preavis_mois"),
                    r.get("transfert_penalite"), _oui(r["id"] == t.get("recommandee")),
-                   _oui(bool(choix) and r["id"] == choix["reponse_id"])])
-    _formats(ws, entete + 1, ws.max_row, {5: F, 6: PCT2, 7: PCT, 8: PCT2, 9: PCT2, 12: PCT2})
+                   _oui(bool(choix) and r["id"] == choix["reponse_id"]), _oui(bool(r.get("pour_comparaison")))])
+    _formats(ws, entete + 1, ws.max_row, {5: PCT2, 6: F, 7: PCT2, 8: PCT, 9: PCT2, 10: PCT2, 13: PCT2})
     if choix:
         ws.append([])
         ws.append(["Choix de l'entreprise", f"{choix['assureur']}, le {_jj(choix['choisi_le'])}"])

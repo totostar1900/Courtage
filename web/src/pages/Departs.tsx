@@ -11,6 +11,7 @@ import type { ApercuImport, CalculPrestation, Constat, ContratsDossier, MotifDep
 import { useDossier } from "./Dossier";
 import { DemandePriseEnCharge, EtatDossier } from "./DossierPEC";
 import { DepartHorsMandat } from "./HorsMandat";
+import { DepotFichier } from "../composants/DepotFichier";
 
 /** Les libellés des motifs, lus au rendu (la langue peut changer). */
 export const motifs = (): Record<MotifDepart, string> => ({
@@ -25,7 +26,9 @@ export default function Departs() {
   const { donnee: contrat } = useCharge(() => api.get<ContratsDossier>(`/organisations/${d.org.id}/contrats`), []);
   const [volet, setVolet] = useState<null | "declarer" | "importer" | { corriger: Prestation } | { demander: Prestation } | { orienter: Prestation }>(null);
   const [ouverte, setOuverte] = useState<string | null>(null);
-  const peutEcrire = d.role !== "lecteur_client";
+  // Les départs s'ouvrent une fois le contrat d'assurance signé et en vigueur (le serveur le contrôle aussi).
+  const ouverts = d.activation?.capacites.departs !== false;
+  const peutEcrire = d.role !== "lecteur_client" && ouverts;
   const detail = donnee?.prestations.find((p) => p.id === ouverte) ?? null;
   const fait = () => { setVolet(null); recharger(); };
 
@@ -50,6 +53,8 @@ export default function Departs() {
             {contrat.service === "courtage" ? t("Votre contrat", "Your contract") : t("Demander un accompagnement", "Request brokerage support")}</Link>
         </p>
       )}
+
+      {!ouverts && <DepartsFermes />}
 
       <div className="grille g4 section">
         <Cle etiquette={t("Départs enregistrés", "Departures recorded")} valeur={String(tot.nombre)}
@@ -302,7 +307,7 @@ function ImportHistorique({ onFermer, onFait }: { onFermer: () => void; onFait: 
       <p>{t("Un tableur, une ligne par départ : matricule, date d'embauche, date de départ, motif, salaire mensuel de référence ; et si vous les avez, le montant versé, ce que le fonds a payé et quand. Cinq ans suffisent. Une colonne de noms est ignorée.",
         "A spreadsheet, one line per departure: staff number, hiring date, departure date, reason, reference monthly salary; and if you have them, the amount paid, what the fund paid and when. Five years is enough. A column of names is ignored.")}</p>
       <div className="grille g3" style={{ alignItems: "end" }}>
-        <label>{t("Fichier (xlsx ou csv)", "File (xlsx or csv)")}<input type="file" accept=".xlsx,.csv" onChange={(e) => { setFichier(e.target.files?.[0] ?? null); setApercu(null); }} /></label>
+        <DepotFichier libelle={t("Fichier (xlsx ou csv)", "File (xlsx or csv)")} accept=".xlsx,.csv" fichier={fichier} onChange={(f) => { setFichier(f); setApercu(null); }} />
         <label>{t("Convention (sans régime adopté)", "Collective agreement (if no scheme adopted)")}<input value={convention} onChange={(e) => setConvention(e.target.value)} placeholder={t("celle de la dernière étude", "the one from the latest study")} /></label>
         <div className="actions"><button type="button" disabled={!fichier} onClick={() => envoyer(false)}>{t("Lire le fichier", "Read the file")}</button></div>
       </div>
@@ -326,5 +331,27 @@ function ImportHistorique({ onFermer, onFait }: { onFermer: () => void; onFait: 
         </div>
       )}
     </Volet>
+  );
+}
+
+/** Avant le contrat : ce qui ouvre les départs, et où en est le chemin. */
+function DepartsFermes() {
+  const pas: [string, string, string][] = [
+    [t("Le mandat de courtage", "The brokerage mandate"), t("Demandé, proposé, signé en ligne.", "Requested, proposed, signed online."), "../accompagnement"],
+    [t("Les offres des assureurs", "The insurers' offers"), t("Votre conseiller les apporte ; vous choisissez.", "Your adviser brings them; you choose."), "../financement"],
+    [t("Le contrat signé et en vigueur", "The contract signed and in force"), t("Police reçue, signée, première prime encaissée.", "Policy received, signed, first premium received."), "../placement"],
+  ];
+  return (
+    <section className="carte section verrou" aria-labelledby="departs-fermes">
+      <p className="surtitre">{t("Pas encore ouvert", "Not open yet")}</p>
+      <h2 id="departs-fermes">{t("Les départs s'ouvrent avec votre contrat", "Departures open with your contract")}</h2>
+      <p>{t("Déclarer un départ et demander une prise en charge n'ont de sens qu'une fois le contrat d'assurance signé et en vigueur : c'est l'assureur qui paie, et votre conseiller qui porte le dossier.",
+        "Reporting a departure and requesting a benefit payment only make sense once the insurance contract is signed and in force: the insurer pays, and your adviser handles the claim.")}</p>
+      <ol className="frise frise-3">
+        {pas.map(([titre, texte, vers], i) => (
+          <li key={titre}><span className="frise-num">{i + 1}</span><strong><Link to={vers}>{titre}</Link></strong><span>{texte}</span></li>
+        ))}
+      </ol>
+    </section>
   );
 }

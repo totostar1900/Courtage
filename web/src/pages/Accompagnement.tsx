@@ -9,6 +9,7 @@ import { t } from "../i18n";
 import type { Mandat, Mandats } from "../types";
 import { useDossier } from "./Dossier";
 import { raisonActivation } from "../activation";
+import { DepotFichier } from "../composants/DepotFichier";
 
 // Lu au rendu : la langue peut changer.
 const statuts = (): Record<Mandat["statut"], [string, string]> => ({
@@ -277,9 +278,8 @@ function Signer({ orgId, m, nom, onFait }: { orgId: string; m: Mandat; nom: stri
           onChange={() => setQualite("delegataire")} />{" "}
           {t("Délégataire : j'ai reçu pouvoir de signer", "Delegate: I have been given authority to sign")}</label>
         {qualite === "delegataire" && (
-          <label>{t("Délégation de pouvoir (PDF, JPEG ou PNG)", "Delegation of authority (PDF, JPEG or PNG)")}
-            <input type="file" name="delegation" accept="application/pdf,image/jpeg,image/png"
-                   onChange={(e) => setDelegation(e.target.files?.[0] ?? null)} /></label>
+          <DepotFichier libelle={t("Délégation de pouvoir (PDF, JPEG ou PNG)", "Delegation of authority (PDF, JPEG or PNG)")}
+            name="delegation" accept="application/pdf,image/jpeg,image/png" fichier={delegation} onChange={setDelegation} />
         )}
       </fieldset>
       <label className="case"><input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />

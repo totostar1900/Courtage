@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { CLE_ESSAI } from "../pages/Essai";
+import { CLE_ESSAI, DUREE_ESSAI_MS, lireEssai } from "../pages/Essai";
 import { ouvrir, simulerApi } from "./outils";
 
 const conventions = { pays_couverts: { CM: "Cameroun", GA: "Gabon" }, conventions: [
@@ -28,6 +28,28 @@ describe("l'essai sans compte", () => {
     const parametres = JSON.parse(String((envoi.init!.body as FormData).get("parametres")));
     expect(parametres).toMatchObject({ pays: "CM", convention_code: "CM_COMMERCE", fonds_disponible: 0 });
     await waitFor(() => expect(sessionStorage.getItem(CLE_ESSAI)).toContain("personnel.csv"));
-    expect(screen.getByRole("link", { name: "Enregistrer mes résultats" })).toHaveAttribute("href", "/inscription");
+    // La suite est dite, et on peut la commencer d'ici.
+    expect(screen.getByRole("heading", { name: "Ce chiffre est un début. Voici la suite." })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Créer mon compte et garder mes résultats" })).toHaveAttribute("href", "/inscription");
+    expect(screen.getByRole("link", { name: "Être rappelé" })).toHaveAttribute("href", "/#vitrine-rappel");
+  });
+
+  it("montre le fichier retenu, et « Retirer » l'efface aussi du navigateur", async () => {
+    simulerApi({ "/referentiel/conventions": conventions, "/referentiel/modeles": { modeles: [] } });
+    sessionStorage.setItem(CLE_ESSAI, JSON.stringify({ pays: "CM", convention_code: "CM_COMMERCE", date_evaluation: "2025-12-31",
+      fonds_disponible: 0, modele: null, garde_le: Date.now(), fichier: { nom: "ancien.csv", type: "text/csv", base64: btoa("a;b\n") } }));
+    ouvrir("/essai", null);
+    expect(await screen.findByText("ancien.csv")).toBeInTheDocument();       // plus de « aucun fichier choisi »
+    expect(screen.getByText(/Repris de votre essai précédent/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Retirer ancien.csv" }));
+    expect(screen.queryByText("ancien.csv")).toBeNull();
+    expect(sessionStorage.getItem(CLE_ESSAI)).toBeNull();
+    expect(screen.getByRole("button", { name: "Calculer mon engagement" })).toBeDisabled();
+  });
+
+  it("oublie un essai de plus de trente minutes", () => {
+    sessionStorage.setItem(CLE_ESSAI, JSON.stringify({ pays: "CM", garde_le: 1_000, fichier: null }));
+    expect(lireEssai(1_000 + DUREE_ESSAI_MS + 1)).toBeNull();
+    expect(sessionStorage.getItem(CLE_ESSAI)).toBeNull();
   });
 });

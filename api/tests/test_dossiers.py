@@ -7,7 +7,7 @@ import pytest
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import text
 
-from tests.outils import V1, en_tant_que
+from tests.outils import V1, en_tant_que, sous_contrat
 from tests.test_prestations import DEPART
 
 IDENTITE = {"qualite": "salarie", "nom": "KOUASSI", "prenoms": "Aya Esther", "date_naissance": "1960-01-15",
@@ -57,6 +57,7 @@ def jusqu_a_transmis(client, a, le="2020-02-01"):
 # --- Qui, et seulement en courtage ------------------------------------------------------
 
 def test_en_comparaison_aucune_identite_n_est_recueillie(client, azito, bases):
+    sous_contrat(client, azito)          # sous contrat depuis 2021 : le départ de 2020 est d'avant le mandat
     p = client.post(u(azito, "/prestations"), json=DEPART, headers=en_tant_que(azito["drh"])).json()
     r = client.post(u(azito, "/dossiers"), headers=en_tant_que(azito["drh"]),
                     json={"prestation_id": p["id"], "montant_demande": 1, "beneficiaire": IDENTITE})
@@ -245,3 +246,18 @@ def test_les_dates_des_etapes(client, depart):
     assert etape(client, depart, d["id"], "transmission", le="2020-02-01").status_code == 201
     r = etape(client, depart, d["id"], "reponse", paye=True, montant=1, le="2020-01-15")
     assert r.status_code == 422 and r.json()["code"] == "reponse_avant_envoi"
+
+
+def test_sans_contrat_en_vigueur_les_departs_attendent(client, azito):
+    """Les départs et les prises en charge s'ouvrent une fois le contrat d'assurance signé et en vigueur."""
+    lire = lambda: client.get(u(azito, "/activation"), headers=en_tant_que(azito["drh"])).json()["capacites"]["departs"]
+    assert lire() is False
+    r = client.post(u(azito, "/prestations"), json=DEPART, headers=en_tant_que(azito["drh"]))
+    assert r.status_code == 409 and r.json()["code"] == "contrat_requis"
+    # Un contrat de courtage sans assureur (le placement n'est pas fait) ne suffit pas.
+    client.post(u(azito, "/contrats"), headers=en_tant_que(azito["conseiller"]),
+                json={"en_vigueur_du": "2020-06-01", "service": "courtage", "mandat_reference": "Mandat"})
+    assert lire() is False
+    sous_contrat(client, azito)
+    assert lire() is True
+    assert client.post(u(azito, "/prestations"), json=DEPART, headers=en_tant_que(azito["drh"])).status_code == 201

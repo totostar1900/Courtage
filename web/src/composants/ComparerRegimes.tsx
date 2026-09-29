@@ -3,14 +3,14 @@ import { useSearchParams } from "react-router-dom";
 
 import { api } from "../api";
 import type { Variante } from "../comparatif";
-import { Comparatif } from "../composants/Comparatif";
-import { Constats, Erreur, Volet } from "../composants/communs";
-import { EditeurCategories, CONVENTION_PAR_PAYS, categorieVide } from "../composants/EditeurCategories";
+import { Comparatif } from "./Comparatif";
+import { Constats, Erreur, Volet } from "./communs";
+import { EditeurCategories, CONVENTION_PAR_PAYS, categorieVide } from "./EditeurCategories";
 import { millions, montant, pct } from "../format";
 import { t } from "../i18n";
 import { libelleVersion, ordonner } from "../regimes";
 import type { Categorie, Constat, Totaux } from "../types";
-import { useDossier } from "./Dossier";
+import { useDossier } from "../pages/Dossier";
 
 interface ResultatVariante {
   nom: string;
@@ -24,7 +24,9 @@ interface ResultatVariante {
   courbes?: Record<string, number[]>;
 }
 
-export default function Simulation() {
+/** Comparer des régimes avant d'étudier : la convention seule, les versions cochées, une idée de barème, côte à côte,
+ *  sur le vrai personnel. Rien n'est enregistré. Un volet de la page Étude (il était une page, « Simuler »). */
+export function ComparerRegimes() {
   const d = useDossier();
   const versions = d.regimes.flatMap((r) => ordonner(r.versions).map((v) => ({ ...v, nomRegime: r.nom })));
   const [fichier, setFichier] = useState(d.fichiers[0]?.id ?? "");
@@ -41,9 +43,10 @@ export default function Simulation() {
   async function simuler() {
     setErreur(null);
     const variantes = [
-      ...choisies.map((id) => {
-        const v = versions.find((x) => x.id === id)!;
-        return { nom: `${v.nomRegime}, version ${v.numero}`, regime_version_id: id };
+      // Une version cochée par l'adresse et qui n'existe plus (supprimée) est ignorée.
+      ...choisies.flatMap((id) => {
+        const v = versions.find((x) => x.id === id);
+        return v ? [{ nom: `${v.nomRegime}, version ${v.numero}`, regime_version_id: id }] : [];
       }),
       ...(idee ? [{ nom: t("Mon idée", "My idea"), categories: idee }] : []),
     ];
@@ -54,11 +57,10 @@ export default function Simulation() {
     } catch (e) { setErreur(e); }
   }
 
-  if (!d.fichiers.length) return <><h1>{t("Simuler", "Simulate")}</h1><p>{t("Déposez d'abord le fichier de votre personnel.", "Upload your staff file first.")}</p></>;
+  if (!d.fichiers.length) return <p>{t("Déposez d'abord le fichier de votre personnel.", "Upload your staff file first.")}</p>;
 
   return (
     <>
-      <h1>{t("Simuler avant de décider", "Simulate before deciding")}</h1>
       <p>{t("Sur votre vrai personnel, la convention seule puis chaque variante, côte à côte. Rien n'est enregistré.",
         "On your actual staff, the collective agreement alone and then each variant, side by side. Nothing is saved.")}</p>
       <div className="carte formulaire">
@@ -90,12 +92,12 @@ export default function Simulation() {
         ) : (
           <div><button type="button" onClick={() => setIdee([categorieVide(d.org.pays)])}>{t("Tester une idée de barème", "Test a scale idea")}</button></div>
         )}
-        <div className="actions"><button className="principal" onClick={simuler} disabled={!date}>{t("Simuler", "Simulate")}</button></div>
+        <div className="actions"><button className="principal" onClick={simuler} disabled={!date}>{t("Comparer", "Compare")}</button></div>
         <Erreur erreur={erreur} />
       </div>
 
       {resultats && (
-        <Volet titre={t("Résultats de la simulation", "Simulation results")} onFermer={() => setResultats(null)} className="section">
+        <Volet titre={t("Résultats de la comparaison", "Comparison results")} onFermer={() => setResultats(null)} className="section">
           <div className="grille g3">
             {resultats.map((r) => <CarteVariante key={r.nom} r={r} />)}
           </div>

@@ -87,19 +87,20 @@ def test_un_assureur_une_reponse_active(client, cahier):
     assert r.status_code == 409 and r.json()["code"] == "reponse_existante"
 
 
-def test_le_classement_par_le_cout_net(client, cahier):
+def test_le_classement_par_le_rendement_net(client, cahier):
     repondre(client, cahier)
     repondre(client, cahier, assureur="Assureur Cher", frais_sur_cotisations=0.03, taux_garanti=0.025, participation_benefices=0.85,
              frais_sur_encours=0.005)
     c = lire(client, cahier)
     assert [x["assureur"] for x in c["reponses"]] == ["Assureur A", "Assureur Cher"]
     assert [x["rang"] for x in c["reponses"]] == [1, 2]
+    assert c["reponses"][0]["rendement_net"] > c["reponses"][1]["rendement_net"]
     assert c["reponses"][0]["cout_net_actualise"] < c["reponses"][1]["cout_net_actualise"]
     assert "Provision interne" in c["comparaison"]["classement"]
     assert c["recommandee"] == c["reponses"][0]["id"]
 
 
-def test_la_recommandee_est_la_moins_chere_des_conformes(client, cahier):
+def test_la_recommandee_est_la_meilleure_des_conformes(client, cahier):
     # La moins chère a des frais nuls… mais une pénalité de transfert : non conforme.
     repondre(client, cahier, assureur="Piège", frais_sur_cotisations=0.0, frais_sur_encours=0.0, transfert_penalite=0.05)
     repondre(client, cahier)
@@ -165,3 +166,38 @@ def test_l_offre_de_l_assureur_jointe(client, cahier):
     assert a["offre"]["nom_fichier"] == "offre.pdf"
     r = client.get(u(cahier, f"/reponses/{a['id']}/offre"), headers=en_tant_que(cahier["drh"]))
     assert r.status_code == 200 and r.content == PDF
+
+
+
+# --- Une offre ajoutée par l'entreprise, pour comparaison ------------------------------------
+
+def comparer_aussi(client, a, **champs):
+    return client.post(u(a, "/reponses/comparaison"), headers=en_tant_que(a["drh"]),
+                       data={"donnees": json.dumps({**CONFORME, "assureur": "Devis direct", **champs})})
+
+
+def test_l_entreprise_compare_seulement_apres_les_offres_du_conseiller(client, cahier):
+    r = comparer_aussi(client, cahier)
+    assert r.status_code == 409 and r.json()["code"] == "aucune_offre_du_conseiller"
+    repondre(client, cahier)
+    # Un devis reçu avant le cahier se compare aussi ; il se classe, il ne se recommande pas.
+    avant = (date.today() - timedelta(days=30)).isoformat()
+    r = comparer_aussi(client, cahier, recue_le=avant, taux_garanti=0.04, frais_sur_cotisations=0.0)
+    assert r.status_code == 201, r.text
+    assert r.json()["pour_comparaison"] is True
+    c = lire(client, cahier)
+    assert c["reponses"][0]["assureur"] == "Devis direct"            # le meilleur rendement…
+    assert c["recommandee"] == next(x["id"] for x in c["reponses"] if x["assureur"] == "Assureur A")   # …pas recommandé
+    ch = client.post(u(cahier, "/choix"), headers=en_tant_que(cahier["drh"]),
+                     json={"reponse_id": c["reponses"][0]["id"], "motif": "Meilleur rendement"})
+    assert ch.status_code == 409 and ch.json()["code"] == "offre_pour_comparaison"
+
+
+def test_l_entreprise_retire_son_offre_et_jamais_celle_de_la_consultation(client, cahier):
+    a = repondre(client, cahier).json()
+    d = comparer_aussi(client, cahier).json()
+    r = client.post(u(cahier, f"/reponses/{a['id']}/retrait-comparaison"), headers=en_tant_que(cahier["drh"]))
+    assert r.status_code == 403
+    r = client.post(u(cahier, f"/reponses/{d['id']}/retrait-comparaison"), headers=en_tant_que(cahier["drh"]))
+    assert r.status_code == 201
+    assert [x["assureur"] for x in lire(client, cahier)["reponses"]] == ["Assureur A"]

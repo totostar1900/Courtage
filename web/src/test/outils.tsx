@@ -43,7 +43,7 @@ export function dossier(role: "admin_client" | "contributeur_client" | "conseill
   return {
     [`/organisations/${ORG}/activation`]: { etat: "confirmee", capacites: { rapport_scelle: true, export_etude: true,
       notes_regime: true, fiche_de_calcul: true, equipe: true, catalogue: true, extraction_claude: true, mandat: true,
-      cahier: true }, libelles: {}, rccm: null, taille: null, adresse: null, ville: null, demandee_le: null,
+      cahier: true, departs: true }, libelles: {}, rccm: null, taille: null, adresse: null, ville: null, demandee_le: null,
       decidee_le: null, motif: null },
     [`/organisations/${ORG}/messages/non-lus`]: { non_lus: 0 },
     "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [{ id: ORG, nom: "AZITO", pays: "CI", role }] },
