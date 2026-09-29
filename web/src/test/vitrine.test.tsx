@@ -20,7 +20,14 @@ describe("vitrine et pages légales", () => {
     expect(await screen.findByRole("heading", { name: /chiffrées puis placées/ }, { timeout: 4000 })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Essayer sans compte" })).toHaveAttribute("href", "/essai");
     expect(screen.getByRole("link", { name: "S'inscrire" })).toHaveAttribute("href", "/inscription");
-    expect(screen.getByText("Gratuit pour l'entreprise.")).toBeInTheDocument();
+    expect(screen.getByText("Gratuit pour l'entreprise")).toBeInTheDocument();
+    expect(screen.queryByText(/rémunéré par/)).toBeNull();          // la vitrine ne parle pas de la rémunération du courtier
+    // Être rappelé : un bouton du bandeau, qui mène à la carte du rappel.
+    expect(screen.getByRole("link", { name: "Être rappelé" })).toHaveAttribute("href", "#vitrine-rappel");
+    // Ce que vous obtenez : les assureurs en concurrence d'abord ; puis l'équipe.
+    expect(screen.getByRole("heading", { name: "Les assureurs en concurrence pour vous" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "L'expérience à votre service" })).toBeInTheDocument();
+    expect(screen.getByText(/plus de 50 ans d'expérience cumulée/)).toBeInTheDocument();
     expect(await screen.findAllByText(/Purpose Capital Courtage/, {}, { timeout: 4000 })).not.toHaveLength(0);
     // L'en-tête propose de se connecter, pas le profil.
     expect(await screen.findByRole("link", { name: "Se connecter" }, { timeout: 4000 })).toHaveAttribute("href", "/connexion");

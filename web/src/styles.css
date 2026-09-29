@@ -1025,7 +1025,7 @@ a.bouton.bouton-clair { background: var(--fond); }
 .apercu-barres span:nth-child(5) { background: var(--accent); opacity: 1; }
 .apercu-ligne { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--trait); font-size: 13.5px; }
 .apercu-ligne strong { font-family: var(--chiffres); font-weight: 500; }
-.vitrine-bloc > h2 { font-size: clamp(26px, 2.8vw, 36px); letter-spacing: -.035em; margin-bottom: 28px; max-width: 22ch; }
+.vitrine-bloc > h2, .vitrine-equipe h2 { font-size: clamp(26px, 2.8vw, 36px); letter-spacing: -.035em; margin-bottom: 28px; max-width: 22ch; }
 .carte-icone .pastille-icone { width: 36px; height: 36px; display: grid; place-items: center; background: transparent;
   color: var(--indigo-vif); border: 1px solid var(--trait-fort); margin-bottom: 18px; }
 .carte-icone h3 { font-size: 16px; }
@@ -1043,7 +1043,37 @@ a.bouton.bouton-clair { background: var(--fond); }
 .fiche-cabinet dt { color: var(--discret); font-size: 10.5px; margin-top: 12px; }
 .fiche-cabinet dd { margin: 0; overflow-wrap: anywhere; font-size: 13.5px; }
 .surtitre-clair { color: var(--ocre); }
+/* Être rappelé : un bouton du bandeau, au trait de l'accent, et la carte d'arrivée marquée du même trait. */
+a.bouton.bouton-rappel { display: inline-flex; align-items: center; gap: 8px; background: var(--fond); color: var(--indigo-vif);
+  border: 1px solid var(--accent); }
+a.bouton.bouton-rappel:hover { background: var(--surface-2); }
+.vitrine-rappel { border-color: var(--accent); box-shadow: inset 0 2px 0 var(--accent); scroll-margin-top: 80px; }
+/* Les trois engagements, en bande pleine largeur sous le bandeau. */
+.vitrine-garanties { list-style: none; margin: -40px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--trait); background: var(--surface); }
+.vitrine-garanties li { display: flex; gap: 16px; align-items: flex-start; padding: 24px; }
+.vitrine-garanties li + li { border-left: 1px solid var(--trait); }
+.vitrine-garanties .pastille-icone { flex: none; width: 40px; height: 40px; display: grid; place-items: center; color: var(--indigo-vif);
+  border: 1px solid var(--trait-fort); border-radius: var(--rayon); }
+.vitrine-garanties strong { display: block; font-size: 17px; letter-spacing: -.02em; color: var(--encre); margin-bottom: 4px; }
+.vitrine-garanties span { font-size: 14px; color: var(--encre-2); line-height: 1.5; }
+.vitrine-intro { font-size: 17px; color: var(--encre-2); max-width: 62ch; margin: -12px 0 28px; }
+.vitrine .grille.g3 > .carte-vedette { box-shadow: inset 0 2px 0 var(--accent); }
+.vitrine .grille.g3 > .carte-vedette h3 { font-size: 18px; }
+/* L'expérience à votre service : le texte, et trois repères. */
+.vitrine-equipe { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 48px; align-items: center; }
+.vitrine-equipe p:not(.surtitre) { font-size: 16.5px; line-height: 1.65; color: var(--encre-2); max-width: 60ch; }
+.vitrine-chiffres { margin: 0; display: grid; border: 1px solid var(--trait); background: var(--surface); }
+.vitrine-chiffres > div { padding: 20px 24px; }
+.vitrine-chiffres > div + div { border-top: 1px solid var(--trait); }
+.vitrine-chiffres dt { font-family: var(--titre); font-weight: 600; font-size: 26px; letter-spacing: -.035em; color: var(--encre); }
+.vitrine-chiffres > div:first-child dt { font-family: var(--chiffres); font-weight: 500; font-size: 34px; }
+.vitrine-chiffres > div:first-child dt { color: var(--indigo-vif); }
+.vitrine-chiffres dd { margin: 4px 0 0; font-size: 14px; color: var(--encre-2); }
 @media (max-width: 900px) {
+  .vitrine-garanties { grid-template-columns: 1fr; margin-top: -24px; }
+  .vitrine-garanties li + li { border-left: 0; border-top: 1px solid var(--trait); }
+  .vitrine-equipe { grid-template-columns: 1fr; gap: 24px; }
   .vitrine { gap: 56px; }
   .vitrine-une { grid-template-columns: 1fr; padding: 36px 0 32px; }
   .vitrine-une::before { background-size: 40px 40px; }
