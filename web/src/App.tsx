@@ -5,6 +5,7 @@ import { api, DEMO, ErreurApi } from "./api";
 import { useCharge } from "./composants/communs";
 import { changerLangue, t, useLangue } from "./i18n";
 import PiedDePage from "./composants/PiedDePage";
+import Titre from "./composants/Titre";
 import Visionneuse from "./composants/Visionneuse";
 import Accueil from "./pages/Accueil";
 import Cahier from "./pages/Cahier";
@@ -53,16 +54,16 @@ export default function App() {
       <Visionneuse />
       <main className="page">
         <Routes>
-          <Route path="/verifier/:numero" element={<Verifier />} />
-          <Route path="/verifier" element={<Verifier />} />
-          <Route path="/connexion" element={<Connexion />} />
-          <Route path="/inscription" element={<Inscription />} />
-          <Route path="/essai" element={<Essai />} />
-          <Route path="/offre/:jeton" element={<Offre />} />
-          <Route path="/guide/*" element={<Guide />} />
-          <Route path="/mentions-legales" element={<MentionsLegales />} />
-          <Route path="/conditions" element={<Conditions />} />
-          <Route path="/confidentialite" element={<Confidentialite />} />
+          <Route path="/verifier/:numero" element={<><Titre valeur={t("Vérifier un document", "Verify a document")} /><Verifier /></>} />
+          <Route path="/verifier" element={<><Titre valeur={t("Vérifier un document", "Verify a document")} /><Verifier /></>} />
+          <Route path="/connexion" element={<><Titre valeur={t("Se connecter", "Sign in")} /><Connexion /></>} />
+          <Route path="/inscription" element={<><Titre valeur={t("Créer votre compte", "Create your account")} /><Inscription /></>} />
+          <Route path="/essai" element={<><Titre valeur={t("Essayer sans compte", "Try without an account")} /><Essai /></>} />
+          <Route path="/offre/:jeton" element={<><Titre valeur={t("Consultation d'assureurs", "Insurer consultation")} /><Offre /></>} />
+          <Route path="/guide/*" element={<><Titre valeur={t("Le guide", "The guide")} /><Guide /></>} />
+          <Route path="/mentions-legales" element={<><Titre valeur={t("Mentions légales", "Legal notice")} /><MentionsLegales /></>} />
+          <Route path="/conditions" element={<><Titre valeur={t("Conditions d'utilisation", "Terms of use")} /><Conditions /></>} />
+          <Route path="/confidentialite" element={<><Titre valeur={t("Confidentialité", "Privacy")} /><Confidentialite /></>} />
           <Route path="/" element={<Racine onVisiteur={setVisiteur} />} />
           <Route path="/profil" element={<Protege><Profil /></Protege>} />
           <Route path="/dossier/:org" element={<Protege><Dossier /></Protege>}>
@@ -97,7 +98,7 @@ function Racine({ onVisiteur }: { onVisiteur: (v: boolean) => void }) {
   const { donnee, erreur } = useCharge(() => api.get("/moi"), []);
   const visiteur = erreur instanceof ErreurApi && erreur.statut === 401;
   useEffect(() => { onVisiteur(visiteur); return () => onVisiteur(false); }, [visiteur, onVisiteur]);
-  if (visiteur) return <Vitrine />;
+  if (visiteur) return <><Titre /><Vitrine /></>;
   if (erreur) return <div className="erreur">{erreur.message}</div>;
   return donnee ? <Accueil /> : <p className="discret">{t("Chargement…", "Loading…")}</p>;
 }

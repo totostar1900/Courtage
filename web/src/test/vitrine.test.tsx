@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { oublierCabinet } from "../cabinet";
@@ -46,5 +46,16 @@ describe("vitrine et pages légales", () => {
     expect(await screen.findByText(/hébergés par Render/)).toBeInTheDocument();
     // Le pied de page les relie depuis chaque écran.
     expect(screen.getAllByRole("link", { name: "Confidentialité" }).length).toBeGreaterThan(0);
+  });
+});
+
+describe("être trouvé", () => {
+  it("chaque page publique a son titre", async () => {
+    simulerApi({ "/public/cabinet": CABINET });
+    ouvrir("/conditions", null);
+    await screen.findByRole("heading", { name: "Conditions d'utilisation" });
+    expect(document.title).toBe("Conditions d'utilisation — Courtage");
+    ouvrir("/essai", null);
+    await waitFor(() => expect(document.title).toBe("Essayer sans compte — Courtage"));
   });
 });

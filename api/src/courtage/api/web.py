@@ -9,7 +9,7 @@ reste un 404 JSON, jamais une page.
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from courtage.langue import t
 
@@ -28,7 +28,13 @@ def servir_interface(app: FastAPI, dossier: Path) -> None:
         if chemin == "api" or chemin.startswith("api/"):
             return JSONResponse({"code": "introuvable", "message": t("Route inconnue.", "Unknown route."), "details": {}}, status_code=404)
         fichier = (dossier / chemin).resolve()
-        if chemin and fichier.is_file() and fichier.is_relative_to(dossier):
+        if chemin and chemin != "index.html" and fichier.is_file() and fichier.is_relative_to(dossier):
             cache = GARDER_UN_AN if chemin.startswith("assets/") else NE_PAS_GARDER
             return FileResponse(fichier, headers={"Cache-Control": cache})
-        return FileResponse(index, headers={"Cache-Control": NE_PAS_GARDER})
+        return HTMLResponse(page_index(request), headers={"Cache-Control": NE_PAS_GARDER})
+
+    def page_index(request: Request) -> str:
+        """`index.html` avec l'adresse publique posée dans ses balises (canonique, Open Graph) : un aperçu de lien
+        veut une adresse absolue, que seul le serveur connaît."""
+        base = (request.app.state.sceau.url_publique or str(request.base_url)).rstrip("/")
+        return index.read_text("utf-8").replace("__URL_PUBLIQUE__", base)
