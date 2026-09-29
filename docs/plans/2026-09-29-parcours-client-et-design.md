@@ -17,4 +17,4 @@ Spécification : `docs/specs/2026-09-29-parcours-client-et-design-design.md`.
 7. [x] **Offres.** Rendement net ; classement ; migration 0033 `pour_comparaison` ; offre ajoutée par l'entreprise ; page
    « Offres » à la place de « Financement ». — *Les offres : apportées par le conseiller, classées par rendement net*
 8. [x] **Interface.** Audit ; socle visuel (sections, plis, boutons, ombres) ; vitrine. — *Une interface plus nette*
-9. [ ] Guide, démonstration, CLAUDE.md ; suites vertes, `tsc` propre.
+9. [x] Guide, démonstration, CLAUDE.md ; suites vertes, `tsc` propre.

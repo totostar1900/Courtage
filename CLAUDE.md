@@ -383,3 +383,26 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
   `tests/test_isolation.py` parcourt TOUTES les routes de l'application : une route nouvelle de dossier doit refuser
   un étranger (par une dépendance, avant le corps — pas un test dans la fonction) ; une route publique nouvelle doit
   entrer dans `PUBLIQUES` avec sa raison, et dans une limite de fréquence si elle écrit ou devine.
+
+## Parcours client revu (spec 2026-09-29, parcours client et design)
+
+- **Déposer un fichier** : toujours `DepotFichier` (zone, fichier retenu en clair, « Changer », « Retirer »), jamais
+  un `<input type="file">` nu. Le champ est nommé par `aria-labelledby` sur son libellé.
+- **Un téléphone** : toujours `ChampTelephone` (indicatif + numéro national → E.164). `composer` / `decomposer`.
+- **L'essai** garde sa saisie trente minutes dans le navigateur (`garde_le`, `DUREE_ESSAI_MS`) ; « Retirer » l'oublie.
+- **Plus de page Simuler** : le comparatif de régimes est un pli de la page Étude (`ComparerRegimes`, `#comparer`).
+- **Plus d'écriture de message dans l'application** : la page Contact (`/contact`, alias `/messages`) ouvre WhatsApp,
+  le courriel ou l'appel (`contact.ts`) ; l'ancien fil se lit, replié. Ni retrait d'inscription ni « Nettoyer »
+  à l'écran (les routes API restent).
+- **Capacité `departs`** (`activation.SOUS_CONTRAT`) : déclarer, importer, corriger un départ ou ouvrir une prise
+  en charge exige un contrat en vigueur — une police « en vigueur » du placement, ou un contrat de courtage avec son
+  assureur (`contrat_en_vigueur`). Les tests d'API qui déclarent des départs appellent `sous_contrat` (outils).
+- **L'accompagnement dès l'inscription** : `POST /inscription` accepte `accompagnement: {besoins, message}` (même
+  transaction), `GET /public/besoins` donne les cases. « Accompagnement » ouvre le parcours (`parcours.ts`).
+- **Les offres** : la page `financement` est « Offres » (`OffresDossier`) — les réponses du dernier cahier, rien
+  d'autre ; plus aucune comparaison sur des chiffres saisis. Classement par **rendement net** (`financement.rendement_net`,
+  `classement_rendement`) ; la recommandée est la meilleure des conformes hors `pour_comparaison` (migration 0033).
+  L'entreprise ajoute un devis « pour comparaison » (`POST …/reponses/comparaison`) seulement après une offre du
+  conseiller ; il ne se retient pas (`offre_pour_comparaison`).
+- **Le socle visuel** est le dernier bloc de `styles.css` ; les plis s'écrivent `<details className="pli">` avec
+  `<summary>` puis `<div className="pli-corps">`. L'audit et ce qui reste : `docs/design/audit-2026-09-29.md`.
