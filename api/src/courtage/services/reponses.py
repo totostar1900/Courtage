@@ -66,7 +66,8 @@ def actives(session: Session, fiche: FicheRegime) -> list[ReponseFiche]:
 
 def enregistrer(session: Session, org: Organisation, auteur: uuid.UUID, fiche: FicheRegime, donnees: dict, *,
                 offre: tuple[str, bytes] | None = None, remplace: ReponseFiche | None = None,
-                motif_correction: str | None = None) -> ReponseFiche:
+                motif_correction: str | None = None, consultation_id: uuid.UUID | None = None) -> ReponseFiche:
+    """`auteur` : le conseiller qui saisit ; vide quand l'assureur dépose lui-même par son lien (`consultation_id`)."""
     _ouverte(session, fiche)
     recue = donnees["recue_le"]
     if recue > date.today():
@@ -98,7 +99,7 @@ def enregistrer(session: Session, org: Organisation, auteur: uuid.UUID, fiche: F
                         "offre_empreinte": remplace.offre_empreinte}
     r = ReponseFiche(organisation_id=org.id, fiche_id=fiche.id, **{k: donnees.get(k) for k in CHAMPS},
                      **champs_offre, remplace_id=remplace.id if remplace else None,
-                     motif_correction=motif_correction, saisie_par=auteur)
+                     motif_correction=motif_correction, saisie_par=auteur, consultation_id=consultation_id)
     r.assureur = nom
     _inserer(session, r)
     journaliser(session, org.id, auteur, "reponse.corrigee" if remplace else "reponse.enregistree", r.id,
@@ -240,6 +241,7 @@ def en_clair(r: ReponseFiche, fiche: FicheRegime, rang: int | None = None, cout:
         "tardive": r.recue_le > fiche.date_limite_reponse, "rang": rang, "cout_net_actualise": cout,
         "offre": {"nom_fichier": r.offre_nom_fichier, "empreinte": r.offre_empreinte.strip()} if r.offre_contenu else None,
         "remplace_id": str(r.remplace_id) if r.remplace_id else None, "motif_correction": r.motif_correction,
+        "deposee_par_assureur": r.consultation_id is not None,
     }
 
 

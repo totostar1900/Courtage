@@ -164,8 +164,7 @@ def societe_demo(client, h) -> dict:
     # conforme), le recommandé est conforme, le troisième est conforme et plus cher.
     for assureur, tg, pb, fc, fe, penalite, recue in (
             ("Assureur C (fictif)", 0.025, 0.85, 0.0, 0.0, 0.05, 0),
-            ("Assureur A (fictif)", 0.03, 0.9, 0.02, 0.004, 0.0, 0),
-            ("Assureur D (fictif)", 0.025, 0.85, 0.03, 0.005, 0.0, 0)):
+            ("Assureur A (fictif)", 0.03, 0.9, 0.02, 0.004, 0.0, 0)):
         ok(client.post(f"{V1}/organisations/{org}/fiches/{fiche['id']}/reponses", headers=h("conseiller"), data={
             "donnees": json.dumps({"assureur": assureur, "recue_le": (date.today() + timedelta(days=recue)).isoformat(),
                                    "taux_garanti": tg, "participation_benefices": pb, "frais_sur_cotisations": fc,
@@ -173,9 +172,28 @@ def societe_demo(client, h) -> dict:
                                    "transfert_penalite": penalite, "accepte_etude_plateforme": True,
                                    "reporting_annuel": True})}))
 
+    _consultations(client, h, ok, org, fiche)
     _placement(client, h, ok, org)
     return {"org": org, "fichier": fichier, "version": version, "projet": projet, "dossier": dossier,
             "etude": etude, "brouillon": brouillon, "fiche": fiche}
+
+
+def _consultations(client, h, ok, org: str, fiche: dict) -> None:
+    """Deux assureurs FICTIFS consultés depuis la plateforme : D ouvre son lien et dépose son offre lui-même (conforme,
+    plus chère) ; B n'a pas encore ouvert le sien."""
+    import re
+    for nom, courriel in (("Assureur D (fictif)", "offres@assureur-d.demo"), ("Assureur B (fictif)", "devis@assureur-b.demo")):
+        ok(client.post(f"{V1}/organisations/{org}/fiches/{fiche['id']}/consultations", headers=h("conseiller"),
+                       json={"assureur": nom, "contact_nom": "Service entreprises (fictif)", "contact_courriel": courriel}))
+    dernier = [m for m in client.app.state.courriel.envoyes if m.telephone == "offres@assureur-d.demo"][-1]
+    jeton = re.search(r"/offre/([A-Za-z0-9_\-]+)", dernier.texte).group(1)
+    ok(client.get(f"{V1}/offre/{jeton}"))
+    ok(client.post(f"{V1}/offre/{jeton}", files={"offre": ("offre-assureur-d.pdf", b"%PDF-1.4\n% offre fictive\n%%EOF")},
+                   data={"donnees": json.dumps({"taux_garanti": 0.025, "participation_benefices": 0.85,
+                                                "frais_sur_cotisations": 0.03, "frais_sur_encours": 0.005,
+                                                "delai_paiement_jours": 25, "transfert_preavis_mois": 3,
+                                                "transfert_penalite": 0.0, "accepte_etude_plateforme": True,
+                                                "reporting_annuel": True})}))
 
 
 def _placement(client, h, ok, org: str) -> None:
@@ -247,8 +265,9 @@ def _fichier() -> bytes:
 
 # La version de la démonstration : à monter quand le code sait montrer ce que les études déjà semées ne
 # portent pas (elles sont figées). v2 : l'échéancier découpé par catégorie (26/09/2026). v3 : le placement — une police,
-# ses primes, un appel aux coordonnées à confirmer (29/09/2026).
-VERSION_DEMO = 3
+# ses primes, un appel aux coordonnées à confirmer (29/09/2026). v4 : deux assureurs consultés par lien, dont un
+# qui dépose son offre lui-même (29/09/2026).
+VERSION_DEMO = 4
 
 
 def depuis_environnement(env, version: int = VERSION_DEMO) -> str | None:

@@ -331,3 +331,14 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
 - **Les coordonnées bancaires ne sortent jamais** : ni courriel, ni message ; l'avis dit « un appel vous attend ».
   Ne pas ajouter de montant ni d'IBAN dans `avis.EVENEMENTS`.
 - Un virement déclaré sur un appel non confirmé est enregistré (c'est un fait) et journalisé `avant_contre_appel`.
+
+## Consultation des assureurs (spec 2026-09-29, lien assureur)
+
+- `services/consultations.py`, `api/consultations.py`, migration 0028, `composants/Consultations.tsx`, page
+  publique `pages/Offre.tsx` (`/offre/:jeton`, comme `/verifier`).
+- Le lien est un jeton aléatoire envoyé par courriel, gardé seulement sous forme d'empreinte dans `liens_assureurs`
+  (HORS RLS, lu avant qu'une organisation soit connue) ; jamais journalisé. Relancer émet un lien neuf et révoque
+  l'ancien ; annuler révoque ; un cahier attribué ou une date limite passée ferme la consultation.
+- L'offre déposée par le lien entre dans `reponses_fiche` comme les autres (`consultation_id`, `saisie_par` vide) :
+  confrontée, classée, corrigée ou retirée par le conseiller avec motif. Une seule par lien ; l'offre PDF est exigée.
+- `avis.prevoir_adresse` : un courriel à une adresse hors compte (l'assureur), aux mêmes règles que les avis.

@@ -86,7 +86,7 @@ def main(url: str, sortie: Path) -> None:
         capter("/moi/profil", qui=qui, cle=f"GET /moi/profil@{ids[qui]}")
     base = f"/organisations/{org}"
     for chemin in ("/fichiers", "/regimes", "/regimes/partages", "/alertes", "/cycle", "/regimes/menage", "/nettoyage", "/etudes", "/fiches", "/equipe", "/mandats", "/activation", "/messages", "/messages/non-lus", "/justificatifs", "/contrats", "/placement", "/prestations", "/dossiers", f"/dossiers/{dossier['id']}",
-                   f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}", f"/fiches/{fiche['id']}/reponses"):
+                   f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}", f"/fiches/{fiche['id']}/reponses", f"/fiches/{fiche['id']}/consultations"):
         capter(base + chemin)
     for v in (version["id"], projet["id"]):
         capter(f"{base}/regimes/versions/{v}/analyse")
