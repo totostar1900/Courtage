@@ -25,6 +25,10 @@ describe("vitrine et pages légales", () => {
     // L'en-tête propose de se connecter, pas le profil.
     expect(await screen.findByRole("link", { name: "Se connecter" }, { timeout: 4000 })).toHaveAttribute("href", "/connexion");
     expect(screen.queryByRole("link", { name: /Mon profil/ })).toBeNull();
+    // La marque : le logotype Nitch en tête, et le cabinet nommé comme exploitant au pied.
+    expect(screen.getByRole("link", { name: "Nitch, accueil" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("img", { name: "Nitch" })).toBeInTheDocument();
+    expect(screen.getByText(/exploitée par Purpose Capital Courtage/)).toBeInTheDocument();
   });
 
   it("avec une session, / reste l'accueil des dossiers", async () => {
@@ -54,8 +58,8 @@ describe("être trouvé", () => {
     simulerApi({ "/public/cabinet": CABINET });
     ouvrir("/conditions", null);
     await screen.findByRole("heading", { name: "Conditions d'utilisation" });
-    expect(document.title).toBe("Conditions d'utilisation — Courtage");
+    expect(document.title).toBe("Conditions d'utilisation — Nitch");
     ouvrir("/essai", null);
-    await waitFor(() => expect(document.title).toBe("Essayer sans compte — Courtage"));
+    await waitFor(() => expect(document.title).toBe("Essayer sans compte — Nitch"));
   });
 });

@@ -55,7 +55,7 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     if production and (not cle_auth or expediteur is None or isinstance(expediteur, ExpediteurJournal)):
         raise RuntimeError("Connexion : en production, il faut une clé d'authentification et un vrai "
                            "fournisseur d'envoi de messages.")
-    app = FastAPI(title="Courtage", version="0.1.0")
+    app = FastAPI(title="Nitch", version="0.1.0")
     from courtage.langue import MiddlewareLangue
     app.add_middleware(MiddlewareLangue)
     from .securite import installer

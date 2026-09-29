@@ -20,7 +20,7 @@ describe("les pages de contenu", () => {
     expect(await screen.findByRole("heading", { name: "Les indemnités de fin de carrière", level: 1 })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Comment la financer" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Essayer sans compte" })[0]).toHaveAttribute("href", "/essai");
-    expect(document.title).toBe("Les indemnités de fin de carrière — Courtage");
+    expect(document.title).toBe("Les indemnités de fin de carrière — Nitch");
   });
 
   it("/ifc/cameroun lit les barèmes du référentiel, sourcés, et seulement ceux du Cameroun", async () => {

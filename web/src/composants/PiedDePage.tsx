@@ -3,13 +3,13 @@ import { Link } from "react-router-dom";
 import { useCabinet } from "../cabinet";
 import { t } from "../i18n";
 
-/** Sur chaque écran : qui exploite la plateforme, et les pages légales. */
+/** Sur chaque écran : la marque, le cabinet qui exploite la plateforme (son nom légal), et les pages légales. */
 export default function PiedDePage() {
   const c = useCabinet();
   return (
     <footer className="pied">
       <div className="interieur">
-        <div>{c ? <>{c.nom} · {t("courtier agréé", "licensed broker")} {c.agrement}</> : "courtage."}</div>
+        <div>Nitch{c && <> · {t("exploitée par", "operated by")} {c.nom}, {t("courtier agréé", "licensed broker")} {c.agrement}</>}</div>
         <nav aria-label={t("Pages légales", "Legal pages")}>
           <Link to="/ifc">{t("Les IFC", "End-of-service benefits")}</Link>
           <Link to="/mentions-legales">{t("Mentions légales", "Legal notice")}</Link>

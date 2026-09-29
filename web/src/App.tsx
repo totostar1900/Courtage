@@ -4,6 +4,7 @@ import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, DEMO, ErreurApi } from "./api";
 import { useCharge } from "./composants/communs";
 import { changerLangue, t, useLangue } from "./i18n";
+import Marque from "./composants/Marque";
 import PiedDePage from "./composants/PiedDePage";
 import Titre from "./composants/Titre";
 import Visionneuse from "./composants/Visionneuse";
@@ -126,7 +127,7 @@ function Entete({ visiteur }: { visiteur: boolean }) {
   return (
     <header className="entete">
       <div className="interieur">
-        <Link to="/" className="marque">courtage<span>.</span></Link>
+        <Link to="/" className="marque" aria-label={t("Nitch, accueil", "Nitch, home")}><Marque /></Link>
         <span className="discret">{t("Votre régime IFC, calculé avant d'être vendu",
           "Your end-of-service plan, costed before it is sold")}</span>
         <div className="droite">

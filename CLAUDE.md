@@ -415,3 +415,11 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
   **Jamais une couleur en dur dans une règle** : un jeton, sinon le thème sombre casse.
 - La forme (angles de 2 px, traits d'un pixel, chiffres en chasse fixe) et la vitrine : le dernier bloc de
   `styles.css`. L'ancien socle (ombres, rayons de 16 px, Young Serif, Figtree) n'existe plus.
+
+## Marque Nitch (2026-09-29, docs/design/marque-nitch.md)
+
+- Le logotype est `composants/Marque.tsx` (contours de Geist, carré à `--accent`) ; favicon, icône de téléphone et
+  aperçu de lien dans `web/public/`. Titres « … — Nitch ».
+- Le pied nomme le cabinet comme exploitant, sous son nom légal ; les documents scellés gardent ce nom légal.
+- « courtage » reste le nom du métier dans le texte, et les noms techniques (`courtage_session`, `X-Courtage`,
+  `COURTAGE_*`, le paquet) ne changent pas.
