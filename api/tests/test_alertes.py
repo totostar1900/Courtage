@@ -25,7 +25,8 @@ def test_une_etude_ancienne_et_des_donnees_anciennes(client, azito, bases):
     emettre(client, azito)                                   # étude et données au 31/12/2019
     assert codes(calculer(bases, azito["org"], date(2020, 6, 30))) == {}
     un_an = codes(calculer(bases, azito["org"], date(2021, 1, 31)))
-    assert un_an == {"etude_a_renouveler": "attention", "donnees_anciennes": "attention"}
+    # Le cycle annuel annonce l'évaluation de l'année (due au 01/03/2021) : une information, pas un second avertissement.
+    assert un_an == {"etude_a_renouveler": "attention", "donnees_anciennes": "attention", "annuel_evaluation": "info"}
     assert codes(calculer(bases, azito["org"], date(2022, 6, 30)))["etude_a_renouveler"] == "grave"
 
 
