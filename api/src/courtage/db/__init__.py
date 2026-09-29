@@ -87,6 +87,7 @@ class Utilisateur(Base):
     conditions_version: Mapped[str | None] = mapped_column(Text)
     conditions_acceptees_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     avis_courriel: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
+    avis_whatsapp: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
 
 
 class CodeVerification(Base):

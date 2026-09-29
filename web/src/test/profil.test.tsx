@@ -51,4 +51,24 @@ describe("l'espace profil", () => {
     await waitFor(() => expect(appels.some((a) => a.init?.method === "PATCH")).toBe(true));
     expect(JSON.parse(String(appels.find((a) => a.init?.method === "PATCH")!.init!.body))).toEqual({ avis_courriel: false });
   });
+
+  it("propose WhatsApp seulement quand un modèle approuvé existe, et l'active sur demande", async () => {
+    simulerApi({ ...dossier("admin_client"), "/moi/profil": profil });
+    ouvrir("/profil");
+    await screen.findByRole("checkbox", { name: /Me prévenir par courriel/ });
+    expect(screen.queryByRole("checkbox", { name: /WhatsApp/ })).toBeNull();
+  });
+
+  it("active les avis WhatsApp au numéro du compte", async () => {
+    const avec = { ...profil, avis_whatsapp: false, whatsapp_disponible: true };
+    const appels = simulerApi({ ...dossier("admin_client"), "/moi/profil": avec,
+      "PATCH /moi/profil": { ...avec, avis_whatsapp: true } });
+    ouvrir("/profil");
+    const wa = await screen.findByRole("checkbox", { name: /Me prévenir aussi sur WhatsApp/ });
+    expect(wa).not.toBeChecked();
+    expect(screen.getByText(/Au numéro de votre compte \(\+237699001122\)/)).toBeInTheDocument();
+    await userEvent.click(wa);
+    await waitFor(() => expect(appels.some((a) => a.init?.method === "PATCH")).toBe(true));
+    expect(JSON.parse(String(appels.find((a) => a.init?.method === "PATCH")!.init!.body))).toEqual({ avis_whatsapp: true });
+  });
 });

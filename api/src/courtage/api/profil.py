@@ -39,7 +39,8 @@ def lire_profil(request: Request, session: Session = Depends(session_db, scope="
         "id": str(moi.id), "nom_affiche": moi.nom_affiche, "telephone": moi.telephone, "email": moi.email,
         "email_verifie_le": moi.email_verifie_le.isoformat() if moi.email_verifie_le else None,
         "admin_plateforme": moi.admin_plateforme, "cree_le": moi.cree_le.isoformat(),
-        "avis_courriel": moi.avis_courriel,
+        "avis_courriel": moi.avis_courriel, "avis_whatsapp": moi.avis_whatsapp,
+        "whatsapp_disponible": request.app.state.whatsapp is not None,
         "conditions": None if not moi.conditions_version else {
             "version": moi.conditions_version, "le": moi.conditions_acceptees_le.isoformat()},
         "dossiers": [{"id": str(o.id), "nom": o.nom, "pays": o.pays, "role": r, "fonction": f, "activation": o.activation}
@@ -54,12 +55,13 @@ class ModificationProfil(BaseModel):
     model_config = ConfigDict(extra="forbid")
     nom_affiche: str | None = Field(default=None, min_length=2, max_length=120)
     avis_courriel: bool | None = None
+    avis_whatsapp: bool | None = None
 
 
 @routeur_profil.patch("/moi/profil")
 def modifier_profil(corps: ModificationProfil, request: Request, session: Session = Depends(session_db, scope="function"),
                     moi: Utilisateur = Depends(identite)):
-    """Le nom sous lequel on apparaît, et les avis par courriel. Le téléphone et le courriel, vérifiés à
+    """Le nom sous lequel on apparaît, et les avis par courriel ou sur WhatsApp. Le téléphone et le courriel, vérifiés à
     l'inscription, se changent avec le conseiller (ils identifient la personne)."""
     if corps.nom_affiche is not None:
         avant = moi.nom_affiche
@@ -68,6 +70,14 @@ def modifier_profil(corps: ModificationProfil, request: Request, session: Sessio
     if corps.avis_courriel is not None and corps.avis_courriel != moi.avis_courriel:
         moi.avis_courriel = corps.avis_courriel
         journaliser(session, None, moi.id, "profil.avis", moi.id, {"avis_courriel": moi.avis_courriel})
+    if corps.avis_whatsapp is not None and corps.avis_whatsapp != moi.avis_whatsapp:
+        if corps.avis_whatsapp and not moi.telephone:
+            raise ErreurMetier("telephone_absent", t("Aucun numéro de téléphone sur ce compte : les avis WhatsApp partent "
+                                                     "au numéro vérifié du compte.",
+                                                     "No phone number on this account: WhatsApp notices go to the "
+                                                     "account's verified number."), statut=422)
+        moi.avis_whatsapp = corps.avis_whatsapp
+        journaliser(session, None, moi.id, "profil.avis", moi.id, {"avis_whatsapp": moi.avis_whatsapp})
     session.flush()
     return lire_profil(request, session, moi)
 
