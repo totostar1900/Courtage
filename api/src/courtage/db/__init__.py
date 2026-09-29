@@ -303,7 +303,8 @@ class ReponseFiche(Base):
     remplace_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("reponses_fiche.id"))
     retrait: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
     motif_correction: Mapped[str | None] = mapped_column(Text)
-    saisie_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    saisie_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
+    consultation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("consultations_assureurs.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 
@@ -625,3 +626,33 @@ class PiecePolice(Base):
     montant_fonds: Mapped[int | None] = mapped_column(BigInteger)
     depose_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
     depose_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+
+
+class ConsultationAssureur(Base):
+    """Un assureur consulté sur un cahier des charges : envoyé, ouvert, répondu, relancé, annulé."""
+    __tablename__ = "consultations_assureurs"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    fiche_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("fiches_regime.id"))
+    assureur: Mapped[str] = mapped_column(Text)
+    assureur_cle: Mapped[str] = mapped_column(Text)
+    contact_nom: Mapped[str | None] = mapped_column(Text)
+    contact_courriel: Mapped[str] = mapped_column(Text)
+    expire_le: Mapped[date] = mapped_column(Date)
+    envoyee_par: Mapped[uuid.UUID] = mapped_column(ForeignKey("utilisateurs.id"))
+    envoyee_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    relances: Mapped[int] = mapped_column(Integer, server_default=FetchedValue())
+    relancee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ouverte_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    repondue_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    annulee_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class LienAssureur(Base):
+    """L'empreinte d'un lien personnel d'assureur ; lue hors RLS, avant qu'une organisation soit connue."""
+    __tablename__ = "liens_assureurs"
+    jeton_hash: Mapped[str] = mapped_column(Text, primary_key=True)
+    consultation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("consultations_assureurs.id"))
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
+    revoque_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

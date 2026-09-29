@@ -29,7 +29,7 @@ SANS_MODIFICATION = ("journal", "sceaux", "catalogue_regimes", "catalogue_retrai
                      "comptes_assureurs", "pieces_police")      # insertion et lecture seulement, pour le rôle applicatif
 # Porte une organisation mais se lit AVANT qu'une organisation soit connue (qui est membre de quoi) :
 # hors RLS par construction. Toute autre table qui en porte une doit avoir la RLS.
-HORS_RLS = ("adhesions",)
+HORS_RLS = ("adhesions", "liens_assureurs")   # liens_assureurs : l'empreinte d'un lien, lue avant toute organisation
 
 
 @dataclass(frozen=True)
