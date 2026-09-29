@@ -14,7 +14,7 @@ from courtage.db import EtatDossier, Etude, FicheRegime, FichierPersonnel, Organ
 from courtage.fichier.controles import FRAICHEUR_MOIS
 from courtage.langue import t
 
-from . import cycle, dossiers, regimes, reponses
+from . import cycle, dossiers, placement, regimes, reponses
 
 ORDRE = {"grave": 0, "attention": 1, "info": 2}
 ATTENTE_BROUILLON = 30        # jours avant qu'un brouillon d'étude ou une version de régime en attente le soit trop
@@ -42,6 +42,8 @@ def du_dossier(session: Session, org: Organisation, aujourd_hui: date) -> list[d
     alertes = _cycle(session, org)
     alertes += _etudes(session, aujourd_hui) + _personnel(session, aujourd_hui) + _regime(session, aujourd_hui)
     alertes += _prises_en_charge(session, aujourd_hui) + _cahiers(session, aujourd_hui)
+    alertes += [_alerte(niveau, code, titre, detail, "placement", pour)
+                for niveau, code, titre, detail, pour in placement.alertes(session, aujourd_hui)]
     return sorted(alertes, key=lambda a: ORDRE[a["niveau"]])
 
 
