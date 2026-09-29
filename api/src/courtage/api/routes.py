@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from courtage.auth.telephone import normaliser
-from courtage.db import Adhesion, Contrat, Organisation, ReponseFiche, Utilisateur, contexte
+from courtage.db import Adhesion, Contrat, Justificatif, Organisation, ReponseFiche, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.langue import t, en_francais
 from courtage.financement import Offre, Scenario
@@ -56,16 +56,31 @@ def lire_activation(a: Acces = Depends(acces(*TOUS))):
 
 
 @routeur.post("/organisations/{organisation_id}/justificatifs", status_code=201)
-async def deposer_justificatif(fichier: UploadFile = File(...), a: Acces = Depends(acces("admin_client", "contributeur_client"))):
-    """Le document RCCM, pour que le courtier confirme l'inscription."""
-    j = activation.deposer_rccm(a.session, a.organisation, a.utilisateur.id, await fichier.read(),
-                                fichier.filename or "rccm", fichier.content_type or "")
-    return {"id": str(j.id), "nom_fichier": j.nom_fichier}
+async def deposer_justificatif(fichier: UploadFile = File(...), nature: str = Form(default="rccm"),
+                               a: Acces = Depends(acces("admin_client", "contributeur_client"))):
+    """Le document RCCM, pour que le courtier confirme l'inscription ; la délégation de pouvoir de qui signera le
+    mandat (l'administrateur de l'entreprise seulement, puisque lui seul signe)."""
+    if nature == "delegation" and a.role != "admin_client":
+        raise ErreurMetier("acces_refuse", t("La délégation se dépose par qui signe : l'administrateur de l'entreprise.",
+                                             "The delegation is uploaded by the signatory: the company administrator."), 403)
+    j = activation.deposer_justificatif(a.session, a.organisation, a.utilisateur.id, await fichier.read(),
+                                        fichier.filename or nature, fichier.content_type or "", nature)
+    return {"id": str(j.id), "nom_fichier": j.nom_fichier, "nature": j.nature}
 
 
 @routeur.get("/organisations/{organisation_id}/justificatifs")
 def lister_justificatifs(a: Acces = Depends(acces(*TOUS))):
     return activation.justificatifs(a.session)
+
+
+@routeur.get("/organisations/{organisation_id}/justificatifs/{justificatif_id}")
+def lire_justificatif_du_dossier(justificatif_id: uuid.UUID, a: Acces = Depends(acces("admin_client", "conseiller"))):
+    """Le document lui-même : pour l'administrateur qui l'a déposé et pour le conseiller qui vérifie le mandat."""
+    j = a.session.get(Justificatif, justificatif_id)
+    if j is None:
+        raise Introuvable("Justificatif")
+    return Response(j.contenu, media_type=j.type_contenu,
+                    headers={"Content-Disposition": f"inline; filename*=UTF-8''{quote(j.nom_fichier)}"})
 
 
 @routeur.delete("/organisations/{organisation_id}/inscription")
@@ -323,6 +338,8 @@ class PropositionMandat(_Corps):
 class SignatureMandat(_Corps):
     nom: str = Field(min_length=1, max_length=200)
     fonction: str | None = Field(default=None, max_length=100)
+    qualite: str | None = Field(default=None, max_length=30)
+    delegation_id: uuid.UUID | None = None
     empreinte: str = Field(min_length=64, max_length=64)
     accepte: bool
 
@@ -361,7 +378,8 @@ def signer_mandat(mandat_id: uuid.UUID, corps: SignatureMandat, request: Request
     m = mandats.obtenir(a.session, mandat_id)
     with en_francais():
         mandats.signer(a.session, a.organisation, m, a.utilisateur.id, nom=corps.nom, fonction=corps.fonction,
-                       empreinte_lue=corps.empreinte, config=request.app.state.sceau, aujourd_hui=date.today())
+                       empreinte_lue=corps.empreinte, config=request.app.state.sceau, aujourd_hui=date.today(),
+                       qualite=corps.qualite, delegation_id=corps.delegation_id)
     return mandats.en_clair(a.session, a.organisation, m)
 
 

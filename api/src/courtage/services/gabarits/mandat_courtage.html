@@ -52,6 +52,9 @@
     <td><strong>Pour le Courtier</strong><br>{{ c.courtier.nom }}<br>{{ c.conseiller }}, conseiller<br>
       <span class="note">Proposé sur la plateforme</span></td>
     <td><strong>Pour le Client</strong><br>{{ c.client.nom }}<br>{{ signature.nom }}{% if signature.fonction %}, {{ signature.fonction }}{% endif %}<br>
+      en qualité de {{ signature.qualite }}<br>
+      {% if signature.delegation %}<span class="note">Délégation de pouvoir déposée : {{ signature.delegation.nom_fichier }}
+        (empreinte {{ signature.delegation.empreinte[:16] }}…)</span><br>{% endif %}
       <span class="note">Signé électroniquement le {{ signature.le[:10] | date_fr }}</span></td>
   </tr>
 </table>

@@ -402,6 +402,8 @@ class MandatCourtage(Base):
     signe_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     signataire_nom: Mapped[str | None] = mapped_column(Text)
     signataire_fonction: Mapped[str | None] = mapped_column(Text)
+    signataire_qualite: Mapped[str | None] = mapped_column(Text)
+    delegation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("justificatifs.id"))
     motif: Mapped[str | None] = mapped_column(Text)
     contrat_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("contrats.id"))
 

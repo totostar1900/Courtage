@@ -407,7 +407,9 @@ export interface Mandat {
     conditions: string | null; propose_par: string; propose_le: string; empreinte: string;
     texte: { articles: ArticleMandat[]; courtier: { nom: string; agrement: string; adresse: string } };
   };
-  signature: null | { nom: string; fonction: string | null; le: string; numero: string | null; contrat_du: string | null };
+  signature: null | { nom: string; fonction: string | null; le: string; numero: string | null; contrat_du: string | null;
+    qualite: "representant_legal" | "delegataire" | null; qualite_libelle: string | null;
+    delegation: { id: string; nom_fichier: string; depose_le: string } | null };
   motif: string | null;
 }
 export interface Mandats {

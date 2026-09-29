@@ -194,25 +194,34 @@ def decider(session: Session, org: Organisation, auteur, *, decision: str, verif
                 org.id, {"verification": verification or {}, "motif": motif})
 
 
-# --- Le justificatif RCCM ------------------------------------------------------------
+# --- Les justificatifs : le RCCM (inscription), la délégation de pouvoir (mandat) ---------------
 
 TYPES_JUSTIFICATIF = {"application/pdf", "image/jpeg", "image/png"}
 TAILLE_MAX = 10 * 1024 * 1024
 
 
-def deposer_rccm(session: Session, org: Organisation, auteur, contenu: bytes, nom_fichier: str, type_contenu: str):
+NATURES_JUSTIFICATIF = ("rccm", "delegation")
+
+
+def deposer_justificatif(session: Session, org: Organisation, auteur, contenu: bytes, nom_fichier: str,
+                         type_contenu: str, nature: str = "rccm"):
     import hashlib
     from courtage.db import Justificatif
     from . import journaliser
+    if nature not in NATURES_JUSTIFICATIF:
+        raise ErreurMetier("nature_inconnue", t("Un justificatif RCCM ou une délégation de pouvoir.",
+                                                "An RCCM document or a delegation of authority."), 422)
     if type_contenu not in TYPES_JUSTIFICATIF:
         raise ErreurMetier("format_refuse", t("Un PDF, un JPEG ou un PNG.", "A PDF, JPEG or PNG."), 422)
     if not contenu or len(contenu) > TAILLE_MAX:
         raise ErreurMetier("taille_refusee", t("Un fichier de 10 Mo au plus.", "A file of 10 MB at most."), 422)
-    j = Justificatif(organisation_id=org.id, nature="rccm", nom_fichier=nom_fichier[:200], type_contenu=type_contenu,
+    j = Justificatif(organisation_id=org.id, nature=nature, nom_fichier=nom_fichier[:200], type_contenu=type_contenu,
                      contenu=contenu, empreinte=hashlib.sha256(contenu).hexdigest(), depose_par=auteur)
     session.add(j)
     session.flush()
-    journaliser(session, org.id, auteur, "inscription.rccm_depose", j.id, {"empreinte": j.empreinte})
+    journaliser(session, org.id, auteur,
+                "inscription.rccm_depose" if nature == "rccm" else "mandat.delegation_deposee", j.id,
+                {"empreinte": j.empreinte})
     return j
 
 
@@ -235,7 +244,7 @@ def effacer(session: Session, org: Organisation, auteur, raison: str) -> dict:
         raise ErreurMetier("inscription_confirmee", t("Un dossier confirmé ne s'efface pas ainsi : le clôturer.", "A confirmed file cannot be erased this way: close it instead."), 409)
     contexte(session.connection(), org.id)
     compte = {}
-    for modele in (MessageDossier, Justificatif, MandatCourtage, Prestation, ExtractionTexte, Etude):
+    for modele in (MessageDossier, MandatCourtage, Justificatif, Prestation, ExtractionTexte, Etude):
         compte[modele.__tablename__] = session.execute(delete(modele)).rowcount
     for v in list(session.scalars(select(VersionRegime))):
         regimes.supprimer(session, v, auteur, "admin_client", raison)

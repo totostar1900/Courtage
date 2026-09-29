@@ -41,7 +41,8 @@ def test_de_la_demande_a_la_signature(client, azito):
     assert "gratuit pour le Client" in remuneration["paragraphes"][0]
     assert "exclusivement par la commission versée par l'assureur" in remuneration["paragraphes"][1]
     # Signer exige d'accepter, un nom, et le texte lu : pas un autre.
-    corps = {"nom": "Awa Kouassi", "fonction": "DRH", "empreinte": p["empreinte"], "accepte": True}
+    corps = {"nom": "Awa Kouassi", "fonction": "DRH", "empreinte": p["empreinte"], "accepte": True,
+             "qualite": "representant_legal"}
     h = en_tant_que(azito["drh"])
     assert client.post(url(azito, f"/{m['id']}/signature"), json={**corps, "accepte": False}, headers=h).json()["code"] == "acceptation_requise"
     assert client.post(url(azito, f"/{m['id']}/signature"), json={**corps, "empreinte": "0" * 64}, headers=h).json()["code"] == "texte_modifie"
@@ -50,6 +51,7 @@ def test_de_la_demande_a_la_signature(client, azito):
     assert r.status_code == 200, r.text
     s = r.json()["signature"]
     assert s["numero"].startswith("MC-") and s["nom"] == "Awa Kouassi"
+    assert s["qualite"] == "representant_legal" and s["delegation"] is None
     # Le contrat « courtage » prend effet à la date du mandat, le mandat pour référence.
     k = client.get(f"{V1}/organisations/{azito['org']}/contrats", headers=h).json()
     [courtage] = [c for c in k["historique"] if c["service"] == "courtage"]
@@ -82,9 +84,48 @@ def test_une_proposition_datee_du_passe_est_refusee(client, azito):
 def test_un_mandat_signe_ne_se_modifie_pas(client, azito, bases):
     m = demander(client, azito)
     p = client.put(url(azito, f"/{m['id']}/proposition"), json=proposition(), headers=en_tant_que(azito["conseiller"])).json()["proposition"]
-    client.post(url(azito, f"/{m['id']}/signature"), json={"nom": "Awa Kouassi", "empreinte": p["empreinte"], "accepte": True},
+    client.post(url(azito, f"/{m['id']}/signature"), json={"nom": "Awa Kouassi", "empreinte": p["empreinte"], "accepte": True, "qualite": "representant_legal"},
                 headers=en_tant_que(azito["drh"]))
     with pytest.raises(DBAPIError, match="mandat_immuable"):
         with bases[1].begin() as c:
             c.execute(text("SELECT set_config('app.organisation_id', :o, true)"), {"o": azito["org"]})
             c.execute(text("UPDATE mandats_courtage SET duree_mois = 60 WHERE id = :m"), {"m": m["id"]})
+
+
+def signer(client, a, m, **corps):
+    return client.post(url(a, f"/{m['id']}/signature"), headers=en_tant_que(a["drh"]),
+                       json={"nom": "Awa Kouassi", "fonction": "DRH", "empreinte": m["proposition"]["empreinte"],
+                             "accepte": True, **corps})
+
+
+def test_le_signataire_dit_sa_qualite_et_le_delegataire_depose_sa_delegation(client, azito):
+    m = demander(client, azito)
+    m = client.put(url(azito, f"/{m['id']}/proposition"), json=proposition(), headers=en_tant_que(azito["conseiller"])).json()
+    assert signer(client, azito, m).json()["code"] == "qualite_requise"
+    assert signer(client, azito, m, qualite="delegataire").json()["code"] == "delegation_requise"
+    # Un RCCM n'est pas une délégation.
+    rccm = client.post(f"{V1}/organisations/{azito['org']}/justificatifs", headers=en_tant_que(azito["drh"]),
+                       files={"fichier": ("rccm.pdf", b"%PDF-1.4 rccm", "application/pdf")}).json()
+    assert signer(client, azito, m, qualite="delegataire", delegation_id=rccm["id"]).json()["code"] == "delegation_requise"
+    # Seul l'administrateur, qui signe, dépose une délégation.
+    r = client.post(f"{V1}/organisations/{azito['org']}/justificatifs", headers=en_tant_que(azito["drh"]),
+                    data={"nature": "delegation"},
+                    files={"fichier": ("pouvoir.pdf", b"%PDF-1.4 pouvoir", "application/pdf")})
+    assert r.status_code == 201 and r.json()["nature"] == "delegation"
+    r = signer(client, azito, m, qualite="delegataire", delegation_id=r.json()["id"])
+    assert r.status_code == 200, r.text
+    s = r.json()["signature"]
+    assert s["qualite"] == "delegataire" and s["delegation"]["nom_fichier"] == "pouvoir.pdf"
+    # Le conseiller ouvre la délégation ; un étranger au dossier, non.
+    doc = client.get(f"{V1}/organisations/{azito['org']}/justificatifs/{s['delegation']['id']}",
+                     headers=en_tant_que(azito["conseiller"]))
+    assert doc.status_code == 200 and doc.content == b"%PDF-1.4 pouvoir"
+    assert client.get(f"{V1}/organisations/{azito['org']}/justificatifs/{s['delegation']['id']}",
+                      headers=en_tant_que(azito["etranger"])).status_code == 403
+
+
+def test_la_base_refuse_un_delegataire_sans_delegation(bases, client, azito):
+    m = demander(client, azito)
+    with pytest.raises(DBAPIError, match="delegation_du_delegataire"):
+        with bases[0].begin() as c:
+            c.execute(text("UPDATE mandats_courtage SET signataire_qualite = 'delegataire' WHERE id = :i"), {"i": m["id"]})

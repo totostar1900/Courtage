@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from courtage.db import Contrat, Document, MandatCourtage, Organisation, Utilisateur
+from courtage.db import Contrat, Document, Justificatif, MandatCourtage, Organisation, Utilisateur
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.langue import langue, t
 
@@ -209,8 +209,15 @@ def proposer(session: Session, org: Organisation, m: MandatCourtage, auteur: uui
     return m
 
 
+QUALITES = {"representant_legal": "représentant légal", "delegataire": "délégataire, sur délégation de pouvoir"}
+QUALITES_EN = {"representant_legal": "legal representative", "delegataire": "delegate, under a delegation of authority"}
+
+
 def signer(session: Session, org: Organisation, m: MandatCourtage, auteur: uuid.UUID, *, nom: str,
-           fonction: str | None, empreinte_lue: str, config: rapport.ConfigSceau, aujourd_hui: date) -> Document:
+           fonction: str | None, empreinte_lue: str, config: rapport.ConfigSceau, aujourd_hui: date,
+           qualite: str | None = None, delegation_id: uuid.UUID | None = None) -> Document:
+    """Signer, c'est aussi dire en quelle qualité : le représentant légal de l'entreprise, ou une personne qui a
+    reçu pouvoir et dont la délégation est déposée (`justificatifs`, nature `delegation`)."""
     if m.statut != "propose":
         raise ErreurMetier("mandat_non_propose", t("Ce mandat n'attend pas de signature.",
                                                     "This mandate is not awaiting a signature."), 409)
@@ -218,14 +225,27 @@ def signer(session: Session, org: Organisation, m: MandatCourtage, auteur: uuid.
     if len(nom) < 3:
         raise ErreurMetier("signataire_requis", t("Écrire vos nom et prénom pour signer.",
                                                    "Type your full name to sign."), 422)
+    if qualite not in QUALITES:
+        raise ErreurMetier("qualite_requise", t("Dire en quelle qualité vous signez : représentant légal ou délégataire.",
+                                                 "Say in what capacity you sign: legal representative or delegate."), 422)
+    delegation = None
+    if qualite == "delegataire":
+        delegation = session.get(Justificatif, delegation_id) if delegation_id else None
+        if delegation is None or delegation.nature != "delegation":
+            raise ErreurMetier("delegation_requise", t("Déposer la délégation de pouvoir qui vous autorise à signer.",
+                                                        "Upload the delegation of authority that entitles you to sign."), 422)
     contenu = texte(org, m, _nom(session, m.propose_par))
     if empreinte_lue != m.empreinte_texte or empreinte(contenu) != m.empreinte_texte:
         raise ErreurMetier("texte_modifie", t("Le texte a changé depuis que vous l'avez ouvert : relisez-le.",
                                                "The text has changed since you opened it: read it again."), 409)
     signe_le = datetime.now(timezone.utc)
-    signature = {"nom": nom, "fonction": (fonction or "").strip() or None, "le": signe_le.isoformat()}
+    signature = {"nom": nom, "fonction": (fonction or "").strip() or None, "le": signe_le.isoformat(),
+                 "qualite": QUALITES[qualite],
+                 "delegation": None if delegation is None else {"nom_fichier": delegation.nom_fichier,
+                                                                 "empreinte": delegation.empreinte}}
     resume = {"organisation": org.nom, "pays": org.pays, "courtier": contenu["courtier"]["nom"],
-              "date_effet": m.date_effet.isoformat(), "signataire": nom, "signe_le": signe_le.date().isoformat(),
+              "date_effet": m.date_effet.isoformat(), "signataire": nom, "qualite": qualite,
+              "signe_le": signe_le.date().isoformat(),
               "probant": config.probant}
     document = rapport.sceller_document(
         session, org, nature="mandat_courtage", empreinte=m.empreinte_texte, resume=resume, config=config,
@@ -241,8 +261,10 @@ def signer(session: Session, org: Organisation, m: MandatCourtage, auteur: uuid.
         note="Mandat signé sur la plateforme.")
     m.statut, m.signe_par, m.signe_le = "signe", auteur, signe_le
     m.signataire_nom, m.signataire_fonction, m.contrat_id = nom, signature["fonction"], contrat.id
+    m.signataire_qualite, m.delegation_id = qualite, delegation.id if delegation else None
     session.flush()
-    journaliser(session, org.id, auteur, "mandat.signe", m.id, {"numero": document.numero})
+    journaliser(session, org.id, auteur, "mandat.signe", m.id, {"numero": document.numero, "qualite": qualite,
+                                                                "delegation": str(m.delegation_id) if m.delegation_id else None})
     return document
 
 
@@ -261,6 +283,11 @@ def clore(session: Session, m: MandatCourtage, auteur: uuid.UUID, statut: str, m
 
 def _nom(session: Session, utilisateur_id: uuid.UUID | None) -> str:
     return rapport.nom_de(session.get(Utilisateur, utilisateur_id)) if utilisateur_id else ""
+
+
+def _delegation(session: Session, justificatif_id: uuid.UUID | None) -> dict | None:
+    j = session.get(Justificatif, justificatif_id) if justificatif_id else None
+    return None if j is None else {"id": str(j.id), "nom_fichier": j.nom_fichier, "depose_le": j.depose_le.isoformat()}
 
 
 def document_de(session: Session, m: MandatCourtage) -> Document | None:
@@ -283,6 +310,9 @@ def en_clair(session: Session, org: Organisation, m: MandatCourtage) -> dict:
             "texte": texte(org, m, _nom(session, m.propose_par))},
         "signature": None if m.statut != "signe" else {
             "nom": m.signataire_nom, "fonction": m.signataire_fonction, "le": m.signe_le.isoformat(),
+            "qualite": m.signataire_qualite,
+            "qualite_libelle": _libelles(QUALITES, QUALITES_EN).get(m.signataire_qualite) if m.signataire_qualite else None,
+            "delegation": _delegation(session, m.delegation_id),
             "numero": d.numero if d else None, "contrat_du": contrat.en_vigueur_du.isoformat() if contrat else None},
         "motif": m.motif,
     }
