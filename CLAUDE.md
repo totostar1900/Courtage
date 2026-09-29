@@ -362,3 +362,24 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
 - **Être rappelé** : `services/demandes_rappel.py`, `demandes_rappel` (plateforme, hors RLS, effacée à douze mois
   par la tâche quotidienne), `POST /public/rappel` (limité, champ piège `site_web`), `GET/PUT /rappels` (courtier).
   L'avis au courtier ne porte ni numéro ni message.
+
+## Contenus, mesure, portefeuille, WhatsApp (spec 2026-09-29, lot suivant)
+
+- **Pages de contenu** : `/ifc` et `/ifc/cameroun` (`pages/Contenu.tsx`), publiques et au plan du site. Les barèmes
+  sont LUS dans le référentiel (`/referentiel/conventions`), avec leurs sources ; le droit reprend la rédaction
+  prudente des notes. N'y écrire ni taux ni règle qui ne vienne pas du référentiel.
+- **La mesure d'audience** (`services/mesure.py`, migration 0031) : des compteurs par jour, événement (liste fermée)
+  et catégorie de référent — ni cookie, ni adresse, ni identifiant. `mesure.ts` ne part pas en démonstration ni quand
+  le navigateur demande à ne pas être suivi (GPC, DNT), une fois par session et par événement. L'inscription et la
+  signature du mandat se comptent côté serveur. L'entonnoir : `GET /mesures`, sur l'accueil du courtier.
+- **Le portefeuille** (`services/portefeuille.py`, `GET /portefeuille`, `pages/Portefeuille.tsx`) : l'étape de chaque
+  dossier est CALCULÉE à la lecture (la plus avancée des faits), rien n'est stocké. Lu dossier par dossier dans son
+  contexte RLS, qui est vidé à la fin. Courtier : tout ; conseiller : ses dossiers ; les autres : 403.
+- **Les avis sur WhatsApp** (migration 0032, `utilisateurs.avis_whatsapp`, désactivé par défaut) : `prevoir` range
+  aussi un message pour qui l'a demandé et a un numéro, si `session.info["whatsapp"]` existe
+  (`messagerie.WhatsAppAvis`, variables `TWILIO_WHATSAPP_*`). Un modèle approuvé, deux variables : le sujet et le
+  lien — jamais le texte de l'avis. Le profil ne propose l'option que si le modèle existe (`whatsapp_disponible`).
+- **Préparer le test d'intrusion** : `docs/securite/test-intrusion.md` est le cahier à remettre au prestataire.
+  `tests/test_isolation.py` parcourt TOUTES les routes de l'application : une route nouvelle de dossier doit refuser
+  un étranger (par une dépendance, avant le corps — pas un test dans la fonction) ; une route publique nouvelle doit
+  entrer dans `PUBLIQUES` avec sa raison, et dans une limite de fréquence si elle écrit ou devine.

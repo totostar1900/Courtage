@@ -12,4 +12,4 @@ Spécification : `docs/specs/2026-09-29-contenu-mesure-portefeuille-whatsapp-des
 4. [x] **WhatsApp.** Migration 0032 `avis_whatsapp` ; envoi par modèle Twilio ; le profil. — *Les avis sur WhatsApp*
 5. [x] **Test d'intrusion.** Le cahier ; les contrôles d'isolement, CSRF et fréquence en tests ; l'audit des
    dépendances. — *Préparer le test d'intrusion*
-6. [ ] Guide, démonstration, CLAUDE.md, DEPLOY.md ; suites vertes, `tsc` propre.
+6. [x] Guide, démonstration, CLAUDE.md, DEPLOY.md ; suites vertes, `tsc` propre.
