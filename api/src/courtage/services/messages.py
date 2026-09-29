@@ -29,6 +29,14 @@ def envoyer(session: Session, organisation_id: uuid.UUID, auteur: uuid.UUID, cot
     session.add(m)
     session.flush()
     journaliser(session, organisation_id, auteur, "message.envoye", m.id, {"cote": cote})
+    from courtage.db import Organisation
+    from . import avis
+    org = session.get(Organisation, organisation_id)
+    ecrivain = session.get(Utilisateur, auteur)
+    avis.prevoir(session, "message", avis.conseillers(session, organisation_id) if cote == "entreprise"
+                 else avis.entreprise(session, organisation_id, ("admin_client", "contributeur_client")),
+                 auteur=auteur, org=organisation_id, entreprise=org.nom,
+                 qui=(ecrivain.nom_affiche if ecrivain else None) or "Quelqu'un")
     return m
 
 

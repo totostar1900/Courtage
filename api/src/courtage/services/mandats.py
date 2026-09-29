@@ -21,7 +21,7 @@ from courtage.db import Contrat, Document, Justificatif, MandatCourtage, Organis
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.langue import langue, t
 
-from . import contrats, journaliser, rapport
+from . import avis, contrats, journaliser, rapport
 
 BESOINS = {
     "placement": "Placer notre engagement IFC auprès d'un assureur",
@@ -183,6 +183,8 @@ def demander(session: Session, org: Organisation, auteur: uuid.UUID, besoins: li
     session.add(m)
     session.flush()
     journaliser(session, org.id, auteur, "mandat.demande", m.id, {"besoins": besoins})
+    avis.prevoir(session, "mandat_demande", avis.conseillers(session, org.id), auteur=auteur, org=org.id,
+                 entreprise=org.nom)
     return m
 
 
@@ -206,6 +208,8 @@ def proposer(session: Session, org: Organisation, m: MandatCourtage, auteur: uui
     m.statut = "propose"
     session.flush()
     journaliser(session, org.id, auteur, "mandat.propose", m.id, {"empreinte": m.empreinte_texte})
+    avis.prevoir(session, "mandat_propose", avis.entreprise(session, org.id), auteur=auteur, org=org.id,
+                 entreprise=org.nom)
     return m
 
 
@@ -265,6 +269,8 @@ def signer(session: Session, org: Organisation, m: MandatCourtage, auteur: uuid.
     session.flush()
     journaliser(session, org.id, auteur, "mandat.signe", m.id, {"numero": document.numero, "qualite": qualite,
                                                                 "delegation": str(m.delegation_id) if m.delegation_id else None})
+    avis.prevoir(session, "mandat_signe", avis.conseillers(session, org.id), auteur=auteur, org=org.id,
+                 entreprise=org.nom, numero=document.numero)
     return document
 
 
@@ -277,6 +283,10 @@ def clore(session: Session, m: MandatCourtage, auteur: uuid.UUID, statut: str, m
     m.statut, m.motif = statut, (motif or "").strip() or None
     session.flush()
     journaliser(session, m.organisation_id, auteur, f"mandat.{statut}", m.id, {"motif": m.motif})
+    if statut == "refuse":
+        org = session.get(Organisation, m.organisation_id)
+        avis.prevoir(session, "mandat_refuse", avis.conseillers(session, org.id), auteur=auteur, org=org.id,
+                     entreprise=org.nom)
 
 
 # --- Lire ----------------------------------------------------------------------

@@ -113,6 +113,9 @@ def session_db(request: Request):
     valide APRÈS l'envoi de la réponse, et le navigateur peut lire avant le COMMIT (sur Render, /moi
     répondait 401 juste après la connexion). Un seul scope partout : deux scopes feraient deux sessions."""
     with Session(request.app.state.moteur, expire_on_commit=False) as session:
+        # Les avis par courriel partent à la validation (services/avis.py) : l'expéditeur et l'adresse du site.
+        session.info["courriel"] = request.app.state.courriel
+        session.info["url_publique"] = request.app.state.sceau.url_publique
         with session.begin():
             yield session
 

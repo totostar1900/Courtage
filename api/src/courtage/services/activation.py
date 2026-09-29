@@ -133,13 +133,15 @@ def file_d_attente(session: Session, aujourd_hui: date) -> list[dict]:
                   for j in session.scalars(select(Justificatif).where(Justificatif.organisation_id == o.id)
                                            .order_by(Justificatif.depose_le.desc()))]
         rccm_depose = bool(pieces)
+        accompagnement = session.scalar(select(func.count()).select_from(MandatCourtage).where(
+            MandatCourtage.organisation_id == o.id, MandatCourtage.statut.in_(("demande", "propose"))))
         e = echeance(o.activation_demandee_le)
         sortie.append({
             "id": str(o.id), "nom": o.nom, "pays": o.pays, "secteur": o.secteur, "rccm": o.rccm, "taille": o.taille,
             "adresse": o.adresse, "ville": o.ville, "demandee_le": o.activation_demandee_le.isoformat(),
             "echeance": e.isoformat(), "en_retard": aujourd_hui > e, "rccm_depose": rccm_depose, "justificatifs": pieces,
             "expire_le": (o.activation_demandee_le + EXPIRATION).date().isoformat(),
-            "messages_non_lus": _non_lus(session),
+            "messages_non_lus": _non_lus(session), "accompagnement_demande": bool(accompagnement),
             "demandeur": None if demandeur is None else {
                 "nom": demandeur[0].nom_affiche, "fonction": demandeur[1], "telephone": demandeur[0].telephone,
                 "courriel": demandeur[0].email},
@@ -190,6 +192,9 @@ def decider(session: Session, org: Organisation, auteur, *, decision: str, verif
                 Adhesion.organisation_id == org.id, Adhesion.utilisateur_id == conseiller)):
             session.add(Adhesion(utilisateur_id=conseiller, organisation_id=org.id, role="conseiller"))
     session.flush()
+    from . import avis
+    avis.prevoir(session, "inscription_confirmee" if decision == "confirmer" else "inscription_refusee",
+                 avis.entreprise(session, org.id), auteur=auteur, org=org.id, entreprise=org.nom, motif=motif or "")
     journaliser(session, org.id, auteur, f"inscription.{'confirmee' if decision == 'confirmer' else 'refusee'}",
                 org.id, {"verification": verification or {}, "motif": motif})
 

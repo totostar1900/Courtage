@@ -145,6 +145,9 @@ def choisir(session: Session, org: Organisation, auteur: uuid.UUID, fiche: Fiche
                            409) from None
     journaliser(session, org.id, auteur, "fiche.attribuee", fiche.id, {"reponse": str(r.id), "assureur": r.assureur,
                                                                         "recommandee": str(r.id) == recommandee})
+    from . import avis
+    avis.prevoir(session, "offre_choisie", avis.conseillers(session, org.id), auteur=auteur, org=org.id,
+                 entreprise=org.nom, fiche=fiche.id)
     return c
 
 

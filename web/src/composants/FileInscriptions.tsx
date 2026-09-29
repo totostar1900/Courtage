@@ -61,6 +61,7 @@ export default function FileInscriptions({ onDecision }: { onDecision?: () => vo
         {donnee?.inscriptions.map((i) => (
           <article key={i.id} className={`carte inscription${i.en_retard ? " en-retard" : ""}`} aria-label={i.nom}>
             <h3 style={{ margin: "0 0 4px" }}>{i.nom}</h3>
+            {i.accompagnement_demande && <div><span className="etat attention">{t("Accompagnement demandé", "Support requested")}</span></div>}
             <div className="discret">{[i.secteur, i.ville, i.pays].filter(Boolean).join(" · ")}</div>
             <dl className="inscription-faits">
               <dt>{t("RCCM", "Trade register (RCCM)")}</dt><dd>{i.rccm}</dd>

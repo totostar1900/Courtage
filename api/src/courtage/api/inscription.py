@@ -14,7 +14,7 @@ from courtage.auth.telephone import normaliser
 from courtage.db import Justificatif, Organisation, Utilisateur, contexte
 from courtage.erreurs import ErreurMetier, Introuvable
 from courtage.langue import t
-from courtage.services import activation, inscription, journaliser, messages
+from courtage.services import activation, avis, inscription, journaliser, messages
 
 from . import COOKIE, identite, session_db
 from .limites import limite
@@ -91,6 +91,8 @@ def inscrire(corps: Inscription, request: Request, session: Session = Depends(se
         courriel=_cible("courriel", corps.courriel), preuve_courriel=corps.preuve_courriel, nom=corps.nom,
         fonction=corps.fonction, entreprise=corps.entreprise.model_dump(), cle=request.app.state.cle_auth,
         conditions=corps.conditions)
+    avis.prevoir(session, "inscription_nouvelle", avis.plateforme(session), auteur=utilisateur.id, org=org.id,
+                 entreprise=org.nom)
     jeton = auth.ouvrir_session(session, utilisateur, request.headers.get("user-agent"))
     corps_reponse = {"organisation_id": str(org.id), "utilisateur": {"id": str(utilisateur.id), "nom_affiche": utilisateur.nom_affiche},
                      "activation": activation.en_clair(session, org, date.today())}

@@ -9,7 +9,7 @@ import { changerLangue, t, useLangue } from "../i18n";
 
 interface Profil {
   id: string; nom_affiche: string | null; telephone: string | null; email: string | null; email_verifie_le: string | null;
-  admin_plateforme: boolean; cree_le: string; conditions: { version: string; le: string } | null;
+  admin_plateforme: boolean; cree_le: string; avis_courriel: boolean; conditions: { version: string; le: string } | null;
   dossiers: { id: string; nom: string; pays: string; role: string; fonction: string | null; activation: string }[];
   sessions: { id: string; cree_le: string; derniere_activite: string; agent: string | null; courante: boolean }[];
 }
@@ -108,6 +108,18 @@ export default function Profil() {
         </fieldset>
         <p className="discret">{t("Gardée dans ce navigateur. Les documents scellés restent en français.",
           "Kept in this browser. Sealed documents stay in French.")}</p>
+        <label className="case">
+          <input type="checkbox" checked={p.avis_courriel} disabled={!p.email} onChange={async (e) => {
+            setErreurAction(null);
+            try { await api.patch("/moi/profil", { avis_courriel: e.target.checked }); recharger(); }
+            catch (err) { setErreurAction(err); }
+          }} />{" "}{t("Me prévenir par courriel quand un événement m'attend (message, mandat, dossier)",
+            "Email me when something is waiting for me (message, mandate, claim file)")}</label>
+        <p className="discret">{p.email
+          ? t("Le courriel ne dit rien du dossier : il donne le lien de la page. Les avis sont en français.",
+              "The email says nothing about the file: it gives the link to the page. Notices are in French.")
+          : t("Aucune adresse sur votre compte : écrivez à votre conseiller pour en ajouter une.",
+              "No address on your account: write to your adviser to add one.")}</p>
       </section>
 
       <section className="carte section" aria-labelledby="profil-securite">

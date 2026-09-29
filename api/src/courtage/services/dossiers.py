@@ -81,6 +81,7 @@ def ouvrir(session: Session, org: Organisation, auteur: uuid.UUID, *, prestation
     session.add(Beneficiaire(organisation_id=org.id, dossier_id=d.id, **beneficiaire))
     _etape(session, d, "declare", auteur, aujourd_hui)
     journaliser(session, org.id, auteur, "dossier.ouvert", d.id, {"montant_demande": montant_demande})
+    _prevenir(session, org, auteur, d, "dossier_a_verifier")
     return d
 
 
@@ -132,12 +133,14 @@ def verifier(session: Session, org: Organisation, auteur: uuid.UUID, d: DossierP
         raise ErreurMetier("motif_requis", t("Dites à l'entreprise ce qui manque.", "Tell the company what is missing."), 422)
     _avancer(session, d, "verifie" if conforme else "a_completer", auteur, aujourd_hui, motif=motif)
     journaliser(session, org.id, auteur, "dossier.verifie" if conforme else "dossier.a_completer", d.id)
+    _prevenir(session, org, auteur, d, "dossier_repondu")
 
 
 def resoumettre(session: Session, org: Organisation, auteur: uuid.UUID, d: DossierPriseEnCharge,
                 aujourd_hui: date) -> None:
     _avancer(session, d, "resoumis", auteur, aujourd_hui)
     journaliser(session, org.id, auteur, "dossier.resoumis", d.id)
+    _prevenir(session, org, auteur, d, "dossier_a_verifier")
 
 
 def transmettre(session: Session, org: Organisation, auteur: uuid.UUID, d: DossierPriseEnCharge, *, le: date,
@@ -173,6 +176,7 @@ def transmettre(session: Session, org: Organisation, auteur: uuid.UUID, d: Dossi
                              empreinte=hashlib.sha256(pdf).hexdigest(), cree_par=auteur))
     _etape(session, d, "transmis", auteur, le, numero=numero)
     journaliser(session, org.id, auteur, "dossier.transmis", d.id, {"numero": numero})
+    _prevenir(session, org, auteur, d, "dossier_repondu")
     return numero
 
 
@@ -198,6 +202,15 @@ def repondre(session: Session, org: Organisation, auteur: uuid.UUID, d: DossierP
         _avancer(session, d, "refuse", auteur, le, motif=motif)
     journaliser(session, org.id, auteur, "dossier.paye" if paye else "dossier.refuse", d.id,
                 {"montant": montant} if paye else {})
+    _prevenir(session, org, auteur, d, "dossier_repondu")
+
+
+def _prevenir(session: Session, org: Organisation, auteur: uuid.UUID, d: DossierPriseEnCharge, evenement: str) -> None:
+    """Un dossier à vérifier va aux conseillers ; une étape franchie par le conseiller, à l'entreprise. Le courriel
+    ne dit rien du bénéficiaire : le lien seulement."""
+    from . import avis
+    qui = avis.conseillers(session, org.id) if evenement == "dossier_a_verifier" else avis.entreprise(session, org.id)
+    avis.prevoir(session, evenement, qui, auteur=auteur, org=org.id, entreprise=org.nom, dossier=d.id)
 
 
 # --- Effacement ---------------------------------------------------------------------------
