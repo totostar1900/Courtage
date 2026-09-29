@@ -19,6 +19,7 @@ import Essai from "./pages/Essai";
 import Inscription from "./pages/Inscription";
 import { Conditions, Confidentialite, MentionsLegales } from "./pages/Legal";
 import Messages from "./pages/Messages";
+import Offre from "./pages/Offre";
 import EtudeDetail from "./pages/EtudeDetail";
 import Etudes from "./pages/Etudes";
 import Financement from "./pages/Financement";
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/connexion" element={<Connexion />} />
           <Route path="/inscription" element={<Inscription />} />
           <Route path="/essai" element={<Essai />} />
+          <Route path="/offre/:jeton" element={<Offre />} />
           <Route path="/guide/*" element={<Guide />} />
           <Route path="/mentions-legales" element={<MentionsLegales />} />
           <Route path="/conditions" element={<Conditions />} />
@@ -109,7 +111,7 @@ function Protege({ children }: { children: React.ReactNode }) {
 }
 
 const PUBLIQUES = ["/connexion", "/verifier", "/guide", "/inscription", "/essai", "/mentions-legales", "/conditions",
-                   "/confidentialite"];
+                   "/confidentialite", "/offre"];
 
 function Entete({ visiteur }: { visiteur: boolean }) {
   const { pathname } = useLocation();

@@ -7,6 +7,7 @@ import { dateFr, millions, pct } from "../format";
 import { langue, t } from "../i18n";
 import type { CritereConformite, ReponseAssureur, ReponsesFiche } from "../types";
 import { useDossier } from "./Dossier";
+import Consultations from "../composants/Consultations";
 import { Comparaison } from "./Financement";
 
 const valeur = (c: CritereConformite, x: number | boolean | null) =>
@@ -46,6 +47,8 @@ export default function Reponses() {
         </div>
       )}
       <Erreur erreur={erreurExport} />
+
+      <Consultations base={base} orgId={d.org.id} conseiller={d.role === "conseiller"} ouverte={!x.choix} />
 
       {x.choix && (
         <div className="carte section" style={{ borderColor: "var(--bien)" }} data-choix>
@@ -112,7 +115,8 @@ function CarteReponse({ r, base, recommandee, ecrit, peutChoisir, onCorriger, on
           {ecarts.length ? t(`${ecarts.length} écart${ecarts.length > 1 ? "s" : ""}`, `${ecarts.length} gap${ecarts.length > 1 ? "s" : ""}`)
             : t("À compléter", "Incomplete")}</span>}
       </div>
-      <div className="discret">{t("Reçue le", "Received on")} {dateFr(r.recue_le)}{r.tardive && t(" · après la date limite", " · after the deadline")}</div>
+      <div className="discret">{t("Reçue le", "Received on")} {dateFr(r.recue_le)}{r.tardive && t(" · après la date limite", " · after the deadline")}
+        {r.deposee_par_assureur && <>{" · "}<span className="etat neutre">{t("déposée par l'assureur", "uploaded by the insurer")}</span></>}</div>
       <div className="discret section" style={{ marginTop: 8 }}>{t("Coût net actualisé (scénario central)", "Discounted net cost (central scenario)")}</div>
       <div className="gros">{r.cout_net_actualise === null ? "—" : millions(r.cout_net_actualise)}</div>
       <table className="section"><tbody>

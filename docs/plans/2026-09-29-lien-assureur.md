@@ -8,6 +8,6 @@ Spécification : `docs/specs/2026-09-29-lien-assureur-design.md`.
    *Le cahier part aux assureurs depuis la plateforme*
 3. [x] **Répondre par le lien.** Page publique : lire, télécharger le cahier, déposer la grille et l'offre PDF ;
    classée avec les autres ; avis aux conseillers. — *L'assureur dépose son offre par un lien*
-4. [ ] **Écrans.** La consultation sur la page du cahier ; la page publique `/offre/:jeton`. — *Écrans de la
+4. [x] **Écrans.** La consultation sur la page du cahier ; la page publique `/offre/:jeton`. — *Écrans de la
    consultation*
 5. [ ] Guide, démonstration, CLAUDE.md, carte ; suites vertes, `tsc` propre.

@@ -301,7 +301,7 @@ export interface ReponseAssureur {
   reporting_annuel: boolean | null; historique_participation: string | null; commentaire: string | null;
   conformite: CritereConformite[]; conforme: boolean; tardive: boolean; rang: number | null;
   cout_net_actualise: number | null; offre: { nom_fichier: string; empreinte: string } | null;
-  remplace_id: string | null; motif_correction: string | null;
+  remplace_id: string | null; motif_correction: string | null; deposee_par_assureur?: boolean;
 }
 
 export interface ReponsesFiche {
