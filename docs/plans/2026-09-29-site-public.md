@@ -9,4 +9,4 @@ Spécification : `docs/specs/2026-09-29-site-public-design.md`.
    rappel*
 3. [x] **Écrans.** Le formulaire sur la vitrine ; la liste sur l'accueil du courtier. — *Être rappelé, depuis la
    vitrine*
-4. [ ] Guide, CLAUDE.md, DEPLOY.md ; suites vertes, `tsc` propre.
+4. [x] Guide, CLAUDE.md, DEPLOY.md ; suites vertes, `tsc` propre.

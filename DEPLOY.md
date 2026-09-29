@@ -137,6 +137,14 @@ seul l'exploitant lit : c'est ainsi qu'on se connecte avant que Twilio soit bran
 - Au premier déploiement seulement : émettre une étude et ouvrir son rapport PDF (les bibliothèques PDF de l'image,
   §6).
 
+### 4e bis. Être trouvé
+
+- `COURTAGE_URL_PUBLIQUE` doit être l'adresse définitive (`https://courtage.purposecapital.africa`) : elle est posée
+  dans l'adresse canonique et l'image d'aperçu de chaque page, et dans `/sitemap.xml`.
+- Vérifier : `curl -s https://…/robots.txt`, `curl -s https://…/sitemap.xml`, et l'aperçu d'un lien (le coller dans
+  WhatsApp, ou le débogueur de partage de LinkedIn).
+- Déclarer le site et son plan dans Google Search Console (propriété de domaine, enregistrement DNS TXT).
+
 ### 4f. Essayer gratuitement : `render.essai.yaml`
 
 La même plateforme sur les offres gratuites de Render, pour un essai en ligne sans rien payer.
