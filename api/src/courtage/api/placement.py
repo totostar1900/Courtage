@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from courtage.db import Utilisateur
 from courtage.erreurs import ErreurMetier
 from courtage.langue import t
-from courtage.services import activation, comptes_assureurs, placement
+from courtage.services import activation, annuel, comptes_assureurs, placement
 
 from . import Acces, acces, session_db
 from .inscription import _plateforme
@@ -193,3 +193,9 @@ def confirmer_encaissement(appel_id: uuid.UUID, corps: Encaissement, a: Acces = 
     x = placement.confirmer(a.session, a.organisation, a.utilisateur.id, placement.obtenir_appel(a.session, appel_id),
                             encaisse_le=corps.encaisse_le, aujourd_hui=date.today())
     return placement.appel_en_clair(a.session, x, date.today())
+
+
+@routeur_placement.get("/organisations/{organisation_id}/calendrier")
+def lire_calendrier(a: Acces = Depends(acces(*TOUS))):
+    """Le cycle de l'année : les étapes, leur échéance et leur état, calculés (services/annuel.py)."""
+    return annuel.calendrier(a.session, date.today())

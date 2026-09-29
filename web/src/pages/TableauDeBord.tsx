@@ -8,6 +8,7 @@ import { etapes } from "../parcours";
 import Rapprochement, { sousCotisation } from "../composants/Rapprochement";
 import type { Alerte, Etude } from "../types";
 import LeSaviezVous from "../composants/LeSaviezVous";
+import AnneeDossier from "../composants/AnneeDossier";
 import { useDossier } from "./Dossier";
 import { t } from "../i18n";
 
@@ -38,6 +39,8 @@ export default function TableauDeBord() {
           <p>{t("Le cahier des charges est parti : les réponses des assureurs viendront s'y comparer.",
                 "The specifications have gone out: the insurers' responses will be compared against them.")}</p></div>
       )}
+
+      <AnneeDossier orgId={d.org.id} />
 
       {etude && (
         <div className="section">

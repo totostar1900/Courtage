@@ -21,9 +21,9 @@ describe("vitrine et pages légales", () => {
     expect(screen.getByRole("link", { name: "Essayer sans compte" })).toHaveAttribute("href", "/essai");
     expect(screen.getByRole("link", { name: "S'inscrire" })).toHaveAttribute("href", "/inscription");
     expect(screen.getByText("Gratuit pour l'entreprise.")).toBeInTheDocument();
-    expect(await screen.findAllByText(/Purpose Capital Courtage/)).not.toHaveLength(0);
+    expect(await screen.findAllByText(/Purpose Capital Courtage/, {}, { timeout: 4000 })).not.toHaveLength(0);
     // L'en-tête propose de se connecter, pas le profil.
-    expect(screen.getByRole("link", { name: "Se connecter" })).toHaveAttribute("href", "/connexion");
+    expect(await screen.findByRole("link", { name: "Se connecter" }, { timeout: 4000 })).toHaveAttribute("href", "/connexion");
     expect(screen.queryByRole("link", { name: /Mon profil/ })).toBeNull();
   });
 

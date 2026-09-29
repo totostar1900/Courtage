@@ -207,6 +207,20 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "The adviser uploads the insurer's statements with the fund amount. The page reconciles them with the premiums received and the fund your latest study uses: a difference is a finding to explain, never a blocking error." ] },
     ],
   },
+  annee: {
+    titre: "The file's year",
+    resume: "The liability is re-measured every year, on the same date: the platform keeps the calendar and sends reminders.",
+    sections: [
+      { titre: "The calendar", texte: [
+        "The latest issued study sets the date of the next valuation: the same date, one year later. Then come, in order, updating the staff list to that date (one month to do it), the insurer's annual statement if the contract is in force, then the year's valuation (two months).",
+        "Before the policy's anniversary, your adviser reviews the contract with you: terms, return credited, whether to put it back out to tender." ] },
+      { titre: "Nothing to tick", texte: [
+        "Each step is read from your data: a staff file dated at the valuation date, an uploaded statement, an issued study. When the year's valuation is issued, the calendar moves on to the next year by itself.",
+        "“The file's year”, on the dashboard, shows each step with its due date: done, upcoming, soon, late." ] },
+      { titre: "Reminders", texte: [
+        "An email tells you when a step becomes due soon, then if it is late — once for each, never more. It says nothing about your file: the step, the due date and the link. You can turn these notices off in “My profile”." ] },
+    ],
+  },
   departs: {
     titre: "Departures and history",
     resume: "Record each departure by staff number; the platform recalculates what was due.",
