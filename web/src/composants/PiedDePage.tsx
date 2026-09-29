@@ -11,6 +11,7 @@ export default function PiedDePage() {
       <div className="interieur">
         <div>{c ? <>{c.nom} · {t("courtier agréé", "licensed broker")} {c.agrement}</> : "courtage."}</div>
         <nav aria-label={t("Pages légales", "Legal pages")}>
+          <Link to="/ifc">{t("Les IFC", "End-of-service benefits")}</Link>
           <Link to="/mentions-legales">{t("Mentions légales", "Legal notice")}</Link>
           <Link to="/conditions">{t("Conditions d'utilisation", "Terms of use")}</Link>
           <Link to="/confidentialite">{t("Confidentialité", "Privacy")}</Link>

@@ -85,7 +85,10 @@ export default function Vitrine() {
         <div className="vitrine-questions">
           {questions.map(([q, r]) => <details key={q} className="carte"><summary>{q}</summary><p>{r}</p></details>)}
         </div>
-        <p className="discret">{t("Pour aller plus loin : ", "To go further: ")}<Link to="/guide">{t("le guide", "the guide")}</Link>.</p>
+        <p className="discret">{t("Pour aller plus loin : ", "To go further: ")}
+          <Link to="/ifc">{t("les indemnités de fin de carrière", "end-of-service benefits")}</Link>{" · "}
+          <Link to="/ifc/cameroun">{t("les IFC au Cameroun", "end-of-service benefits in Cameroon")}</Link>{" · "}
+          <Link to="/guide">{t("le guide", "the guide")}</Link>.</p>
       </section>
 
       <section aria-labelledby="vitrine-rappel" className="carte">

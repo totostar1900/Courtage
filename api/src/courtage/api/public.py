@@ -19,8 +19,8 @@ routeur_public = APIRouter()
 routeur_racine = APIRouter()   # à la racine du site, hors /api/v1 : ce que lisent les moteurs de recherche
 
 # Les pages qui s'indexent ; les dossiers, le profil, les liens d'assureurs et l'API, non.
-PAGES_PUBLIQUES = ("/", "/essai", "/inscription", "/guide", "/verifier", "/mentions-legales", "/conditions",
-                   "/confidentialite")
+PAGES_PUBLIQUES = ("/", "/ifc", "/ifc/cameroun", "/essai", "/inscription", "/guide", "/verifier", "/mentions-legales",
+                   "/conditions", "/confidentialite")
 NON_INDEXEES = ("/api/", "/dossier/", "/profil", "/offre/", "/connexion")
 
 
