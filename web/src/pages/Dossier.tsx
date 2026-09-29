@@ -64,7 +64,7 @@ export default function Dossier() {
       versionsAdoptees: versions.filter((v) => v.statut === "adoptee").length,     // en vigueur, à venir ou remplacée
       etudesEmises: etudes.filter((e) => e.statut === "emise").length,
       etudesBrouillon: etudes.filter((e) => e.statut === "brouillon").length,
-      fiches: fiches.length, mandat: mandat as EtatDossier["mandat"],
+      fiches: fiches.length, mandat: mandat as EtatDossier["mandat"], offreRetenue: fiches.some((f) => f.attribuee),
     };
     return { org: o, role: o.role, fichiers, regimes, etudes, fiches, equipe, etat, activation, nonLus, moiId: moi.id };
   }, [org]);

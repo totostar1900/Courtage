@@ -112,28 +112,14 @@ describe("l'adoption d'un régime", () => {
   });
 });
 
-describe("la comparaison des offres", () => {
-  it("la moins chère d'abord, marquée", async () => {
-    const scen = (cout: number) => [{ scenario: "central", rendement: 0.05, cout_total: 1, cout_net_actualise: cout,
-      frais_totaux: 0, fonds_final: 0, annees_decouvert: [], couverture_des_departs_restants: null, annees: [] }];
-    const cond = { nom: "", taux_garanti: 0.025, participation_benefices: 0.9, frais_sur_cotisations: 0.04, frais_sur_encours: 0 };
-    simulerApi({ ...dossier("admin_client"), [`POST /organisations/${ORG}/etudes/e1/financement`]: {
-      plan_amortissement: { deficit_initial: 0, annees: 1, annuite: 0 }, scenario_de_reference: "central",
-      classement: ["Sobre", "Chère", "Provision interne"],
-      offres: [{ nom: "Chère", interne: false, conditions: cond, scenarios: scen(9_000_000) },
-               { nom: "Provision interne", interne: true, conditions: cond, scenarios: scen(20_000_000) },
-               { nom: "Sobre", interne: false, conditions: cond, scenarios: scen(5_000_000) }] } });
-    ouvrir(`/dossier/${ORG}/etudes/e1/financement`);
-    await userEvent.click(await screen.findByRole("button", { name: "Comparer" }));
-    await waitFor(() => expect(document.querySelectorAll("[data-offre]")).toHaveLength(3));
-    const cartes = [...document.querySelectorAll("[data-offre]")].map((c) => c.getAttribute("data-offre"));
-    expect(cartes).toEqual(["Sobre", "Chère", "Provision interne"]);
-    expect(within(document.querySelector('[data-offre="Sobre"]') as HTMLElement).getByText("Le moins cher")).toBeInTheDocument();
-
-    // Le volet des résultats se referme ; le formulaire reste.
-    await userEvent.click(screen.getByRole("button", { name: "Fermer" }));
-    expect(document.querySelectorAll("[data-offre]")).toHaveLength(0);
-    expect(screen.getByRole("button", { name: "Comparer" })).toBeInTheDocument();
+describe("les offres", () => {
+  it("avant le cahier des charges : ce qui vient, et plus aucune comparaison sur des chiffres saisis au hasard", async () => {
+    simulerApi(dossier("admin_client"));
+    ouvrir(`/dossier/${ORG}/etudes/e1/financement`);            // l'ancienne adresse mène à la page des offres
+    expect(await screen.findByRole("heading", { name: "Ce qui vient avant les offres" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Le cahier des charges envoyé" })).toHaveAttribute("href", `/dossier/${ORG}/cahier`);
+    expect(screen.queryByLabelText("Taux garanti (%)")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Comparer" })).toBeNull();
   });
 });
 
@@ -504,20 +490,48 @@ describe("les réponses des assureurs", () => {
     reponses: [reponse("r1", "Piège", 1, 50_000_000, false), reponse("r2", "Assureur A", 2, 60_000_000, true)],
     recommandee: "r2", comparaison: null, choix });
 
-  it("classées, la recommandée est la moins chère des conformes ; un autre choix se motive", async () => {
+  it("classées par rendement net, la recommandée est la meilleure des conformes ; un autre choix se motive", async () => {
     const appels = simulerApi({ ...dossier("admin_client", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: reponses(),
       [`POST /organisations/${ORG}/fiches/f1/choix`]: reponses({ reponse_id: "r1", assureur: "Piège", motif: "Service", choisi_le: "2026-09-26T10:00:00", recommandee: false }) });
     ouvrir(`/dossier/${ORG}/cahier/f1`);
     const piege = within(await screen.findByText("1. Piège").then((h) => h.closest("[data-reponse]") as HTMLElement));
     expect(piege.getByText("1 écart")).toBeInTheDocument();
     const a = within(document.querySelector('[data-reponse="Assureur A"]') as HTMLElement);
-    expect(a.getByText("Recommandée")).toBeInTheDocument();
+    expect(a.getByText("Recommandée · meilleur rendement net")).toBeInTheDocument();
     expect(a.getByRole("button", { name: "Retenir Assureur A" })).toBeEnabled();
     expect(piege.getByRole("button", { name: "Retenir Piège" })).toBeDisabled();
     await userEvent.type(piege.getByLabelText("Pourquoi Piège"), "Service");
     await userEvent.click(piege.getByRole("button", { name: "Retenir Piège" }));
     await waitFor(() => expect(appels.some((x) => x.chemin.endsWith("/choix"))).toBe(true));
     expect(JSON.parse(appels.find((x) => x.chemin.endsWith("/choix"))!.init!.body as string)).toEqual({ reponse_id: "r1", motif: "Service" });
+  });
+
+  it("la page Offres montre les offres du dernier cahier ; l'entreprise en ajoute une pour comparer", async () => {
+    const avec = { ...reponses(), reponses: [reponse("r2", "Assureur A", 1, 60_000_000, true, { rendement_net: 0.0312, taux_servi: 0.0365 })] };
+    const appels = simulerApi({ ...dossier("admin_client", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: avec,
+      [`POST /organisations/${ORG}/fiches/f1/reponses/comparaison`]: reponse("r9", "Devis direct", 2, 1, true, { pour_comparaison: true }) });
+    ouvrir(`/dossier/${ORG}/financement`);
+    const a = within((await screen.findByText("1. Assureur A")).closest("[data-reponse]") as HTMLElement);
+    expect(a.getByText("3,12 %", { selector: ".gros" })).toBeInTheDocument();       // le rendement net, en grand
+    expect(a.getByText(/Taux servi 3,65 % − frais 0,53 %/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ajouter une offre pour comparer" }));
+    await userEvent.type(screen.getByLabelText("Assureur"), "Devis direct");
+    for (const [champ, v] of [["Taux garanti (%)", "3"], ["Participation (%)", "90"], ["Frais sur cotisations (%)", "1"], ["Frais sur encours (%/an)", "0.3"]])
+      await userEvent.type(screen.getByLabelText(champ), v);
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer la réponse" }));
+    await waitFor(() => expect(appels.some((x) => x.chemin === `/organisations/${ORG}/fiches/f1/reponses/comparaison`)).toBe(true));
+  });
+
+  it("une offre ajoutée pour comparer se classe, ne se retient pas, et se retire", async () => {
+    const avec = { ...reponses(), recommandee: "r2", reponses: [
+      reponse("r9", "Devis direct", 1, 1, true, { pour_comparaison: true, rendement_net: 0.04, taux_servi: 0.04 }),
+      reponse("r2", "Assureur A", 2, 60_000_000, true, { rendement_net: 0.03, taux_servi: 0.035 })] };
+    simulerApi({ ...dossier("admin_client", fiches), [`/organisations/${ORG}/fiches/f1/reponses`]: avec });
+    ouvrir(`/dossier/${ORG}/cahier/f1`);
+    const devis = within((await screen.findByText("1. Devis direct")).closest("[data-reponse]") as HTMLElement);
+    expect(devis.getByText("Ajoutée par vous · pour comparaison")).toBeInTheDocument();
+    expect(devis.queryByRole("button", { name: /Retenir/ })).toBeNull();
+    expect(devis.getByRole("button", { name: "Retirer mon offre" })).toBeInTheDocument();
   });
 
   it("l'étude et les réponses s'exportent en Excel, sous un nom qui dit ce qu'elles sont", async () => {

@@ -145,17 +145,19 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
     ],
   },
   financer: {
-    titre: "4. Funding the liability",
-    resume: "Insurance or in-house provision, under several return scenarios.",
+    titre: "5. The offers",
+    resume: "The offers your adviser brings you, ranked by net return; you choose.",
     sections: [
-      { titre: "Comparing offers", texte: [
-        "Enter the terms of each offer: guaranteed rate, profit sharing, fees on contributions and on assets. The in-house provision is always added for comparison.",
-        "Each offer is projected over the chosen horizon, under three return scenarios: prudent (3.5%), central (5%) and favourable (6.5%). The cheapest in the central scenario is marked.",
-        "Also look at the “years without sufficient fund”: a cheaper offer that leaves the fund short in the year of a large departure is not the best one." ] },
+      { titre: "Where the offers come from", texte: [
+        "Your adviser consults insurers on your tender specifications; their offers arrive on the “Offers” page, entered by the adviser or uploaded by the insurer through its link. Before confirmation, the mandate and the specifications, the page says what is coming: the platform does not compare figures typed in at random.",
+        "You can add a quote you received directly, “to compare”: it is ranked with the others, marked as such, but cannot be chosen. To choose it, ask your adviser to consult that insurer." ] },
+      { titre: "Net return", texte: [
+        "The most valuable offer is the one that earns your fund the most once everything is paid: the rate credited (guaranteed rate + profit sharing, in the central scenario) less the charges on assets less the effect of the charges on contributions. That is the net return, calculated exactly on your contributions and your departures.",
+        "Each card shows it in large type, with its breakdown; the recommended one is the best of the offers that comply with your terms. The projection details, under the three scenarios, stay folded at the bottom of the page, with the discounted net cost." ] },
     ],
   },
   cahier: {
-    titre: "5. The tender specifications",
+    titre: "4. The tender specifications",
     resume: "Putting insurers in competition, without ever revealing an employee.",
     sections: [
       { titre: "What they contain", texte: [
@@ -164,7 +166,7 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
       { titre: "The insurers' responses", texte: [
         "Each response is entered in the tender specifications grid, with the insurer's offer as a PDF if attached. What the insurer did not state stays blank: it is flagged, not guessed.",
         "The platform checks each response against the requested terms, criterion by criterion — compliant, deviating, or not stated — and flags a response received after the deadline.",
-        "Responses are ranked by their net present cost, the same calculation as the offer comparison. The recommended one is the cheapest of the COMPLIANT ones: a cheaper offer that imposes a transfer penalty is not compliant.",
+        "Responses are ranked by their net return: what they earn your fund, all charges paid. The recommended one is the best of the COMPLIANT ones: an offer that earns more but imposes a transfer penalty is not compliant.",
         "Your adviser consults each insurer from the specifications page: the insurer receives a personal link by email, valid until the deadline, reads the specifications and uploads its grid with its offer as a PDF, without an account. Its response joins the others, marked “uploaded by the insurer”; “Insurers consulted” shows who was consulted, when, who opened and who answered — the proof of a fair tender.",
         "Your adviser can also enter a response received otherwise; you read them and choose. Choosing an offer other than the recommended one is allowed, with a reason: the reason is kept in the file. Awarded tender specifications are closed; the adviser then records the contract." ] },
       { titre: "Changing insurer", texte: [
@@ -310,7 +312,7 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "The study recalculates the liability with the discount rate, salary growth and turnover one point lower and one point higher: these are the sensitivities." ] },
       { titre: "Funding", texte: [
         "Each year, the company contributes: the annual cost indexed to salaries, plus a share of the initial deficit (liability − fund) amortised over the chosen number of years. The insurer deducts its fees, credits the fund at the guaranteed rate plus its profit sharing, then the year's expected benefits are paid by the fund, up to what it holds.",
-        "Three return scenarios: prudent 3.5%, central 5%, favourable 6.5%. Offers are compared on their net present cost, in the central scenario: discounted contributions and shortfalls, less the fund remaining at the horizon." ] },
+        "Three return scenarios: prudent 3.5%, central 5%, favourable 6.5%. Offers are ranked by their net return in the central scenario: the rate r that balances what enters the fund (initial fund, gross contributions, at the start of the year) and what leaves or remains (benefits paid at the end of the year, the fund at the horizon). The discounted net cost — discounted contributions and shortfalls, less the remaining fund — stays in the details." ] },
       { titre: "Actual experience", texte: [
         "The observed turnover is the number of resignations and dismissals ÷ (years × headcount), over five years at most. It is only credible from five departures, and proposed only if it differs by at least half a point. It is never applied automatically." ] },
       { titre: "What the calculation does not do", texte: [

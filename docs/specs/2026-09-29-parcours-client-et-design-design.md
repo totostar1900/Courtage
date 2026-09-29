@@ -61,8 +61,9 @@ après la création du compte. Dans le dossier, « Accompagnement » passe en t�
   l'horizon). Les offres sont classées par rendement net décroissant ; la recommandée est la meilleure des conformes.
   Le coût net actualisé reste dans le détail.
 - **Le client peut ajouter une offre, pour comparer.** Un devis reçu directement, saisi par l'entreprise : il entre dans
-  le classement, marqué « ajoutée par vous — pour comparaison » (migration 0033, `reponses_fiche.origine`). Il ne se
-  retient pas : pour la retenir, le conseiller consulte cet assureur.
+  le classement, marqué « ajoutée par vous — pour comparaison » (migration 0033, `reponses_fiche.pour_comparaison`). Il ne
+  se retient pas : pour la retenir, le conseiller consulte cet assureur. Il ne s'ajoute qu'une fois une offre du
+  conseiller arrivée.
 
 ## 8. L'interface
 

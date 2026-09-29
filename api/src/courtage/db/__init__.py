@@ -306,6 +306,7 @@ class ReponseFiche(Base):
     motif_correction: Mapped[str | None] = mapped_column(Text)
     saisie_par: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateurs.id"))
     consultation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("consultations_assureurs.id"))
+    pour_comparaison: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
 
 

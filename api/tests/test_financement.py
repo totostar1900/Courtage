@@ -151,3 +151,36 @@ def test_financement_refuse_avec_des_parametres_absurdes(client, azito):
     e = etude(client, azito).json()
     r = financer(client, azito, e["id"], horizon=0)
     assert r.status_code == 422
+
+
+# --- Le rendement net : ce que l'offre rapporte au fonds, tous frais payés ------------------
+
+def test_sans_frais_le_rendement_net_est_le_taux_servi():
+    p = une(offre=Offre(nom="Pur", taux_garanti=0.03), scenario=Scenario(nom="s", rendement=0.03))
+    assert p["taux_servi"] == pytest.approx(0.03)
+    assert p["rendement_net"] == pytest.approx(0.03, abs=1e-7)
+
+
+def test_les_frais_sur_encours_se_retranchent_du_taux():
+    p = une(offre=Offre(nom="Encours", taux_garanti=0.03, frais_sur_encours=0.005), scenario=Scenario(nom="s", rendement=0.03))
+    # (1 + 3 %) × (1 − 0,5 %) − 1 : un peu moins de 2,5 %.
+    assert p["rendement_net"] == pytest.approx(1.03 * 0.995 - 1, abs=1e-7)
+
+
+def test_les_frais_sur_cotisations_pesent_d_autant_plus_que_l_horizon_est_court():
+    offre = Offre(nom="Entrée", taux_garanti=0.03, frais_sur_cotisations=0.03)
+    court = une(offre=offre, scenario=Scenario(nom="s", rendement=0.03), horizon=3)["rendement_net"]
+    long_ = une(offre=offre, scenario=Scenario(nom="s", rendement=0.03), horizon=20)["rendement_net"]
+    assert court < long_ < 0.03
+
+
+def test_les_offres_se_classent_par_rendement_net():
+    s = [Scenario(nom="central", rendement=0.05)]
+    parametres = Parametres(horizon=10, amortissement_annees=3)
+    offres = [Offre(nom="Frais bas", taux_garanti=0.025, participation_benefices=0.85, frais_sur_cotisations=0.01),
+              Offre(nom="Taux haut, frais lourds", taux_garanti=0.035, participation_benefices=0.5,
+                    frais_sur_cotisations=0.05, frais_sur_encours=0.01)]
+    r = projeter(SIMPLE, offres, s, parametres)
+    rendements = {o["nom"]: o["scenarios"][0]["rendement_net"] for o in r["offres"]}
+    assert r["classement_rendement"][0] == max(rendements, key=rendements.get)
+    assert rendements["Frais bas"] > rendements["Taux haut, frais lourds"]

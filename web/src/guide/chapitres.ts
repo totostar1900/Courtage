@@ -163,18 +163,7 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
     ],
   },
   {
-    id: "financer", groupe: "Le parcours", titre: "4. Financer l'engagement", ecran: "financement",
-    resume: "Assurance ou provision interne, sous plusieurs scénarios de rendement.",
-    sections: [
-      { titre: "Comparer les offres", texte: [
-        "Saisissez les conditions de chaque offre : taux garanti, participation aux bénéfices, frais sur cotisations et sur encours. La provision interne est toujours ajoutée pour comparaison.",
-        "Chaque offre est projetée sur l'horizon choisi, sous trois scénarios de rendement : prudent (3,5 %), central (5 %) et favorable (6,5 %). La moins chère sur le scénario central est marquée.",
-        "Regardez aussi les « années sans fonds suffisant » : une offre moins chère qui laisse le fonds à découvert l'année d'un gros départ n'est pas la meilleure." ] },
-    ],
-    termes: ["taux_garanti", "participation", "cout_net", "provision_interne", "frais_cotisation"],
-  },
-  {
-    id: "cahier", groupe: "Le parcours", titre: "5. Le cahier des charges", ecran: "cahier",
+    id: "cahier", groupe: "Le parcours", titre: "4. Le cahier des charges", ecran: "cahier",
     resume: "Mettre les assureurs en concurrence, sans jamais dévoiler un salarié.",
     sections: [
       { titre: "Ce qu'il contient", texte: [
@@ -183,7 +172,7 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
       { titre: "Les réponses des assureurs", texte: [
         "Chaque réponse se saisit dans la grille du cahier, avec l'offre de l'assureur en PDF si elle est jointe. Ce que l'assureur n'a pas dit reste vide : c'est signalé, pas deviné.",
         "La plateforme confronte chaque réponse aux conditions demandées, critère par critère — conforme, en écart, ou non renseigné — et signale une réponse arrivée après la date limite.",
-        "Les réponses sont classées par leur coût net actualisé, le même calcul que la comparaison d'offres. La recommandée est la moins chère des CONFORMES : une offre moins chère qui impose une pénalité de transfert ne l'est pas.",
+        "Les réponses sont classées par leur rendement net : ce qu'elles rapportent à votre fonds, tous frais payés. La recommandée est la meilleure des CONFORMES : une offre qui rapporte plus mais impose une pénalité de transfert ne l'est pas.",
         "Votre conseiller consulte chaque assureur depuis la page du cahier : l'assureur reçoit par courriel un lien personnel, valable jusqu'à la date limite, lit le cahier et dépose sa grille avec son offre en PDF, sans compte. Sa réponse rejoint les autres, marquée « déposée par l'assureur » ; « Assureurs consultés » dit qui a été consulté, quand, qui a ouvert et qui a répondu — la preuve d'une mise en concurrence loyale.",
         "Votre conseiller peut aussi saisir une réponse reçue autrement ; vous les lisez et choisissez. Retenir une autre offre que la recommandée est permis, et se motive : la raison figure au dossier. Un cahier attribué est clos ; le conseiller enregistre alors le contrat." ] },
       { titre: "Changer d'assureur", texte: [
@@ -191,6 +180,19 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "Les réponses s'exportent en Excel : le classement, la conformité critère par critère et la projection sous les trois scénarios de rendement." ] },
     ],
     termes: ["cahier", "anonymat"],
+  },
+  {
+    id: "financer", groupe: "Le parcours", titre: "5. Les offres", ecran: "financement",
+    resume: "Les offres que votre conseiller vous apporte, classées par rendement net ; vous choisissez.",
+    sections: [
+      { titre: "D'où viennent les offres", texte: [
+        "Votre conseiller consulte les assureurs sur votre cahier des charges ; leurs offres arrivent sur la page « Offres », saisies par lui ou déposées par l'assureur sur son lien. Avant la confirmation, le mandat et le cahier, la page dit ce qui vient : la plateforme ne compare pas des chiffres saisis au hasard.",
+        "Vous pouvez ajouter un devis reçu directement, « pour comparer » : il se classe avec les autres, marqué comme tel, mais ne se retient pas. Pour le retenir, demandez à votre conseiller de consulter cet assureur." ] },
+      { titre: "Le rendement net", texte: [
+        "L'offre la plus intéressante est celle qui rapporte le plus à votre fonds, une fois tout payé : le taux servi (taux garanti + participation aux bénéfices, dans le scénario central) moins les frais sur encours moins l'effet des frais sur cotisations. C'est le rendement net, calculé exactement sur vos cotisations et vos départs.",
+        "Chaque carte le montre en grand, avec sa décomposition ; la recommandée est la meilleure des offres conformes à vos conditions. Le détail des projections, sous les trois scénarios, reste replié en bas de page, avec le coût net actualisé." ] },
+    ],
+    termes: ["taux_garanti", "participation", "cout_net", "provision_interne", "frais_cotisation"],
   },
   {
     id: "contrat", groupe: "Le parcours", titre: "Le courtage", ecran: "contrat",
@@ -335,7 +337,7 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "L'étude recalcule la dette avec le taux d'actualisation, la croissance des salaires et la rotation à un point de moins et à un point de plus : ce sont les sensibilités." ] },
       { titre: "Le financement", texte: [
         "Chaque année, l'entreprise cotise : la charge indexée sur les salaires, plus une part du déficit initial (dette − fonds) amorti sur le nombre d'années choisi. L'assureur prélève ses frais, crédite le fonds au taux garanti plus sa participation aux bénéfices, puis les prestations probables de l'année sont payées par le fonds, dans la limite de ce qu'il contient.",
-        "Trois scénarios de rendement : prudent 3,5 %, central 5 %, favorable 6,5 %. Les offres se comparent sur leur coût net actualisé, dans le scénario central : cotisations et découverts actualisés, moins le fonds restant à l'horizon." ] },
+        "Trois scénarios de rendement : prudent 3,5 %, central 5 %, favorable 6,5 %. Les offres se classent par leur rendement net dans le scénario central : le taux r qui égalise ce qui entre dans le fonds (fonds initial, cotisations brutes, en début d'année) et ce qui en sort ou y reste (prestations payées en fin d'année, fonds à l'horizon). Le coût net actualisé — cotisations et découverts actualisés, moins le fonds restant — reste dans le détail." ] },
       { titre: "L'expérience réelle", texte: [
         "La rotation observée est le nombre de démissions et de licenciements ÷ (années × effectif), sur cinq ans au plus. Elle n'est crédible qu'à partir de cinq départs, et proposée seulement si elle s'écarte d'au moins un demi-point. Elle n'est jamais appliquée d'office." ] },
       { titre: "Ce que le calcul ne fait pas", texte: [

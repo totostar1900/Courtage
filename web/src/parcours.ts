@@ -11,6 +11,8 @@ export interface EtatDossier {
   fiches: number;
   /** Où en est l'accompagnement : rien demandé, demandé, un mandat proposé à signer, signé. `null` : inconnu. */
   mandat?: "aucun" | "demande" | "propose" | "signe" | null;
+  /** Une offre a été retenue sur un cahier des charges. */
+  offreRetenue?: boolean;
 }
 
 export interface Etape {
@@ -42,12 +44,12 @@ export function etapes(e: EtatDossier): Etape[] {
       aide: e.etudesBrouillon > 0 ? t("Un brouillon attend l'émission par votre conseiller.",
                                       "A draft is waiting to be issued by your adviser.") :
         t("Lancez l'évaluation de votre engagement.", "Start the valuation of your liability.") },
-    { cle: "financement", libelle: t("Financement", "Funding"), fait: e.fiches > 0,
-      aide: t("Comparez l'assurance et la provision interne sous plusieurs scénarios.",
-        "Compare insurance and an internal provision under several scenarios.") },
     { cle: "cahier", libelle: t("Cahier des charges", "Specifications"), fait: e.fiches > 0,
       aide: t("Mettez les assureurs en concurrence sur une base commune.",
         "Put insurers in competition on a common basis.") },
+    { cle: "financement", libelle: t("Offres", "Offers"), fait: Boolean(e.offreRetenue),
+      aide: t("Votre conseiller vous apporte les offres des assureurs, classées par rendement net ; vous choisissez.",
+        "Your adviser brings you the insurers' offers, ranked by net return; you choose.") },
   ];
   // Le régime est facultatif : une étude émise sur la convention seule le rend « fait ».
   if (e.etudesEmises > 0) brutes[2].fait = true;

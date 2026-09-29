@@ -98,7 +98,7 @@ export default function EtudeDetail() {
                     onClick={() => demander(demandeSuppression(d.org.id, e, () => { d.recharger(); aller(".."); }))}>
               {e.statut === "emise" ? t("Supprimer l'étude", "Delete the study") : t("Supprimer ce brouillon", "Delete this draft")}</button>
           )}
-          <Link to="financement"><button>{t("Financer cet engagement", "Fund this liability")}</button></Link>
+          <Link to={`/dossier/${d.org.id}/financement`}><button>{t("Voir les offres des assureurs", "See the insurers' offers")}</button></Link>
         </div>
         {(attenteExport || (attenteEmission && e.statut === "brouillon" && d.role === "conseiller")) && (
           <p className="discret">{t("Émission et export Excel — ", "Issuing and Excel export — ")}{attenteExport ?? attenteEmission}</p>

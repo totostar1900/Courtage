@@ -24,7 +24,7 @@ import Messages from "./pages/Messages";
 import Offre from "./pages/Offre";
 import EtudeDetail from "./pages/EtudeDetail";
 import Etudes from "./pages/Etudes";
-import Financement from "./pages/Financement";
+import OffresDossier from "./pages/OffresDossier";
 import Guide from "./pages/Guide";
 import Personnel from "./pages/Personnel";
 import Portefeuille from "./pages/Portefeuille";
@@ -77,8 +77,8 @@ export default function App() {
             <Route path="simulation" element={<VersEtudes />} />
             <Route path="etudes" element={<Etudes />} />
             <Route path="etudes/:etude" element={<EtudeDetail />} />
-            <Route path="etudes/:etude/financement" element={<Financement />} />
-            <Route path="financement" element={<Financement />} />
+            <Route path="etudes/:etude/financement" element={<VersOffres />} />
+            <Route path="financement" element={<OffresDossier />} />
             <Route path="cahier" element={<Cahier />} />
             <Route path="cahier/:fiche" element={<Reponses />} />
             <Route path="contrat" element={<Contrat />} />
@@ -164,4 +164,9 @@ function BasculeLangue() {
 function VersEtudes() {
   const { search } = useLocation();
   return <Navigate to={{ pathname: "../etudes", search }} replace />;
+}
+
+/** L'ancienne comparaison libre depuis une étude : les offres, désormais, viennent du conseiller. */
+function VersOffres() {
+  return <Navigate to="../financement" replace />;
 }

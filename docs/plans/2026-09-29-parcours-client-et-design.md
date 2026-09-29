@@ -14,7 +14,7 @@ Spécification : `docs/specs/2026-09-29-parcours-client-et-design-design.md`.
    *Les départs attendent le contrat*
 6. [x] **Accompagnement.** Quatrième étape de l'inscription ; en tête du parcours. — *L'accompagnement dès
    l'inscription*
-7. [ ] **Offres.** Rendement net ; classement ; migration 0033 `origine` ; offre ajoutée par l'entreprise ; page
+7. [x] **Offres.** Rendement net ; classement ; migration 0033 `pour_comparaison` ; offre ajoutée par l'entreprise ; page
    « Offres » à la place de « Financement ». — *Les offres : apportées par le conseiller, classées par rendement net*
 8. [ ] **Interface.** Audit ; socle visuel (sections, plis, boutons, ombres) ; vitrine. — *Une interface plus nette*
 9. [ ] Guide, démonstration, CLAUDE.md ; suites vertes, `tsc` propre.

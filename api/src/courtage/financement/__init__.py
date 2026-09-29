@@ -23,6 +23,14 @@ rapporte plus que le taux d'actualisation ; il sert à COMPARER des offres, qui
 reçoivent les mêmes cotisations et paient les mêmes prestations. Pour juger
 si le fonds suffit, la couverture rapporte le fonds à l'horizon à la valeur,
 à cette date, des prestations probables qui restent à payer.
+
+Le rendement net est ce que l'offre rapporte VRAIMENT au fonds, tous frais
+payés : le taux r qui égalise ce qui y entre (le fonds initial, les
+cotisations brutes, en début d'année) et ce qui en sort ou y reste (les
+prestations payées en fin d'année, le fonds à l'horizon). C'est le taux servi
+(garanti + participation) moins les frais sur encours moins l'effet des frais
+sur cotisations — calculé exactement plutôt qu'approché. Il classe les offres
+du courtier : la plus intéressante est celle qui rapporte le plus.
 """
 from dataclasses import dataclass
 
@@ -100,13 +108,46 @@ def projeter(engagement: Engagement, offres: list[Offre], scenarios: list[Scenar
 
     def cout_de_reference(o):
         return next(s["cout_net_actualise"] for s in o["scenarios"] if s["scenario"] == reference)
+    def rendement_de_reference(o):
+        r = next(s["rendement_net"] for s in o["scenarios"] if s["scenario"] == reference)
+        return -r if r is not None else float("inf")
     return {
         "plan_amortissement": {"deficit_initial": deficit, "annees": parametres.amortissement_annees,
                                "annuite": annuite},
         "scenario_de_reference": reference,
         "offres": resultats,
         "classement": [o["nom"] for o in sorted(resultats, key=cout_de_reference)],
+        # Par rendement net décroissant (à égalité, le coût départage) : le classement des offres du courtier.
+        "classement_rendement": [o["nom"] for o in sorted(resultats, key=lambda o: (rendement_de_reference(o),
+                                                                                     cout_de_reference(o)))],
     }
+
+
+def rendement_net(fonds_initial: float, annees: list[dict], fonds_final: float) -> float | None:
+    """Le taux r tel que fonds_initial·(1+r)^H + Σ cotisation_t·(1+r)^(H−t+1) − Σ payées_t·(1+r)^(H−t) = fonds_final.
+    `None` quand rien n'est placé (pas de fonds, pas de cotisation) ou que le taux sort de [−50 %, +100 %]."""
+    h = len(annees)
+    if h == 0 or (fonds_initial <= 0 and not any(a["cotisation"] > 0 for a in annees)):
+        return None
+
+    def ecart(r: float) -> float:
+        v = fonds_initial * (1 + r) ** h
+        for t, a in enumerate(annees, start=1):
+            v += a["cotisation"] * (1 + r) ** (h - t + 1) - a["payees_par_le_fonds"] * (1 + r) ** (h - t)
+        return v - fonds_final
+
+    bas, haut = -0.5, 1.0
+    if ecart(bas) > 0 or ecart(haut) < 0:
+        return None
+    for _ in range(200):
+        milieu = (bas + haut) / 2
+        if ecart(milieu) > 0:
+            haut = milieu
+        else:
+            bas = milieu
+        if haut - bas < 1e-10:
+            break
+    return (bas + haut) / 2
 
 
 def _projeter_une(e: Engagement, o: Offre, s: Scenario, p: Parametres, annuite: float) -> dict:
@@ -150,6 +191,8 @@ def _projeter_une(e: Engagement, o: Offre, s: Scenario, p: Parametres, annuite: 
         "cout_total": cout_total, "frais_totaux": frais_totaux, "annees_decouvert": decouverts,
         "fonds_final": fonds,
         "cout_net_actualise": cout_actualise - fonds / (1 + p.taux_actualisation) ** p.horizon,
+        "taux_servi": taux,
+        "rendement_net": rendement_net(e.fonds_initial, annees, fonds),
     }
 
 

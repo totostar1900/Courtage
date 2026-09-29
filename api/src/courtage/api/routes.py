@@ -1167,6 +1167,24 @@ async def saisir_reponse(fiche_id: uuid.UUID, donnees: str = Form(...), offre: U
     return reponses.en_clair(r, fiche)
 
 
+@routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/comparaison", status_code=201)
+async def ajouter_offre_comparaison(fiche_id: uuid.UUID, donnees: str = Form(...), offre: UploadFile | None = File(default=None),
+                                    a: Acces = Depends(acces("admin_client", "contributeur_client"))):
+    """Un devis reçu directement par l'entreprise, ajouté pour comparaison : classé avec les autres, jamais retenu."""
+    fiche = reponses.obtenir_fiche(a.session, fiche_id)
+    r = reponses.ajouter_pour_comparaison(a.session, a.organisation, a.utilisateur.id, fiche,
+                                          _donnees(donnees, SaisieReponse), offre=await _offre(offre))
+    return reponses.en_clair(r, fiche)
+
+
+@routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/{reponse_id}/retrait-comparaison",
+              status_code=201)
+def retirer_offre_comparaison(fiche_id: uuid.UUID, reponse_id: uuid.UUID,
+                              a: Acces = Depends(acces("admin_client", "contributeur_client"))):
+    fiche = reponses.obtenir_fiche(a.session, fiche_id)
+    return reponses.en_clair(reponses.retirer_comparaison(a.session, a.organisation, a.utilisateur.id, fiche, reponse_id), fiche)
+
+
 @routeur.post("/organisations/{organisation_id}/fiches/{fiche_id}/reponses/{reponse_id}/correction", status_code=201)
 async def corriger_reponse(fiche_id: uuid.UUID, reponse_id: uuid.UUID, donnees: str = Form(...),
                            offre: UploadFile | None = File(default=None), a: Acces = Depends(acces(*CONSEIL))):
@@ -1202,7 +1220,9 @@ def choisir_reponse(fiche_id: uuid.UUID, corps: Choix, a: Acces = Depends(acces(
 
 @routeur.get("/organisations/{organisation_id}/fiches")
 def lister_fiches(a: Acces = Depends(acces(*TOUS))):
-    return [{k: v for k, v in fiches.en_clair(f, n).items() if k != "contenu"} for f, n in fiches.lister(a.session)]
+    # « attribuee » : une offre a été retenue (le parcours de l'entreprise s'en sert).
+    return [{**{k: v for k, v in fiches.en_clair(f, n).items() if k != "contenu"},
+             "attribuee": reponses.choix(a.session, f) is not None} for f, n in fiches.lister(a.session)]
 
 
 @routeur.get("/organisations/{organisation_id}/fiches/{fiche_id}")

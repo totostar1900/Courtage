@@ -46,4 +46,4 @@ def _arrondi(x):
 
 
 _TAUX = {"couverture_des_departs_restants", "taux_credite", "rendement", "taux_garanti", "participation_benefices", "frais_sur_cotisations",
-         "frais_sur_encours"}
+         "frais_sur_encours", "rendement_net", "taux_servi"}

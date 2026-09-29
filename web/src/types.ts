@@ -193,6 +193,8 @@ export interface Fiche {
   etude_id: string;
   date_limite_reponse: string;
   emise_le: string;
+  /** Une offre y a été retenue. */
+  attribuee?: boolean;
 }
 
 export interface Contrat {
@@ -302,6 +304,10 @@ export interface ReponseAssureur {
   conformite: CritereConformite[]; conforme: boolean; tardive: boolean; rang: number | null;
   cout_net_actualise: number | null; offre: { nom_fichier: string; empreinte: string } | null;
   remplace_id: string | null; motif_correction: string | null; deposee_par_assureur?: boolean;
+  /** Ce que l'offre rapporte au fonds, tous frais payés (scénario central) ; et le taux servi avant frais. */
+  rendement_net?: number | null; taux_servi?: number | null;
+  /** Un devis ajouté par l'entreprise pour comparer : classé, jamais retenu. */
+  pour_comparaison?: boolean;
 }
 
 export interface ReponsesFiche {

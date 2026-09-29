@@ -58,8 +58,8 @@ function construire(): Lecon[] {
       { titre: t("La porte de sortie", "The way out"), texte: t("Préavis et pénalité de transfert : une offre qui vous retient coûte plus cher le jour où vous voulez partir.", "Notice period and transfer penalty: an offer that locks you in costs more on the day you want to leave.") },
     ],
     quiz: { question: t("Quel critère compare le mieux deux offres sur dix ans ?", "Which criterion best compares two offers over ten years?"),
-      choix: [t("Le taux garanti", "The guaranteed rate"), t("Le coût net actualisé, scénario central", "The net present cost, central scenario"), t("Les frais sur encours seuls", "The fees on assets alone")], bonne: 1,
-      pourquoi: t("Le coût net actualisé additionne tout — versements, frais, rendement — et retranche le fonds restant. C'est le seul chiffre qui résume une offre entière.", "The net present cost adds everything up — payments, fees, return — and deducts the remaining fund. It is the only figure that sums up a whole offer.") },
+      choix: [t("Le taux garanti", "The guaranteed rate"), t("Le rendement net, scénario central", "The net return, central scenario"), t("Les frais sur encours seuls", "The fees on assets alone")], bonne: 1,
+      pourquoi: t("Le rendement net retranche du taux servi tous les frais — sur encours comme sur cotisations — sur vos vrais versements et vos vrais départs. C'est le seul chiffre qui résume une offre entière.", "The net return deducts every charge — on assets and on contributions — from the rate credited, on your actual payments and departures. It is the only figure that sums up a whole offer.") },
   },
   {
     id: "donnees-personnelles", titre: t("Pourquoi nous ne demandons aucun nom", "Why we ask for no names"), duree: "1 min", pour: t("Tout le monde", "Everyone"),
