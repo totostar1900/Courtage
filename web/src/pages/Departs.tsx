@@ -11,6 +11,7 @@ import type { ApercuImport, CalculPrestation, Constat, ContratsDossier, MotifDep
 import { useDossier } from "./Dossier";
 import { DemandePriseEnCharge, EtatDossier } from "./DossierPEC";
 import { DepartHorsMandat } from "./HorsMandat";
+import { DepotFichier } from "../composants/DepotFichier";
 
 /** Les libellés des motifs, lus au rendu (la langue peut changer). */
 export const motifs = (): Record<MotifDepart, string> => ({
@@ -302,7 +303,7 @@ function ImportHistorique({ onFermer, onFait }: { onFermer: () => void; onFait: 
       <p>{t("Un tableur, une ligne par départ : matricule, date d'embauche, date de départ, motif, salaire mensuel de référence ; et si vous les avez, le montant versé, ce que le fonds a payé et quand. Cinq ans suffisent. Une colonne de noms est ignorée.",
         "A spreadsheet, one line per departure: staff number, hiring date, departure date, reason, reference monthly salary; and if you have them, the amount paid, what the fund paid and when. Five years is enough. A column of names is ignored.")}</p>
       <div className="grille g3" style={{ alignItems: "end" }}>
-        <label>{t("Fichier (xlsx ou csv)", "File (xlsx or csv)")}<input type="file" accept=".xlsx,.csv" onChange={(e) => { setFichier(e.target.files?.[0] ?? null); setApercu(null); }} /></label>
+        <DepotFichier libelle={t("Fichier (xlsx ou csv)", "File (xlsx or csv)")} accept=".xlsx,.csv" fichier={fichier} onChange={(f) => { setFichier(f); setApercu(null); }} />
         <label>{t("Convention (sans régime adopté)", "Collective agreement (if no scheme adopted)")}<input value={convention} onChange={(e) => setConvention(e.target.value)} placeholder={t("celle de la dernière étude", "the one from the latest study")} /></label>
         <div className="actions"><button type="button" disabled={!fichier} onClick={() => envoyer(false)}>{t("Lire le fichier", "Read the file")}</button></div>
       </div>

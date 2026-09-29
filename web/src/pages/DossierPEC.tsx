@@ -7,6 +7,7 @@ import { dateFr, montant } from "../format";
 import { t } from "../i18n";
 import type { Beneficiaire, DossierPEC, EtapeDossier, Prestation } from "../types";
 import { useDossier } from "./Dossier";
+import { DepotFichier } from "../composants/DepotFichier";
 
 // Les libellés se lisent au rendu (la langue peut changer) : des fonctions, pas des constantes figées à l'import.
 export const etapes = (): Record<EtapeDossier, string> => ({
@@ -140,7 +141,7 @@ function AjoutPiece({ url, onFait }: { url: string; onFait: () => void }) {
     <form className="actions" onSubmit={envoyer} style={{ alignItems: "end" }}>
       <label>{t("Nature", "Type")}<select name="nature">{Object.entries(natures()).filter(([k]) => k !== "dossier_scelle")
         .map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
-      <label>{t("Fichier (PDF, JPEG, PNG · 5 Mo)", "File (PDF, JPEG, PNG · 5 MB)")}<input name="fichier" type="file" accept=".pdf,.jpg,.jpeg,.png" required /></label>
+      <DepotFichier libelle={t("Fichier (PDF, JPEG, PNG · 5 Mo)", "File (PDF, JPEG, PNG · 5 MB)")} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
       <button>{t("Ajouter la pièce", "Add the document")}</button>
       <Erreur erreur={erreur} />
     </form>

@@ -592,7 +592,7 @@ tr.choisie > td { background: var(--indigo-doux); }
 
 /* L'essai sans compte : filigrane sur le résultat, rien à imprimer. */
 .essai-impression { display: none; }
-.resultat-essai { position: relative; }
+.resultat-essai { position: relative; overflow: clip; }   /* le filigrane tourné ne déborde pas de la page */
 .resultat-essai .filigrane { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
   font: 700 clamp(28px, 7vw, 72px)/1 var(--titre); color: rgb(31 45 107 / .07); transform: rotate(-18deg);
   white-space: nowrap; overflow: hidden; z-index: 1; }
@@ -667,3 +667,44 @@ tr.choisie > td { background: var(--indigo-doux); }
 .pipeline { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
 .pipeline li { background: var(--surface); border: 1px solid var(--trait); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; font-size: 13px; color: var(--encre-2); }
 .pipeline .gros { font-size: 24px; color: var(--indigo); }
+
+/* Accessibilité : présent pour le lecteur d'écran et le clavier, invisible à l'œil. */
+.visuellement-cache { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Le dépôt d'un fichier (composants/DepotFichier.tsx) */
+.televersement { display: grid; gap: 8px; }
+.televersement > label { display: grid; gap: 8px; cursor: pointer; }
+.televersement-libelle { font-weight: 600; font-size: 13px; color: var(--encre-2); }
+.televersement-zone { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 92px; padding: 18px;
+  border: 1.5px dashed #c3c8dd; border-radius: 14px; background: #fafbfe; color: var(--encre-2); text-align: center;
+  transition: border-color .15s, background .15s, color .15s; }
+.televersement-zone strong { color: var(--indigo-vif); }
+.televersement > label:hover .televersement-zone, .televersement.survol .televersement-zone { border-color: var(--indigo-vif); background: var(--indigo-doux); color: var(--indigo); }
+.televersement > label:focus-within .televersement-zone { outline: 3px solid #2f419a33; outline-offset: 2px; }
+.televersement.rempli > label { cursor: default; }
+.televersement-fichier { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 12px;
+  background: var(--bien-doux); color: var(--bien); border: 1px solid #bfe0cd; }
+.televersement-fichier .televersement-nom { font-weight: 600; color: var(--encre); overflow-wrap: anywhere; }
+.televersement-fichier .lien:first-of-type { margin-left: auto; }
+.televersement.inactif .televersement-zone { opacity: .6; cursor: not-allowed; }
+
+/* « Et ensuite ? » après l'essai : une frise d'étapes, puis les portes pour continuer. */
+.surtitre { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ocre); margin: 0 0 6px; }
+.et-ensuite { background: linear-gradient(180deg, #ffffff 0%, #f4f6fd 100%); }
+.et-ensuite h3 { font-family: var(--titre); font-weight: 400; font-size: 22px; margin-bottom: 18px; }
+.frise { list-style: none; margin: 0 0 20px; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px;
+  counter-reset: frise; }
+.frise li { display: grid; gap: 4px; align-content: start; position: relative; padding-top: 44px; font-size: 13px; color: var(--encre-2); }
+.frise li strong { color: var(--encre); font-size: 14px; }
+.frise-num { position: absolute; top: 0; left: 0; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--indigo); color: #fff; font-weight: 700; font-size: 14px; }
+.frise li:not(:last-child)::after { content: ""; position: absolute; top: 16px; left: 40px; right: -8px; height: 2px; background: var(--trait); }
+@media (max-width: 900px) {
+  .frise { grid-template-columns: 1fr; gap: 16px; }
+  .frise li { padding: 0 0 0 46px; }
+  .frise li::after { display: none; }
+}
+a.bouton.whatsapp, button.whatsapp { background: #1f8f4e; border-color: #1f8f4e; color: #fff; }
+a.bouton.whatsapp:hover, button.whatsapp:hover { background: #17753f; }
+.lien-discret { color: var(--discret); font-size: 14px; }

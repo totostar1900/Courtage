@@ -2,20 +2,26 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "../api";
+import { useCabinet } from "../cabinet";
 import { Cle, Erreur, useCharge } from "../composants/communs";
+import { DepotFichier } from "../composants/DepotFichier";
+import { lienWhatsApp } from "../contact";
 import { Echeancier } from "../composants/Echeancier";
 import { dateFr, millions, montant } from "../format";
 import { mesurer, useMesure } from "../mesure";
 import { t } from "../i18n";
 import type { Annee, Totaux } from "../types";
 
-/** Ce que l'essai garde, dans ce navigateur seulement : l'inscription le reprend. */
+/** Ce que l'essai garde, dans ce navigateur seulement : l'inscription le reprend. Trente minutes, pas plus : un
+ *  visiteur qui revient plus tard repart d'une page vide. */
 export const CLE_ESSAI = "courtage:essai";
+export const DUREE_ESSAI_MS = 30 * 60 * 1000;
 
 export interface EssaiGarde {
   pays: string; convention_code: string; date_evaluation: string; fonds_disponible: number;
   modele: { code: string; titre: string; version: Record<string, unknown> } | null;
   fichier: { nom: string; type: string; base64: string } | null;
+  garde_le?: number;
 }
 
 interface Convention { code: string; libelle: string; pays: string; pays_libelle: string; en_vigueur_aujourd_hui: boolean }
@@ -28,12 +34,23 @@ interface Resultat {
 
 const finAnneeDerniere = () => `${new Date().getFullYear() - 1}-12-31`;
 
-export function lireEssai(): EssaiGarde | null {
-  try { const x = sessionStorage.getItem(CLE_ESSAI); return x ? JSON.parse(x) as EssaiGarde : null; } catch { return null; }
+export function lireEssai(maintenant = Date.now()): EssaiGarde | null {
+  try {
+    const x = sessionStorage.getItem(CLE_ESSAI);
+    if (!x) return null;
+    const e = JSON.parse(x) as EssaiGarde;
+    if (!e.garde_le || maintenant - e.garde_le > DUREE_ESSAI_MS) { oublierEssai(); return null; }
+    return e;
+  } catch { return null; }
+}
+
+export function oublierEssai() {
+  try { sessionStorage.removeItem(CLE_ESSAI); } catch { /* rien à oublier */ }
 }
 
 function garder(e: EssaiGarde) {
-  try { sessionStorage.setItem(CLE_ESSAI, JSON.stringify(e)); } catch { /* trop lourd pour le navigateur : l'essai reste à l'écran */ }
+  try { sessionStorage.setItem(CLE_ESSAI, JSON.stringify({ ...e, garde_le: Date.now() })); }
+  catch { /* trop lourd pour le navigateur : l'essai reste à l'écran */ }
 }
 
 function enBase64(f: File): Promise<string> {
@@ -75,7 +92,7 @@ export async function reprendreEssai(orgId: string): Promise<{ fichier: boolean;
       repris.regime = true;
     } catch { /* le régime se décrira depuis « Régime » */ }
   }
-  try { sessionStorage.removeItem(CLE_ESSAI); } catch { /* rien à oublier */ }
+  oublierEssai();
   return repris;
 }
 
@@ -83,7 +100,8 @@ export async function reprendreEssai(orgId: string): Promise<{ fichier: boolean;
  *  plateforme ; rien ne s'imprime ; « Enregistrer mes résultats » mène à l'inscription, qui reprend la saisie. */
 export default function Essai() {
   useMesure("essai_ouvert");
-  const precedent = lireEssai();
+  const [precedent] = useState(() => lireEssai());
+  const cabinet = useCabinet();
   const { donnee: ref } = useCharge(() => api.get<{ conventions: Convention[]; pays_couverts: Record<string, string> }>("/referentiel/conventions"), []);
   const [pays, setPays] = useState(precedent?.pays ?? "CM");
   const [convention, setConvention] = useState(precedent?.convention_code ?? "");
@@ -99,6 +117,13 @@ export default function Essai() {
     if (premiere && !conventions.some((c) => c.code === convention)) setConvention(premiere);
   }, [premiere, conventions, convention]);
   const choisi = modeles?.modeles.find((m) => m.code === modele) ?? null;
+
+  /** Retirer le fichier : il n'est plus envoyé, ni gardé dans ce navigateur. */
+  function changerFichier(f: File | null) {
+    setFichier(f);
+    setResultat(null);
+    if (!f) oublierEssai();
+  }
 
   async function calculer(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
@@ -154,17 +179,19 @@ export default function Essai() {
                   defaultValue={precedent?.date_evaluation ?? finAnneeDerniere()} /></label>
           <label>{t("Fonds déjà constitué (F)", "Fund already built up (F)")}<input type="number" name="fonds_disponible" min={0}
                   defaultValue={precedent?.fonds_disponible ?? 0} /></label>
-          <label>{t("Votre personnel (Excel ou CSV, 300 salariés au plus)", "Your staff (Excel or CSV, 300 employees at most)")}
-            <input type="file" accept=".xlsx,.csv" onChange={(e) => setFichier(e.target.files?.[0] ?? null)} /></label>
         </div>
         {choisi && <p className="discret">{choisi.description}</p>}
-        <p className="discret">
-          {fichier ? t(`Fichier : ${fichier.name}`, `File: ${fichier.name}`) : t("Pas encore de fichier.", "No file yet.")}{" "}
-          <button type="button" className="lien" onClick={() => api.telecharger("/referentiel/canevas-personnel", "canevas-personnel.xlsx")}>
-            {t("Télécharger le canevas à remplir", "Download the template to fill in")}</button>
-          {t(" — un matricule, jamais un nom.", " — a staff number, never a name.")}</p>
+        <DepotFichier libelle={t("Votre personnel (Excel ou CSV, 300 salariés au plus)", "Your staff (Excel or CSV, 300 employees at most)")}
+          accept=".xlsx,.csv" fichier={fichier} onChange={changerFichier}
+          aide={<>{t("Un matricule, jamais un nom. ", "A staff number, never a name. ")}
+            <button type="button" className="lien" onClick={() => api.telecharger("/referentiel/canevas-personnel", "canevas-personnel.xlsx")}>
+              {t("Télécharger le canevas à remplir", "Download the template to fill in")}</button>
+            {precedent?.fichier && fichier?.name === precedent.fichier.nom
+              && t(" · Repris de votre essai précédent : retirez-le pour repartir de zéro.", " · Carried over from your previous trial: remove it to start afresh.")}</>} />
         <div className="actions"><button className="principal" disabled={!fichier || calcul}>
           {calcul ? t("Calcul…", "Calculating…") : t("Calculer mon engagement", "Calculate my liability")}</button></div>
+        <p className="discret">{t("Rien n'est gardé sur la plateforme. Dans ce navigateur, votre saisie est gardée 30 minutes pour que l'inscription la reprenne ; « Retirer » l'efface aussitôt.",
+          "Nothing is kept on the platform. In this browser, what you entered is kept for 30 minutes so that sign-up can carry it over; “Remove” erases it at once.")}</p>
         <Erreur erreur={erreur} />
       </form>
 
@@ -191,15 +218,37 @@ export default function Essai() {
           )}
           <div className="carte section"><h3>{t("Départs prévus", "Expected departures")}</h3>
             <Echeancier annees={resultat.echeancier} fonds={resultat.fonds_disponible} /></div>
-          <div className="carte section appel-inscription">
-            <h3>{t("Aller plus loin", "Go further")}</h3>
-            <p>{t("Inscrivez-vous : votre saisie est reprise, vous ajustez les hypothèses, et votre conseiller émet le rapport scellé, vérifiable par son numéro. Sans frais.",
-              "Sign up: what you entered is carried over, you adjust the assumptions, and your adviser issues the sealed report, verifiable by its number. Free of charge.")}</p>
-            <div className="actions"><Link to="/inscription"><button className="principal">{t("Enregistrer mes résultats", "Save my results")}</button></Link>
-              <Link to="/connexion">{t("J'ai déjà un compte", "I already have an account")}</Link></div>
-          </div>
+          <EtEnsuite whatsapp={lienWhatsApp(cabinet?.telephone, t("Bonjour, je viens de faire l'essai sur la plateforme et j'aimerais en parler.", "Hello, I have just run the trial on the platform and would like to talk about it."))} />
         </section>
       )}
+    </div>
+  );
+}
+
+/** Ce qui vient après l'essai : les étapes, et trois façons de continuer la conversation. */
+function EtEnsuite({ whatsapp }: { whatsapp: string | null }) {
+  const etapes: [string, string][] = [
+    [t("Créez votre compte", "Create your account"), t("Deux minutes. Votre saisie est reprise.", "Two minutes. What you entered is carried over.")],
+    [t("Un conseiller vous appelle", "An adviser calls you"), t("Sous deux jours ouvrés : il confirme l'entreprise et vos besoins.", "Within two working days: they confirm the company and your needs.")],
+    [t("Le rapport scellé", "The sealed report"), t("L'évaluation relue, émise, vérifiable par son numéro.", "The valuation reviewed, issued, verifiable by its number.")],
+    [t("Les assureurs consultés", "Insurers consulted"), t("Votre conseiller vous apporte leurs offres, classées par rendement net.", "Your adviser brings you their offers, ranked by net return.")],
+    [t("Vous choisissez", "You choose"), t("Sans frais : le courtier est rémunéré par l'assureur retenu.", "Free of charge: the broker is paid by the insurer chosen.")],
+  ];
+  return (
+    <div className="carte section et-ensuite" aria-labelledby="et-ensuite">
+      <p className="surtitre">{t("Et ensuite ?", "What comes next?")}</p>
+      <h3 id="et-ensuite">{t("Ce chiffre est un début. Voici la suite.", "This figure is a start. Here is what follows.")}</h3>
+      <ol className="frise">
+        {etapes.map(([titre, texte], i) => (
+          <li key={titre}><span className="frise-num">{i + 1}</span><strong>{titre}</strong><span>{texte}</span></li>
+        ))}
+      </ol>
+      <div className="actions">
+        <Link to="/inscription" className="bouton principal">{t("Créer mon compte et garder mes résultats", "Create my account and keep my results")}</Link>
+        {whatsapp && <a className="bouton whatsapp" href={whatsapp} target="_blank" rel="noopener noreferrer">{t("En parler sur WhatsApp", "Talk on WhatsApp")}</a>}
+        <Link to="/#vitrine-rappel" className="bouton">{t("Être rappelé", "Get a call back")}</Link>
+        <Link to="/connexion" className="lien-discret">{t("J'ai déjà un compte", "I already have an account")}</Link>
+      </div>
     </div>
   );
 }

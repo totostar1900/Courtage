@@ -5,6 +5,7 @@ import { useDossier } from "../pages/Dossier";
 import { t } from "../i18n";
 import type { ExtractionProposee, ModeExtraction, VersionProposee } from "../types";
 import { Constats, Erreur, useCharge } from "./communs";
+import { DepotFichier } from "./DepotFichier";
 
 /** Partir d'un texte existant : la plateforme propose, avec pour chaque valeur le passage d'où elle vient. */
 export default function ExtractionTexte({ onReprendre }: { onReprendre: (v: VersionProposee) => void }) {
@@ -41,8 +42,8 @@ export default function ExtractionTexte({ onReprendre }: { onReprendre: (v: Vers
         "Your company agreement, a management memo, a collective agreement: the platform reads its retirement scale and "
         + "proposes it to you. Nothing is saved without your review.")}</p>
       <div className="actions" style={{ alignItems: "end" }}>
-        <label>{t("Le texte (PDF ou texte brut)", "The text (PDF or plain text)")}<input type="file" accept=".pdf,.txt"
-          onChange={(e) => { setFichier(e.target.files?.[0] ?? null); setResultat(null); }} /></label>
+        <DepotFichier libelle={t("Le texte (PDF ou texte brut)", "The text (PDF or plain text)")} accept=".pdf,.txt"
+          fichier={fichier} onChange={(f) => { setFichier(f); setResultat(null); }} />
         <button type="button" disabled={!fichier || (mode.envoie_a_un_tiers && !accord) || enCours} onClick={lire}>
           {enCours ? t("Lecture…", "Reading…") : t("Lire le texte", "Read the text")}</button>
       </div>

@@ -9,6 +9,7 @@ import type { CritereConformite, ReponseAssureur, ReponsesFiche } from "../types
 import { useDossier } from "./Dossier";
 import Consultations from "../composants/Consultations";
 import { Comparaison } from "./Financement";
+import { DepotFichier } from "../composants/DepotFichier";
 
 const valeur = (c: CritereConformite, x: number | boolean | null) =>
   x === null ? t("non renseigné", "not stated") : typeof x === "boolean" ? (x ? t("oui", "yes") : t("non", "no"))
@@ -213,7 +214,7 @@ function FormulaireReponse({ base, corriger, onFermer, onFait }: {
           <label>{t("Participation servie (5 ans)", "Profit sharing paid (5 years)")}<input name="historique_participation" defaultValue={c?.historique_participation ?? ""} placeholder="3,1 % ; 3,4 % ; …" /></label>
         </div>
         <label>{t("Commentaire", "Comment")}<input name="commentaire" defaultValue={c?.commentaire ?? ""} /></label>
-        <label>{t("L'offre de l'assureur (PDF, facultatif)", "The insurer's offer (PDF, optional)")}<input type="file" accept=".pdf" onChange={(e) => setOffre(e.target.files?.[0] ?? null)} /></label>
+        <DepotFichier libelle={t("L'offre de l'assureur (PDF, facultatif)", "The insurer's offer (PDF, optional)")} accept=".pdf" fichier={offre} onChange={setOffre} />
         {c && <label>{t("Pourquoi cette correction ?", "Why this correction?")}<input name="motif_correction" required /></label>}
         <div className="actions"><button className="principal">{c ? t("Enregistrer la correction", "Save the correction") : t("Enregistrer la réponse", "Save the response")}</button></div>
         <Erreur erreur={erreur} />

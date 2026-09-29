@@ -5,6 +5,7 @@ import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
 import { dateFr, pct } from "../format";
 import { t } from "../i18n";
+import { DepotFichier } from "../composants/DepotFichier";
 
 interface Consultation {
   cabinet: string; client: string; pays: string; assureur: string; cahier: string; date_limite: string;
@@ -93,7 +94,7 @@ function Depot({ jeton, onFait }: { jeton: string; onFait: () => void }) {
         <label>{t("Participation servie (5 dernières années)", "Profit sharing paid (last 5 years)")}<input name="historique_participation" placeholder="3,1 % ; 3,4 % ; …" /></label>
       </div>
       <label>{t("Commentaire", "Comment")}<input name="commentaire" /></label>
-      <label>{t("Votre offre signée (PDF)", "Your signed offer (PDF)")}<input type="file" accept="application/pdf" onChange={(e) => setOffre(e.target.files?.[0] ?? null)} /></label>
+      <DepotFichier libelle={t("Votre offre signée (PDF)", "Your signed offer (PDF)")} accept="application/pdf" fichier={offre} onChange={setOffre} />
       <div className="actions"><button className="principal" disabled={envoi}>{t("Déposer mon offre", "Upload my offer")}</button></div>
       <p className="discret">{t("Une seule réponse par lien. Pour la modifier ensuite, écrivez au courtier.", "One response per link. To change it afterwards, write to the broker.")}</p>
       <Erreur erreur={erreur} />
