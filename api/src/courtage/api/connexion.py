@@ -8,6 +8,7 @@ from courtage import auth
 from courtage.auth.telephone import normaliser
 from courtage.db import Utilisateur
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 from courtage.services import journaliser
 
 from . import COOKIE, identite, session_db
@@ -15,7 +16,10 @@ from .limites import limite
 
 routeur_connexion = APIRouter()
 
-REPONSE_DEMANDE = {"message": "Si ce numéro est inscrit, un code vient d'être envoyé. Il expire dans 10 minutes."}
+def reponse_demande() -> dict:
+    """La même réponse que le numéro soit inscrit ou non ; dans la langue de la requête."""
+    return {"message": t("Si ce numéro est inscrit, un code vient d'être envoyé. Il expire dans 10 minutes.",
+                         "If this number is registered, a code has just been sent. It expires in 10 minutes.")}
 
 
 class DemandeCode(BaseModel):
@@ -39,7 +43,7 @@ def mode(request: Request):
 def demander_code(corps: DemandeCode, request: Request, session: Session = Depends(session_db, scope="function")):
     telephone = _numero(corps.telephone)
     auth.demander_code(session, telephone, request.app.state.expediteur, request.app.state.cle_auth)
-    return REPONSE_DEMANDE
+    return reponse_demande()
 
 
 @routeur_connexion.post("/verification", dependencies=[Depends(limite("essai_code"))])
@@ -48,7 +52,7 @@ def verifier(corps: Verification, request: Request, session: Session = Depends(s
     utilisateur = auth.verifier_code(session, telephone, corps.code, request.app.state.cle_auth)
     if utilisateur is None:
         # Pas d'exception : elle annulerait la transaction, et avec elle le compte des essais.
-        return JSONResponse({"code": "code_invalide", "message": "Code incorrect ou expiré. Demandez-en un nouveau.",
+        return JSONResponse({"code": "code_invalide", "message": t("Code incorrect ou expiré. Demandez-en un nouveau.", "Incorrect or expired code. Request a new one."),
                              "details": {}}, status_code=401)
     jeton = auth.ouvrir_session(session, utilisateur, request.headers.get("user-agent"))
     journaliser(session, None, utilisateur.id, "connexion", utilisateur.id)
@@ -69,7 +73,7 @@ def deconnexion(request: Request, session: Session = Depends(session_db, scope="
         jeton = en_tete[7:].strip()
     if jeton:
         auth.revoquer(session, jeton)
-    reponse = JSONResponse({"message": "Déconnecté."})
+    reponse = JSONResponse({"message": t("Déconnecté.", "Signed out.")})
     reponse.delete_cookie(COOKIE, path="/")
     return reponse
 
@@ -78,4 +82,4 @@ def _numero(saisi: str) -> str:
     try:
         return normaliser(saisi)
     except ValueError:
-        raise ErreurMetier("telephone_invalide", "Numéro de téléphone invalide.", 422) from None
+        raise ErreurMetier("telephone_invalide", t("Numéro de téléphone invalide.", "Invalid phone number."), 422) from None

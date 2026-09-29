@@ -84,6 +84,9 @@ class Utilisateur(Base):
     nom_affiche: Mapped[str | None] = mapped_column(Text)
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
     email_verifie_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    conditions_version: Mapped[str | None] = mapped_column(Text)
+    conditions_acceptees_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    avis_courriel: Mapped[bool] = mapped_column(Boolean, server_default=FetchedValue())
 
 
 class CodeVerification(Base):
@@ -400,6 +403,8 @@ class MandatCourtage(Base):
     signe_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     signataire_nom: Mapped[str | None] = mapped_column(Text)
     signataire_fonction: Mapped[str | None] = mapped_column(Text)
+    signataire_qualite: Mapped[str | None] = mapped_column(Text)
+    delegation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("justificatifs.id"))
     motif: Mapped[str | None] = mapped_column(Text)
     contrat_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("contrats.id"))
 

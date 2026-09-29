@@ -49,7 +49,7 @@ describe("l'écran du guide", () => {
     simulerApi({});
     ouvrir("/guide", null);
     expect(await screen.findByRole("heading", { level: 1, name: "Ce que fait la plateforme" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Se déconnecter" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Mon profil" })).not.toBeInTheDocument();
   });
 
   it("la recherche trouve la définition, accents ignorés", async () => {

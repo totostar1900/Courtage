@@ -21,6 +21,7 @@ from math import ceil
 from typing import Literal, Sequence
 
 from courtage.actuariat.ifc import Hypotheses, Regles, Salarie, evaluer
+from courtage.langue import t
 from courtage.referentiel import Convention, notes_juridiques
 
 Niveau = Literal["bloque", "avertit", "informe"]
@@ -74,11 +75,15 @@ def _nature(ctx: Contexte) -> list[Constat]:
         constats.append(_note("informe", "egalite_de_traitement"))
     for c in ctx.categories:
         if c.get("avec_primes"):
+            qui = (t("Tout le personnel", "All staff") if c["categorie"] == "*"
+                   else t(f"Catégorie « {c['categorie']} »", f"Category “{c['categorie']}”"))
             constats.append(Constat(
-                "avertit", "base_avec_primes", "La base de salaire inclut les primes",
-                ("Tout le personnel" if c["categorie"] == "*" else f"Catégorie « {c['categorie']} »")
-                + " : inclure les primes gonfle la dette et rend le calcul "
-                "dépendant de leur définition. Préciser lesquelles, et vérifier que le fichier les contient.",
+                "avertit", "base_avec_primes", t("La base de salaire inclut les primes",
+                                                 "The salary basis includes bonuses"),
+                qui + t(" : inclure les primes gonfle la dette et rend le calcul "
+                        "dépendant de leur définition. Préciser lesquelles, et vérifier que le fichier les contient.",
+                        ": including bonuses inflates the liability and makes the calculation depend on how they "
+                        "are defined. Specify which ones, and check that the file contains them."),
                 categorie=c["categorie"]))
     return constats
 
@@ -103,21 +108,28 @@ def _couts(ctx: Contexte) -> list[Constat]:
     ecart = retenue.totaux.dette - texte.totaux.dette
     if ecart > 0:
         constats.append(Constat(
-            "avertit", "cout_non_conformite", "Ce que le texte du régime ne dit pas",
-            f"Lu à la lettre, le régime donnerait une dette de {_f(texte.totaux.dette)} ; parce que les salariés "
-            f"gardent droit à la convention, la dette réelle est de {_f(retenue.totaux.dette)}. "
-            f"Écart : {_f(ecart)}.",
+            "avertit", "cout_non_conformite", t("Ce que le texte du régime ne dit pas",
+                                                "What the plan's wording does not say"),
+            t(f"Lu à la lettre, le régime donnerait une dette de {_f(texte.totaux.dette)} ; parce que les salariés "
+              f"gardent droit à la convention, la dette réelle est de {_f(retenue.totaux.dette)}. "
+              f"Écart : {_f(ecart)}.",
+              f"Read literally, the plan would give a liability of {_f(texte.totaux.dette)}; because employees keep "
+              f"their right to the collective agreement, the actual liability is {_f(retenue.totaux.dette)}. "
+              f"Difference: {_f(ecart)}."),
             chiffres={"dette_selon_le_texte": texte.totaux.dette, "dette_retenue": retenue.totaux.dette,
                       "ecart": ecart}))
 
     reference, libelle = ((evaluation(ctx.regles_precedentes), "version_precedente")
                           if ctx.regles_precedentes else (plancher, "convention"))
     supplement = retenue.totaux.dette - reference.totaux.dette
-    face_a = "la version précédente" if libelle == "version_precedente" else "la seule convention"
+    face_a = (t("la version précédente", "the previous version") if libelle == "version_precedente"
+              else t("la seule convention", "the collective agreement alone"))
     constats.append(Constat(
-        "informe", "dette_de_passe", "La dette créée pour le passé",
-        f"Adopter ce régime porte la dette, pour les années déjà travaillées, de {_f(reference.totaux.dette)} "
-        f"({face_a}) à {_f(retenue.totaux.dette)} : {_f(supplement)} à financer, en une fois ou en plusieurs.",
+        "informe", "dette_de_passe", t("La dette créée pour le passé", "The liability created for past service"),
+        t(f"Adopter ce régime porte la dette, pour les années déjà travaillées, de {_f(reference.totaux.dette)} "
+          f"({face_a}) à {_f(retenue.totaux.dette)} : {_f(supplement)} à financer, en une fois ou en plusieurs.",
+          f"Adopting this plan takes the liability for years already worked from {_f(reference.totaux.dette)} "
+          f"({face_a}) to {_f(retenue.totaux.dette)}: {_f(supplement)} to fund, in one go or in several."),
         chiffres={"reference": libelle, "dette_reference": reference.totaux.dette,
                   "dette_regime": retenue.totaux.dette, "supplement": supplement}))
 
@@ -141,19 +153,24 @@ def concentration(retenue, plancher, salaries: Sequence[Salarie]) -> Constat | N
     part_plancher = sum(au_plancher[m] for m in mieux_payes) / total_plancher
     chiffres = {"effectif_mieux_payes": n, "part_des_mieux_payes": round(part_surplus, 4),
                 "part_dans_la_dette_conventionnelle": round(part_plancher, 4)}
-    message = (f"{_pct(part_surplus)} de ce que le régime ajoute à la convention va aux {n} salariés les mieux "
-               f"payés, qui portent {_pct(part_plancher)} de la dette conventionnelle.")
+    message = t(f"{_pct(part_surplus)} de ce que le régime ajoute à la convention va aux {n} salariés les mieux "
+                f"payés, qui portent {_pct(part_plancher)} de la dette conventionnelle.",
+                f"{_pct(part_surplus, True)} of what the plan adds to the collective agreement goes to the {n} "
+                f"best-paid employees, who account for {_pct(part_plancher, True)} of the liability under the "
+                "collective agreement.")
     if part_surplus - part_plancher > ECART_CONCENTRATION:
         n_abs = notes_juridiques()["abus_de_biens_sociaux"]
-        return Constat("avertit", "concentration", "Un régime qui profite surtout aux mieux payés",
+        return Constat("avertit", "concentration", t("Un régime qui profite surtout aux mieux payés",
+                                                     "A plan that mostly benefits the best paid"),
                        message + " " + n_abs.texte, chiffres=chiffres,
                        sources=[s.model_dump(mode="json") for s in n_abs.sources], statut_contenu=n_abs.statut)
-    return Constat("informe", "concentration", "À qui profite le régime", message, chiffres=chiffres)
+    return Constat("informe", "concentration", t("À qui profite le régime", "Who benefits from the plan"), message,
+                   chiffres=chiffres)
 
 
 def _f(montant: int | float) -> str:
     return f"{round(montant):,}".replace(",", " ") + " F"
 
 
-def _pct(x: float) -> str:
-    return f"{x * 100:.0f} %"
+def _pct(x: float, anglais: bool = False) -> str:
+    return f"{x * 100:.0f}%" if anglais else f"{x * 100:.0f} %"

@@ -10,6 +10,7 @@ import math
 from datetime import date
 
 from courtage.actuariat.ifc import mois_d_ifc
+from courtage.langue import langue
 from courtage.referentiel import BaremePaliers, BaremeTranches, Convention, Referentiel
 
 ANCIENNETES = (5, 10, 15, 20, 25, 30, 35)
@@ -25,6 +26,21 @@ MODELES = {
                "Les cadres à une fois et demie la convention ; les autres salariés au minimum."),
     "simple": ("Barème unique",
                "Un seul taux par année d'ancienneté, facile à expliquer, jamais sous la convention."),
+}
+
+
+# Le titre et la description à l'écran en anglais. `document_reference` reste en français : il préremplit la
+# version, qui s'enregistre et que les notes scellées citent.
+MODELES_EN = {
+    "minimum": ("Collective agreement minimum",
+                "The collective agreement's scale, with nothing more: what the law already requires."),
+    "plus_25": ("Collective agreement + 25%",
+                "Each rate of the collective agreement raised by a quarter: a clear gesture that follows the "
+                "agreement."),
+    "cadres": ("Managers favoured",
+               "Managers at one and a half times the collective agreement; other employees at the minimum."),
+    "simple": ("Single scale",
+               "A single rate per year of service, easy to explain, never below the collective agreement."),
 }
 
 
@@ -76,8 +92,10 @@ def modeles_du_pays(ref: Referentiel, pays: str, jour: date) -> list[dict]:
             categories = _categories(modele, convention)
             baremes = {c["categorie"]: (BaremeTranches if c["bareme"]["forme"] == "tranches_cumulatives"
                                         else BaremePaliers).model_validate(c["bareme"]) for c in categories}
+            titre_ecran, description_ecran = MODELES_EN[modele] if langue() == "en" else (titre, description)
             modeles.append({
-                "code": f"{convention.code}:{modele}", "modele": modele, "titre": titre, "description": description,
+                "code": f"{convention.code}:{modele}", "modele": modele, "titre": titre_ecran,
+                "description": description_ecran,
                 "convention": {"code": convention.code, "libelle": convention.libelle, "statut": convention.statut},
                 "version": {"en_vigueur_du": None, "fondement": "accord_entreprise",
                             "document_reference": f"Modèle type de la plateforme : {titre} ({convention.libelle})",

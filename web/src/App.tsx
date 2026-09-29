@@ -1,9 +1,10 @@
-import { Fragment } from "react";
-import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Fragment, useEffect, useState } from "react";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
-import { api, DEMO, ErreurApi, seConnecter } from "./api";
+import { api, DEMO, ErreurApi } from "./api";
 import { useCharge } from "./composants/communs";
 import { changerLangue, t, useLangue } from "./i18n";
+import PiedDePage from "./composants/PiedDePage";
 import Visionneuse from "./composants/Visionneuse";
 import Accueil from "./pages/Accueil";
 import Cahier from "./pages/Cahier";
@@ -16,24 +17,29 @@ import DossierPriseEnCharge from "./pages/DossierPEC";
 import Equipe from "./pages/Equipe";
 import Essai from "./pages/Essai";
 import Inscription from "./pages/Inscription";
+import { Conditions, Confidentialite, MentionsLegales } from "./pages/Legal";
 import Messages from "./pages/Messages";
 import EtudeDetail from "./pages/EtudeDetail";
 import Etudes from "./pages/Etudes";
 import Financement from "./pages/Financement";
 import Guide from "./pages/Guide";
 import Personnel from "./pages/Personnel";
+import Profil from "./pages/Profil";
 import Regime from "./pages/Regime";
 import Reponses from "./pages/Reponses";
 import Simulation from "./pages/Simulation";
 import TableauDeBord from "./pages/TableauDeBord";
 import Verifier from "./pages/Verifier";
+import Vitrine from "./pages/Vitrine";
 
 export default function App() {
   // Changer de langue redessine tout : chaque texte se relit dans la nouvelle langue ; l'adresse reste.
   const l = useLangue();
+  // `/` sans session : la vitrine. L'en-tête le sait, pour proposer « Se connecter » plutôt que le profil.
+  const [visiteur, setVisiteur] = useState(false);
   return (
     <Fragment key={l}>
-      <Entete />
+      <Entete visiteur={visiteur} />
       {DEMO && (
         <div className="bandeau-demo">
           {t("Démonstration : la Société Démo SA et ses 40 salariés sont fictifs. Les chiffres viennent du vrai moteur ; "
@@ -51,7 +57,11 @@ export default function App() {
           <Route path="/inscription" element={<Inscription />} />
           <Route path="/essai" element={<Essai />} />
           <Route path="/guide/*" element={<Guide />} />
-          <Route path="/" element={<Protege><Accueil /></Protege>} />
+          <Route path="/mentions-legales" element={<MentionsLegales />} />
+          <Route path="/conditions" element={<Conditions />} />
+          <Route path="/confidentialite" element={<Confidentialite />} />
+          <Route path="/" element={<Racine onVisiteur={setVisiteur} />} />
+          <Route path="/profil" element={<Protege><Profil /></Protege>} />
           <Route path="/dossier/:org" element={<Protege><Dossier /></Protege>}>
             <Route index element={<TableauDeBord />} />
             <Route path="personnel" element={<Personnel />} />
@@ -73,8 +83,19 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <PiedDePage />
     </Fragment>
   );
+}
+
+/** `/` : l'accueil des dossiers pour qui a une session, la vitrine pour qui n'en a pas. */
+function Racine({ onVisiteur }: { onVisiteur: (v: boolean) => void }) {
+  const { donnee, erreur } = useCharge(() => api.get("/moi"), []);
+  const visiteur = erreur instanceof ErreurApi && erreur.statut === 401;
+  useEffect(() => { onVisiteur(visiteur); return () => onVisiteur(false); }, [visiteur, onVisiteur]);
+  if (visiteur) return <Vitrine />;
+  if (erreur) return <div className="erreur">{erreur.message}</div>;
+  return donnee ? <Accueil /> : <p className="discret">{t("Chargement…", "Loading…")}</p>;
 }
 
 /** Une page réservée : la session (ou, en développement, la personne choisie) doit être valable. */
@@ -85,10 +106,12 @@ function Protege({ children }: { children: React.ReactNode }) {
   return donnee ? <>{children}</> : <p className="discret">{t("Chargement…", "Loading…")}</p>;
 }
 
-function Entete() {
-  const naviguer = useNavigate();
+const PUBLIQUES = ["/connexion", "/verifier", "/guide", "/inscription", "/essai", "/mentions-legales", "/conditions",
+                   "/confidentialite"];
+
+function Entete({ visiteur }: { visiteur: boolean }) {
   const { pathname } = useLocation();
-  const connecte = !["/connexion", "/verifier", "/guide", "/inscription", "/essai"].some((p) => pathname.startsWith(p));
+  const connecte = !visiteur && !PUBLIQUES.some((p) => pathname.startsWith(p));
   return (
     <header className="entete">
       <div className="interieur">
@@ -99,12 +122,14 @@ function Entete() {
           <Link to="/guide" style={{ color: "#fff" }} data-visite="guide">{t("Guide", "Guide")}</Link>
           <Link to="/verifier" style={{ color: "#fff" }}>{t("Vérifier un document", "Verify a document")}</Link>
           <BasculeLangue />
+          {visiteur && <Link to="/connexion" className="bouton-profil">{t("Se connecter", "Sign in")}</Link>}
           {connecte && (
-            <button onClick={async () => {
-              await api.post("/auth/deconnexion").catch(() => undefined);
-              seConnecter(null);
-              naviguer("/connexion");
-            }}>{t("Se déconnecter", "Sign out")}</button>
+            <Link to="/profil" className="bouton-profil" title={t("Mon profil", "My profile")}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8"
+                   strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              <span>{t("Mon profil", "My profile")}</span>
+            </Link>
           )}
         </div>
       </div>

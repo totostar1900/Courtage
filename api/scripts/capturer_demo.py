@@ -73,6 +73,8 @@ def main(url: str, sortie: Path) -> None:
         reponses[cle or f"{methode} {chemin}"] = r.json()
 
     capter("/referentiel/conventions")
+    capter("/public/cabinet")
+    reponses["GET /public/cabinet"]["nom"] = "Cabinet de démonstration"
     capter("/referentiel/modeles?pays=CM")
     capter("/referentiel/hypotheses")
     capter("/catalogue/regimes")
@@ -81,6 +83,7 @@ def main(url: str, sortie: Path) -> None:
     reponses["GET /dev/utilisateurs"] = [u for u in reponses["GET /dev/utilisateurs"] if not u["admin_plateforme"]]
     for qui in ("drh", "conseiller"):
         capter("/moi", qui=qui, cle=f"GET /moi@{ids[qui]}")
+        capter("/moi/profil", qui=qui, cle=f"GET /moi/profil@{ids[qui]}")
     base = f"/organisations/{org}"
     for chemin in ("/fichiers", "/regimes", "/regimes/partages", "/alertes", "/cycle", "/regimes/menage", "/nettoyage", "/etudes", "/fiches", "/equipe", "/mandats", "/activation", "/messages", "/messages/non-lus", "/justificatifs", "/contrats", "/prestations", "/dossiers", f"/dossiers/{dossier['id']}",
                    f"/etudes/{etude['id']}", f"/etudes/{brouillon['id']}", f"/fiches/{fiche['id']}", f"/fiches/{fiche['id']}/reponses"):

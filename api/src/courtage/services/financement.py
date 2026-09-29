@@ -1,6 +1,7 @@
 """Financer une étude : son engagement, projeté sous les offres et les scénarios demandés."""
 from courtage.db import Etude
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 from courtage.financement import SCENARIOS_PAR_DEFAUT, Engagement, Offre, Parametres, Scenario, projeter
 
 PROVISION_INTERNE = Offre(nom="Provision interne", taux_garanti=0.0, interne=True)
@@ -11,7 +12,9 @@ def financer(etude: Etude, *, offres: list[Offre], scenarios: list[Scenario] | N
     echeancier = etude.resultats["echeancier"]
     if any("prestations_probables" not in a for a in echeancier):
         raise ErreurMetier("etude_a_recalculer",
-                           "Cette étude précède le calcul des prestations probables : la recalculer.", 422)
+                           t("Cette étude précède le calcul des prestations probables : la recalculer.",
+                             "This study predates the calculation of expected benefit payments: recalculate it."),
+                           422)
     valeurs = etude.hypotheses["valeurs"]
     try:
         parametres = Parametres(

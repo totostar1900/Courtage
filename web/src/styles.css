@@ -43,7 +43,7 @@ p { margin: 0 0 10px; color: var(--encre-2); max-width: 72ch; }
 .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.dossier { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; }
+.dossier { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 56px; }
 @media (max-width: 900px) { .g2, .g3, .g4, .dossier { grid-template-columns: 1fr; } }
 /* Sur téléphone, un tableau large défile dans son cadre au lieu d'élargir la colonne (et le menu) du dossier. */
 @media (max-width: 900px) { .dossier { grid-template-columns: minmax(0, 1fr); } }
@@ -603,3 +603,37 @@ tr.choisie > td { background: var(--indigo-doux); }
 /* Une liste déroulante au long libellé reste dans sa colonne. */
 .grille-2 > label { min-width: 0; }
 .grille-2 select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+
+/* Le bouton du profil, en haut à droite. */
+.bouton-profil { display: inline-flex; align-items: center; gap: 8px; color: #fff; text-decoration: none;
+  border: 1px solid rgb(255 255 255 / .35); border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 14px; }
+.bouton-profil:hover { background: rgb(255 255 255 / .1); }
+@media (max-width: 700px) { .bouton-profil span { display: none; } .bouton-profil { padding: 7px; } }
+.profil { max-width: 820px; }
+.liste-simple { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.choix-langue { border: 0; padding: 0; display: flex; gap: 20px; }
+
+/* La vitrine (visiteur sur `/`), les pages légales, le pied de page */
+.vitrine { display: grid; gap: 40px; }
+.vitrine-une { padding: 28px 0 8px; }
+.vitrine-une h1 { font-size: clamp(28px, 4.2vw, 44px); line-height: 1.15; max-width: 22ch; color: var(--indigo); }
+.vitrine-chapeau { font-size: 17px; max-width: 62ch; }
+.vitrine-une .actions { align-items: center; flex-wrap: wrap; margin: 18px 0 10px; }
+.vitrine-gratuit { background: var(--ocre-doux); border-radius: 10px; padding: 10px 14px; display: inline-block; }
+.lien-discret { font-size: 14px; }
+.vitrine-etapes { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.vitrine-etapes .carte { position: relative; padding-top: 44px; }
+.vitrine-numero { position: absolute; top: 14px; left: 18px; width: 26px; height: 26px; border-radius: 50%; display: grid;
+  place-items: center; background: var(--indigo); color: #fff; font-size: 13px; font-weight: 700; }
+.vitrine-questions { display: grid; gap: 10px; margin-bottom: 10px; }
+.vitrine-questions summary { cursor: pointer; font-weight: 600; }
+.vitrine-questions details p { margin: 10px 0 0; }
+.legal { max-width: 78ch; }
+.legal h2 { font-size: 19px; margin-top: 26px; }
+.legal-liens { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--trait); }
+.pied { border-top: 1px solid var(--trait); background: var(--surface); font-size: 13px; color: var(--discret); }
+.pied .interieur { max-width: 1180px; margin: 0 auto; padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 8px 24px;
+  justify-content: space-between; }
+.pied nav { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.pied a { color: var(--discret); }
+@media print { .pied { display: none; } }

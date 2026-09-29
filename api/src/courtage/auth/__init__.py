@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import CodeConnexion, SessionUtilisateur, Utilisateur
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 
 journal = logging.getLogger("courtage.connexion")
 
@@ -47,7 +48,8 @@ def demander_code(session: Session, telephone: str, expediteur, cle: bytes) -> N
     if recentes >= LIMITE_DEMANDES:
         journal.warning("[connexion] %s : limite atteinte (%d demandes en 15 min), aucun code — attendre un quart "
                         "d'heure", masquer(telephone), LIMITE_DEMANDES)
-        raise ErreurMetier("trop_de_demandes", "Trop de demandes pour ce numéro : réessayez dans un quart d'heure.", 429)
+        raise ErreurMetier("trop_de_demandes", t("Trop de demandes pour ce numéro : réessayez dans un quart d'heure.",
+                                                   "Too many requests for this number: try again in fifteen minutes."), 429)
     code = f"{secrets.randbelow(10**6):06d}"
     session.add(CodeConnexion(telephone=telephone, code_hash=_hmac(cle, telephone, code), canal=expediteur.canal,
                               expire_le=func.now() + DUREE_CODE))

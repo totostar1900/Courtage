@@ -1,8 +1,8 @@
 /** Deux langues, le français d'abord. `t("français", "English")` s'écrit là où s'écrivait le texte : le français reste
  *  lisible dans le code, l'anglais vit à côté. La langue est choisie par le visiteur et gardée dans son navigateur.
  *
- *  Hors de cette bascule, pour l'instant : les messages rendus par le serveur, les documents scellés (PDF) et les
- *  chapitres du guide, en français. */
+ *  Le serveur suit la même langue (en-tête X-Langue, voir api.ts). Restent en français : les documents scellés (PDF)
+ *  et les exports, et les textes de référence (conventions collectives, sources). */
 import { useSyncExternalStore } from "react";
 
 export type Langue = "fr" | "en";

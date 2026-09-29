@@ -20,8 +20,10 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Etude, ExtractionTexte, Organisation
 from courtage.erreurs import ErreurMetier
-from courtage.extraction import CEMAC, Extracteur, ExtractionImpossible, citation_retrouvee, lire_document, proposer
-from courtage.referentiel import referentiel_courant
+from courtage.extraction import (CEMAC, Extracteur, ExtractionImpossible, citation_retrouvee, constats_en_clair,
+                                 lire_document, proposer)
+from courtage.langue import t, traduire
+from courtage.referentiel import nom_du_pays, referentiel_courant
 
 from . import journaliser
 
@@ -37,21 +39,27 @@ def mode(extracteur: Extracteur) -> dict:
 
 def _lire(extracteur: Extracteur, contenu: bytes, nom_fichier: str, pays: str, consentement: bool):
     if pays not in CEMAC:
-        raise ErreurMetier("hors_cemac", "L'extraction assistée ne traite pour l'instant que les textes des pays de la "
-                           "CEMAC.", 409)
+        raise ErreurMetier("hors_cemac", t("L'extraction assistée ne traite pour l'instant que les textes des pays de la "
+                                           "CEMAC.",
+                                           "For now, assisted extraction only handles texts from CEMAC countries."),
+                           409)
     if extracteur.envoie_a_un_tiers and not consentement:
-        raise ErreurMetier("consentement_requis", "Ce moteur envoie le texte à un service tiers pour lecture : il faut "
-                           "votre accord explicite.", 422)
+        raise ErreurMetier("consentement_requis", t("Ce moteur envoie le texte à un service tiers pour lecture : il faut "
+                                                    "votre accord explicite.",
+                                                    "This engine sends the text to a third-party service to be read: "
+                                                    "your explicit consent is required."), 422)
     if len(contenu) > TAILLE_MAX:
-        raise ErreurMetier("document_trop_lourd", "Un document pèse 10 Mo au plus.", 422)
+        raise ErreurMetier("document_trop_lourd", t("Un document pèse 10 Mo au plus.",
+                                                     "A document can be 10 MB at most."), 422)
     extension = nom_fichier.rsplit(".", 1)[-1].lower() if "." in nom_fichier else ""
     if not contenu.startswith(b"%PDF") and extension not in ("txt", "md"):
-        raise ErreurMetier("format_non_pris_en_charge", "Envoyez le texte en PDF (ou en texte brut).", 422)
+        raise ErreurMetier("format_non_pris_en_charge", t("Envoyez le texte en PDF (ou en texte brut).",
+                                                           "Send the text as a PDF (or as plain text)."), 422)
     document = lire_document(contenu, nom_fichier)
     try:
         extraction = extracteur.extraire(document, pays)
     except ExtractionImpossible as e:
-        raise ErreurMetier("extraction_impossible", str(e), 502) from None
+        raise ErreurMetier("extraction_impossible", traduire("extraction_impossible", str(e)), 502) from None
     return document, extraction
 
 
@@ -70,7 +78,8 @@ def pour_un_regime(session: Session, org: Organisation, auteur: uuid.UUID, extra
     journaliser(session, org.id, auteur, "regime.extraction", trace.id,
                 {"moteur": extracteur.moteur, "envoye_a_un_tiers": extracteur.envoie_a_un_tiers,
                  "categories": len(p.version.get("categories", []))})
-    return {"id": str(trace.id), **mode(extracteur), **resultat}
+    # Enregistré en français ; rendu dans la langue de l'écran.
+    return {"id": str(trace.id), **mode(extracteur), **resultat, "constats": constats_en_clair(p.constats)}
 
 
 def _convention_par_defaut(session: Session, pays: str) -> str | None:
@@ -87,8 +96,10 @@ def pour_le_referentiel(auteur: uuid.UUID, extracteur: Extracteur, session: Sess
     """Une convention collective d'un pays de la CEMAC, proposée pour le référentiel — au statut « à valider »."""
     document, extraction = _lire(extracteur, contenu, nom_fichier, pays, consentement)
     if extraction.pays and extraction.pays != pays:
-        raise ErreurMetier("autre_pays", f"Le texte relève de {CEMAC.get(extraction.pays, extraction.pays)}, pas de "
-                           f"{CEMAC[pays]}.", 422)
+        raise ErreurMetier("autre_pays", t(f"Le texte relève de {CEMAC.get(extraction.pays, extraction.pays)}, pas de "
+                                           f"{CEMAC[pays]}.",
+                                           f"The text comes from {nom_du_pays(extraction.pays)}, not from "
+                                           f"{nom_du_pays(pays)}."), 422)
     p = proposer(extraction, document, pays, None, FONDEMENTS)
     generale = next((c for c in p.version.get("categories", []) if c["categorie"] == "*"),
                     (p.version.get("categories") or [None])[0])
@@ -110,7 +121,8 @@ def pour_le_referentiel(auteur: uuid.UUID, extracteur: Extracteur, session: Sess
         }
     journaliser(session, None, auteur, "referentiel.extraction", pays,
                 {"moteur": extracteur.moteur, "fichier": hashlib.sha256(contenu).hexdigest()})
-    return {**mode(extracteur), "convention": convention, "verifications": p.verifications, "constats": p.constats,
+    return {**mode(extracteur), "convention": convention, "verifications": p.verifications,
+            "constats": constats_en_clair(p.constats),
             "extraction": extraction.model_dump(mode="json")}
 
 

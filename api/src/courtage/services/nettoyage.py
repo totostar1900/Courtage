@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Document, Etude, FicheRegime, FichierPersonnel, Organisation, Sceau, VersionRegime
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 
 from . import etudes, fichiers, journaliser, regimes
 
@@ -73,9 +74,9 @@ def archive(session: Session, org: Organisation, aujourd_hui: date) -> bytes:
 def nettoyer(session: Session, org: Organisation, auteur: uuid.UUID, *, fichiers_: str | None, brouillons: bool,
              etudes_emises: bool, confirmation: str) -> dict:
     if confirmation.strip().upper() != CONFIRMATION:
-        raise ErreurMetier("confirmation_requise", f"Écrire « {CONFIRMATION} » pour confirmer.", 422)
+        raise ErreurMetier("confirmation_requise", t(f"Écrire « {CONFIRMATION} » pour confirmer.", f"Type “{CONFIRMATION}” to confirm."), 422)
     if fichiers_ not in (None, "alleger", "supprimer"):
-        raise ErreurMetier("choix_invalide", "Le personnel s'allège ou se supprime.", 422)
+        raise ErreurMetier("choix_invalide", t("Le personnel s'allège ou se supprime.", "Staff data is either lightened or deleted."), 422)
     fait = {"etudes_brouillon": 0, "versions_brouillon": 0, "etudes_emises": 0, "fichiers_alleges": 0,
             "fichiers_supprimes": 0}
     if brouillons:

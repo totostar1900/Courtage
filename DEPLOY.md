@@ -44,6 +44,8 @@ répond 503 dès que la base ne porte pas la révision attendue par le code.
 | `COURTAGE_URL_PUBLIQUE` | `https://…`, imprimée sur les rapports pour la vérification |
 | `COURTAGE_SMTP_URL`, `COURTAGE_COURRIEL_EXPEDITEUR` | l'envoi du code de vérification du courriel à l'inscription : `smtp[s]://utilisateur:mot-de-passe@hôte:port` (tout fournisseur SMTP) et l'adresse d'envoi. Sans elles, le code s'écrit au journal : l'inscription ne peut pas aboutir en production |
 | `COURTAGE_COURTIER_NOM`, `COURTAGE_COURTIER_AGREMENT`, `COURTAGE_COURTIER_ADRESSE` | l'identité du cabinet imprimée sur le mandat de courtage (raison sociale, n° d'agrément, siège). Sans elles, le mandat porte des crochets à compléter : les renseigner avant la première signature réelle — un mandat signé ne se modifie plus |
+| `COURTAGE_COURTIER_RCCM`, `COURTAGE_COURTIER_COURRIEL`, `COURTAGE_COURTIER_TELEPHONE` | le reste de l'identité du cabinet, sur la vitrine (`/`), les mentions légales et la politique de confidentialité (`GET /api/v1/public/cabinet`). Une valeur absente s'affiche entre crochets : les renseigner avant d'ouvrir le site au public |
+| `COURTAGE_ALERTE_URL` | facultative : une adresse qui reçoit un POST JSON à chaque erreur inattendue (numéro d'incident, route, type d'erreur ; champ `text` pour Slack, Teams ou Discord), au plus un par minute (§7) |
 | `TWILIO_COMPTE`, `TWILIO_JETON`, `TWILIO_EMETTEUR`, `TWILIO_CANAL` | envoi des codes (`whatsapp` ou `sms`) |
 | `COURTAGE_DEMO` | `1` : sème au premier démarrage la Société Démo SA (fictive), suivie par les administrateurs. Refusée en production. `1` dans `render.essai.yaml` |
 | `COURTAGE_ADMIN_TELEPHONE`, `COURTAGE_ADMIN_NOM` | le premier administrateur, créé au démarrage s'il ne l'est pas déjà (§4c). Facultatives |
@@ -130,6 +132,8 @@ seul l'exploitant lit : c'est ainsi qu'on se connecte avant que Twilio soit bran
 
 - `curl https://courtage.purposecapital.africa/api/v1/sante` doit répondre `"statut":"ok"`, avec la migration du code.
 - Le journal doit montrer les sept `[base] PASS`.
+- `curl -sI https://courtage.purposecapital.africa/ | grep -i content-security-policy` : les en-têtes de sécurité
+  sont posés (§7).
 - Au premier déploiement seulement : émettre une étude et ouvrir son rapport PDF (les bibliothèques PDF de l'image,
   §6).
 
@@ -197,3 +201,49 @@ connexion par code, interface, polices servies par la plateforme) **sans** la co
 bibliothèques de WeasyPrint (Pango, HarfBuzz, DejaVu) n'y ont donc pas été
 installées, ni le rendu PDF vérifié dans l'image. Premier geste sur l'hébergeur :
 émettre une étude et ouvrir son rapport.
+
+
+## 7. Surveiller, alerter, restaurer
+
+### 7a. La sonde et la page d'état
+
+`GET /api/v1/sante` répond 200 quand la base répond ET porte le schéma du code, 503 sinon. Render s'en sert pour
+basculer le trafic ; un service de surveillance externe (UptimeRobot, Better Stack, Freshping… une offre gratuite
+suffit) s'en sert pour prévenir **et publier une page d'état** :
+
+1. Créer une sonde HTTP sur `https://courtage.purposecapital.africa/api/v1/sante`, toutes les 5 minutes, alerte
+   par courriel (et SMS si l'offre le permet) après deux échecs.
+2. Créer la page d'état publique du service et la relier depuis le pied de page si l'on veut la montrer aux clients.
+
+### 7b. Les incidents
+
+Une erreur inattendue répond 500 avec un numéro d'incident (`erreur_interne`, `details.incident`) ; le client le voit
+et peut le citer. Le journal du serveur porte la même ligne `[incident] <numéro> — <route> — <type>`, avec la pile.
+Avec `COURTAGE_ALERTE_URL`, un POST part à chaque incident (au plus un par minute, pour ne pas inonder) : un webhook
+entrant Slack, Teams ou Discord convient tel quel. Le message d'erreur n'est **jamais** envoyé : il peut contenir des
+données.
+
+### 7c. Les sauvegardes, prouvées par une restauration
+
+Render sauvegarde la base chaque jour (plans payants : restauration à un instant donné). Une sauvegarde qu'on n'a
+jamais restaurée n'est pas une preuve. **Une fois par mois, et avant toute migration risquée** :
+
+```bash
+# une base jetable (locale ou une petite base Render), JAMAIS la production comme cible
+SOURCE_URL="<url externe du propriétaire, production>" \
+CIBLE_URL="postgresql://postgres:…@localhost/courtage_restau" \
+  deploiement/verifier_sauvegarde.sh                   # ou : … verifier_sauvegarde.sh sauvegarde-render.dump
+```
+
+Le script copie (ou prend le fichier téléchargé depuis Render), vide la base cible, restaure, puis imprime les
+contrôles du démarrage (`[sauvegarde] PASS …`), le nombre de lignes des tables qui comptent et la date du dernier acte
+au journal. **Lire** : tout PASS, des comptes cohérents avec la production, un dernier acte du jour de la copie. Il
+refuse une cible égale à la source. Noter la date et le résultat dans le registre d'exploitation.
+
+Les sceaux se vérifient après restauration avec la même `COURTAGE_CLE_SCEAU` : une sauvegarde sans la clé ne prouve
+plus rien. La clé se garde à part (coffre de mots de passe), jamais dans la sauvegarde.
+
+### 7d. Ce que la sécurité doit encore
+
+`docs/securite.md` dit ce qui est en place et ce qui reste, dont un test d'intrusion externe avant l'ouverture au
+public.

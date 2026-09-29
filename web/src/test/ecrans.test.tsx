@@ -1369,10 +1369,32 @@ describe("l'accompagnement en courtage", () => {
     await userEvent.clear(screen.getByLabelText("Nom et prénom"));
     await userEvent.type(screen.getByLabelText("Nom et prénom"), "Awa Kouassi");
     await userEvent.click(screen.getByLabelText(/J'ai lu ce mandat et je l'accepte/));
+    expect(signer).toBeDisabled();                                    // et dire en quelle qualité
+    await userEvent.click(screen.getByLabelText(/Représentant légal de l'entreprise/));
     await userEvent.click(signer);
     await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/signature"))).toBe(true));
     const corps = JSON.parse(String(appels.find((a) => a.chemin.endsWith("/signature"))!.init!.body));
-    expect(corps).toMatchObject({ nom: "Awa Kouassi", empreinte: "a".repeat(64), accepte: true });
+    expect(corps).toMatchObject({ nom: "Awa Kouassi", empreinte: "a".repeat(64), accepte: true,
+                                  qualite: "representant_legal", delegation_id: null });
+  });
+
+  it("un délégataire dépose sa délégation, puis signe en la citant", async () => {
+    const appels = simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/mandats`]: tableau([propose]),
+      [`POST /organisations/${ORG}/justificatifs`]: { id: "j1", nom_fichier: "pouvoir.pdf", nature: "delegation" },
+      [`POST /organisations/${ORG}/mandats/m1/signature`]: { ...propose, statut: "signe" } });
+    ouvrir(`/dossier/${ORG}/accompagnement`);
+    await screen.findByText("Article 2 — Rémunération");
+    await userEvent.type(screen.getByLabelText("Nom et prénom"), "M. DAF");
+    await userEvent.click(screen.getByLabelText(/Délégataire : j'ai reçu pouvoir/));
+    await userEvent.upload(screen.getByLabelText(/Délégation de pouvoir/),
+                           new File(["%PDF"], "pouvoir.pdf", { type: "application/pdf" }));
+    await userEvent.click(screen.getByLabelText(/J'ai lu ce mandat et je l'accepte/));
+    await userEvent.click(screen.getByRole("button", { name: "Signer le mandat" }));
+    await waitFor(() => expect(appels.some((a) => a.chemin.endsWith("/signature"))).toBe(true));
+    const depot = appels.find((a) => a.chemin.endsWith("/justificatifs") && a.init?.method === "POST")!;
+    expect((depot.init!.body as FormData).get("nature")).toBe("delegation");
+    const corps = JSON.parse(String(appels.find((a) => a.chemin.endsWith("/signature"))!.init!.body));
+    expect(corps).toMatchObject({ qualite: "delegataire", delegation_id: "j1" });
   });
 
   it("le contributeur lit le mandat, sans pouvoir le signer", async () => {
@@ -1389,12 +1411,12 @@ describe("la bascule FR/EN", () => {
     ouvrir(`/dossier/${ORG}/etudes`);
     await screen.findByRole("heading", { name: "Évaluer votre engagement" });
     await userEvent.click(screen.getByRole("button", { name: "EN" }));
-    expect(await screen.findByRole("button", { name: "Sign out" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "My profile" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
     expect(localStorage.getItem("courtage:langue")).toBe("en");
     expect(document.documentElement.lang).toBe("en");
     await userEvent.click(screen.getByRole("button", { name: "FR" }));
-    expect(await screen.findByRole("button", { name: "Se déconnecter" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Mon profil" })).toBeInTheDocument();
   });
 });
 

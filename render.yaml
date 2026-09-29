@@ -46,6 +46,14 @@ services:
         sync: false
       - key: COURTAGE_COURTIER_ADRESSE
         sync: false
+      - key: COURTAGE_COURTIER_RCCM         # et sur la vitrine et les pages légales (DEPLOY.md §3)
+        sync: false
+      - key: COURTAGE_COURTIER_COURRIEL
+        sync: false
+      - key: COURTAGE_COURTIER_TELEPHONE
+        sync: false
+      - key: COURTAGE_ALERTE_URL            # facultative : un POST JSON par incident, au plus un par minute (§7)
+        sync: false
       - key: COURTAGE_ADMIN_TELEPHONE      # le premier administrateur, créé au démarrage (DEPLOY.md §4c)
         sync: false
       - key: COURTAGE_ADMIN_NOM

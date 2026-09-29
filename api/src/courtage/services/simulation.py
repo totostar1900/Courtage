@@ -16,6 +16,7 @@ from courtage.analyse import concentration
 from courtage.db import Organisation
 from courtage.erreurs import ErreurMetier
 from courtage.fichier import salaries
+from courtage.langue import t
 from courtage.referentiel import referentiel_courant
 
 from . import etudes, fichiers, regimes
@@ -35,11 +36,13 @@ class Variante:
 def simuler(session: Session, org: Organisation, *, fichier_id: uuid.UUID, date_evaluation: date,
             convention_code: str, fonds_disponible: int, hypotheses: dict, variantes: list[Variante]) -> dict:
     if len(variantes) > MAX_VARIANTES:
-        raise ErreurMetier("trop_de_variantes", f"Au plus {MAX_VARIANTES} variantes à la fois.", 422)
+        raise ErreurMetier("trop_de_variantes", t(f"Au plus {MAX_VARIANTES} variantes à la fois.",
+                                                   f"At most {MAX_VARIANTES} variants at a time."), 422)
     for v in variantes:
         if (v.regime_version_id is None) == (v.categories is None):
             raise ErreurMetier("variante_ambigue",
-                               f"« {v.nom} » : une version de régime OU des catégories, pas les deux ni aucune.", 422)
+                               t(f"« {v.nom} » : une version de régime OU des catégories, pas les deux ni aucune.",
+                                 f"“{v.nom}”: a plan version OR categories, not both and not neither."), 422)
         for c in v.categories or []:
             regimes.valider_categorie(org, c, date_evaluation)
     try:
@@ -53,7 +56,7 @@ def simuler(session: Session, org: Organisation, *, fichier_id: uuid.UUID, date_
 
     regles_base = {"*": Regles(bareme=convention.bareme)}
     base = evaluer(sal, h, convention, regles=regles_base)
-    resultats = [_resume("Convention seule", {"convention": convention.code}, base, base, sal, fonds_disponible,
+    resultats = [_resume(t("Convention seule", "Collective agreement alone"), {"convention": convention.code}, base, base, sal, fonds_disponible,
                          date_evaluation, [], regles_base)]
     for v in variantes:
         try:
@@ -94,7 +97,7 @@ def _resume(nom: str, source: dict, r: Resultat, base: Resultat, sal, fonds: int
         "par_categorie": r.par_categorie,
         "part_cinq_premiers": round(sum(dettes[:TETE]) / total, 4),
         "concentration": {"niveau": c.niveau, **c.chiffres} if c else None,
-        "constats": constats,
+        "constats": regimes.constats_en_clair(constats),
         # Pour comparer les régimes : ce que chaque barème verse selon l'ancienneté, et ce que chaque salarié
         # toucherait à son départ (par matricule : la plateforme ne connaît pas les noms).
         "courbes": {c: [round(mois_dus(x, n)[0], 3) for n in range(ANCIENNETE_MAX + 1)] for c, x in regles.items()},

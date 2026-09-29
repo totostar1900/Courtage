@@ -26,6 +26,8 @@ from courtage.actuariat.ifc import Regles, mois_dus
 from courtage.db import (CategorieRegime, Document, Etude, FicheRegime, Organisation, PartageRegime, Regime,
                          VersionRegime)
 from courtage.erreurs import ErreurMetier, Introuvable
+from courtage.fichier import traductions as _traductions  # noqa: F401 — inscrit l'anglais des constats du régime
+from courtage.langue import t, traduire
 from courtage.referentiel import Bareme, Convention, referentiel_courant
 
 from . import journaliser
@@ -78,15 +80,19 @@ def nouvelle_version(session: Session, org: Organisation, regime: Regime, auteur
 def adopter(session: Session, version: VersionRegime, auteur: uuid.UUID, accepte_non_conformite: bool) -> VersionRegime:
     """L'entreprise adopte, d'un seul acte. Une non-conformité doit avoir été vue."""
     if version.statut == "adoptee":
-        raise ErreurMetier("version_deja_adoptee", "Cette version est déjà adoptée.", 409)
+        raise ErreurMetier("version_deja_adoptee", t("Cette version est déjà adoptée.",
+                                                      "This version is already adopted."), 409)
     releves = constats(session, version, version.en_vigueur_du)
     non_conforme = any(c["code"] == "sous_le_plancher" for c in releves)
     if non_conforme and not accepte_non_conformite:
         raise ErreurMetier("non_conformite_a_accepter",
-                           "Ce régime donne moins que la convention collective pour certaines anciennetés. "
-                           "Les salariés garderont droit au plancher, et l'évaluation le retiendra. "
-                           "Confirmez que vous adoptez le régime en connaissance de cause.", 409,
-                           {"constats": releves})
+                           t("Ce régime donne moins que la convention collective pour certaines anciennetés. "
+                             "Les salariés garderont droit au plancher, et l'évaluation le retiendra. "
+                             "Confirmez que vous adoptez le régime en connaissance de cause.",
+                             "This plan gives less than the collective agreement for some lengths of service. "
+                             "Employees will keep their right to the floor, and the valuation will use it. "
+                             "Confirm that you are adopting the plan knowingly."), 409,
+                           {"constats": constats_en_clair(releves)})
     version.statut = "adoptee"
     version.adoptee_par = auteur
     version.adoptee_le = datetime.now(timezone.utc)
@@ -149,15 +155,19 @@ def suppression(session: Session, version: VersionRegime, c: dict | None = None)
     c = c or citations(session, version)
     adoptee = version.statut == "adoptee"
     raisons = []
-    for n, un, plusieurs in ((c["etudes_emises"], "une étude émise", "études émises"),
-                             (c["cahiers"], "un cahier des charges", "cahiers des charges"),
-                             (c["notes"], "une note émise", "notes émises"),
-                             (c["partages"], "un partage au catalogue", "partages au catalogue")):
+    for n, un, plusieurs in ((c["etudes_emises"], t("une étude émise", "an issued study"),
+                              t("études émises", "issued studies")),
+                             (c["cahiers"], t("un cahier des charges", "a set of tender specifications"),
+                              t("cahiers des charges", "sets of tender specifications")),
+                             (c["notes"], t("une note émise", "an issued note"), t("notes émises", "issued notes")),
+                             (c["partages"], t("un partage au catalogue", "a catalogue listing"),
+                              t("partages au catalogue", "catalogue listings"))):
         if n:
             raisons.append(un if n == 1 else f"{n} {plusieurs}")
     if raisons:
         return {"possible": False, "reservee_entreprise": adoptee, "brouillons": len(c["brouillons"]),
-                "raison": "Citée par " + ", ".join(raisons) + " : elle reste."}
+                "raison": t("Citée par " + ", ".join(raisons) + " : elle reste.",
+                            "Referenced by " + ", ".join(raisons) + ": it stays.")}
     return {"possible": True, "reservee_entreprise": adoptee, "brouillons": len(c["brouillons"]), "raison": None}
 
 
@@ -170,10 +180,13 @@ def supprimer(session: Session, version: VersionRegime, auteur: uuid.UUID, role:
         raise ErreurMetier("version_citee", s["raison"], 409)
     if s["reservee_entreprise"]:
         if role != "admin_client":
-            raise ErreurMetier("acces_refuse", "Supprimer une version adoptée, c'est revenir sur la décision de "
-                                               "l'entreprise : l'administrateur de l'entreprise seul le peut.", 403)
+            raise ErreurMetier("acces_refuse", t("Supprimer une version adoptée, c'est revenir sur la décision de "
+                                                 "l'entreprise : l'administrateur de l'entreprise seul le peut.",
+                                                 "Deleting an adopted version reverses the company's decision: only "
+                                                 "the company administrator can do it."), 403)
         if not (motif or "").strip():
-            raise ErreurMetier("motif_requis", "Dire pourquoi la version adoptée est supprimée.", 422)
+            raise ErreurMetier("motif_requis", t("Dire pourquoi la version adoptée est supprimée.",
+                                                 "Say why the adopted version is being deleted."), 422)
     from . import etudes as service_etudes
     for b in c["brouillons"]:
         service_etudes.supprimer(session, session.get(Etude, uuid.UUID(b["id"])), auteur)
@@ -196,7 +209,9 @@ def modifier_brouillon(session: Session, org: Organisation, version: VersionRegi
                        categories: list[SaisieCategorie]) -> VersionRegime:
     """Un brouillon se corrige sur place, jusqu'à son adoption : une retouche n'ajoute pas une version."""
     if version.statut != "analyse":
-        raise ErreurMetier("version_adoptee", "Une version adoptée ne se modifie plus : la dupliquer en brouillon.", 409)
+        raise ErreurMetier("version_adoptee", t("Une version adoptée ne se modifie plus : la dupliquer en brouillon.",
+                                                 "An adopted version can no longer be changed: duplicate it as a "
+                                                 "draft."), 409)
     _valider_categories(org, categories, en_vigueur_du)
     version.en_vigueur_du, version.fondement = en_vigueur_du, fondement
     version.document_reference, version.note = document_reference.strip(), note
@@ -234,13 +249,18 @@ def menage(session: Session, jour: date, role: str) -> list[dict]:
                 continue
             age = (jour - v.cree_le.date()).days
             if v.statut == "analyse":
-                depuis = "créé aujourd'hui" if age < 1 else f"sans décision depuis {age} jour{'s' if age > 1 else ''}"
-                raison, coche = f"brouillon {depuis}", age >= JOURS_SANS_DECISION
+                depuis = (t("créé aujourd'hui", "created today") if age < 1 else
+                          t(f"sans décision depuis {age} jour{'s' if age > 1 else ''}",
+                            f"no decision for {age} day{'s' if age > 1 else ''}"))
+                raison, coche = t(f"brouillon {depuis}", f"draft {depuis}"), age >= JOURS_SANS_DECISION
             else:
-                raison, coche = f"adoptée le {v.adoptee_le:%d/%m/%Y}, citée par rien : revenir sur cette décision", False
+                raison, coche = t(f"adoptée le {v.adoptee_le:%d/%m/%Y}, citée par rien : revenir sur cette décision",
+                                  f"adopted on {v.adoptee_le:%d/%m/%Y}, referenced by nothing: reverse this "
+                                  "decision"), False
             if c["brouillons"]:
                 n = len(c["brouillons"])
-                raison += f" ; {n} étude{'s' if n > 1 else ''} en brouillon {'partiront' if n > 1 else 'partira'} avec"
+                raison += t(f" ; {n} étude{'s' if n > 1 else ''} en brouillon {'partiront' if n > 1 else 'partira'} avec",
+                            f"; {n} draft stud{'ies' if n > 1 else 'y'} will go with it")
             candidats.append({"version_id": str(v.id), "regime": regime.nom, "numero": v.numero, "statut": v.statut,
                               "raison": raison, "coche": coche, "brouillons": c["brouillons"],
                               "motif_requis": s["reservee_entreprise"]})
@@ -252,7 +272,8 @@ def faire_le_menage(session: Session, auteur: uuid.UUID, role: str, version_ids:
     retenus = {c["version_id"]: c for c in menage(session, date.today(), role)}
     inconnues = [str(i) for i in version_ids if str(i) not in retenus]
     if inconnues:
-        raise ErreurMetier("hors_menage", "Certaines versions ne peuvent pas partir : " + ", ".join(inconnues), 409)
+        raise ErreurMetier("hors_menage", t("Certaines versions ne peuvent pas partir : ",
+                                             "Some versions cannot be removed: ") + ", ".join(inconnues), 409)
     brouillons = 0
     for i in version_ids:
         brouillons += len(retenus[str(i)]["brouillons"])
@@ -380,18 +401,26 @@ def en_clair(session: Session, version: VersionRegime, jour: date | None = None)
             "anciennete_minimale": c.anciennete_minimale, "plafond_mois": c.plafond_mois, "arrondi": c.arrondi,
             "base_salaire": c.base_salaire, "avec_primes": c.avec_primes, "evenements": list(c.evenements),
         } for c in categories_de(session, version)],
-        "constats": constats(session, version, jour or version.en_vigueur_du),
+        "constats": constats_en_clair(constats(session, version, jour or version.en_vigueur_du)),
     }
+
+
+def constats_en_clair(releves: list[dict]) -> list[dict]:
+    """Des COPIES, message dans la langue de l'écran. Un constat naît en français parce qu'il s'enregistre (à
+    l'adoption, dans une note émise, dans les anomalies d'une étude) : il se traduit à l'affichage seulement."""
+    return [{**c, "message": traduire(c.get("code"), c.get("message") or "")} for c in releves]
 
 
 # --- Interne ------------------------------------------------------------------
 
 def _valider_categories(org: Organisation, categories: list[SaisieCategorie], jour: date) -> None:
     if not categories:
-        raise ErreurMetier("regime_sans_categorie", "Un régime a au moins une catégorie (« * » pour tout le personnel).", 422)
+        raise ErreurMetier("regime_sans_categorie", t("Un régime a au moins une catégorie (« * » pour tout le personnel).",
+                                                      "A plan has at least one category (“*” for all staff)."), 422)
     noms = [c.categorie.strip() for c in categories]
     if len(set(noms)) != len(noms):
-        raise ErreurMetier("categorie_en_double", "Chaque catégorie n'apparaît qu'une fois.", 422)
+        raise ErreurMetier("categorie_en_double", t("Chaque catégorie n'apparaît qu'une fois.",
+                                                    "Each category appears only once."), 422)
     for c in categories:
         valider_categorie(org, c, jour)
 
@@ -411,17 +440,21 @@ def valider_categorie(org: Organisation, c: SaisieCategorie, jour: date) -> None
     try:
         _BAREME.validate_python(c.bareme)
     except ValidationError as e:
-        raise ErreurMetier("bareme_mal_forme", f"Catégorie « {c.categorie} » : barème mal formé.", 422,
+        raise ErreurMetier("bareme_mal_forme", t(f"Catégorie « {c.categorie} » : barème mal formé.",
+                                                  f"Category “{c.categorie}”: malformed scale."), 422,
                            {"erreurs": e.errors(include_url=False)}) from None
     try:
         convention = referentiel_courant().convention(c.convention_code, jour)
     except LookupError as e:
         raise ErreurMetier("convention_introuvable", str(e), 422) from None
     if convention.pays != org.pays:
-        raise ErreurMetier("convention_autre_pays", f"{convention.code} n'est pas une convention de {org.pays}.", 422)
+        raise ErreurMetier("convention_autre_pays", t(f"{convention.code} n'est pas une convention de {org.pays}.",
+                                                      f"{convention.code} is not a collective agreement of {org.pays}."),
+                           422)
     if "retraite" not in c.evenements or not set(c.evenements) <= EVENEMENTS:
         raise ErreurMetier("evenements_invalides",
-                           f"Événements admis : {', '.join(sorted(EVENEMENTS))} ; la retraite est toujours couverte.", 422)
+                           t(f"Événements admis : {', '.join(sorted(EVENEMENTS))} ; la retraite est toujours couverte.",
+                             f"Accepted events: {', '.join(sorted(EVENEMENTS))}; retirement is always covered."), 422)
 
 
 def regles_de(c, convention: Convention) -> Regles:

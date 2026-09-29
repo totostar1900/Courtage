@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from courtage.db import Document, Etude, FicheRegime, Organisation, Utilisateur
 from courtage.erreurs import ErreurMetier, Introuvable
+from courtage.langue import t
 from courtage.fiche import agreger_population, regrouper_echeancier
 from courtage.referentiel import referentiel_courant
 
@@ -39,9 +40,9 @@ def emettre(session: Session, org: Organisation, auteur: uuid.UUID, *, etude_id:
             date_limite_reponse: date, config: rapport.ConfigSceau, aujourd_hui: date) -> tuple[FicheRegime, Document]:
     etude = etudes.obtenir(session, etude_id)
     if etude.statut != "emise":
-        raise ErreurMetier("etude_non_emise", "Une fiche part d'une étude émise : ses chiffres sont scellés.", 409)
+        raise ErreurMetier("etude_non_emise", t("Une fiche part d'une étude émise : ses chiffres sont scellés.", "A sheet is built from an issued study: its figures are sealed."), 409)
     if date_limite_reponse <= aujourd_hui:
-        raise ErreurMetier("date_limite_passee", "La date limite de réponse doit être à venir.", 422)
+        raise ErreurMetier("date_limite_passee", t("La date limite de réponse doit être à venir.", "The response deadline must be in the future."), 422)
 
     contenu = _contenu(session, org, etude, conditions, date_limite_reponse)
     empreinte = hashlib.sha256(json.dumps(contenu, sort_keys=True, separators=(",", ":"),

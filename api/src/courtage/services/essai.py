@@ -10,8 +10,9 @@ from types import SimpleNamespace
 
 from courtage.actuariat.ifc import evaluer
 from courtage.erreurs import ErreurMetier
-from courtage.fichier import lire_fichier, salaries
+from courtage.fichier import anomalies_en_clair, lire_fichier, salaries
 from courtage.fichier.controles import controler, controler_resultat
+from courtage.langue import t, traduire
 from courtage.referentiel import referentiel_courant
 
 from . import etudes, regimes
@@ -24,21 +25,24 @@ PAYS = {"CM", "GA", "CG", "TD", "CF", "GQ"}
 def evaluer_essai(*, contenu: bytes, nom_fichier: str, pays: str, date_evaluation: date, fonds_disponible: int,
                   convention_code: str, categories: list[regimes.SaisieCategorie] | None = None) -> dict:
     if pays not in PAYS:
-        raise ErreurMetier("hors_cemac", "L'essai couvre les pays de la CEMAC.", 422)
+        raise ErreurMetier("hors_cemac", t("L'essai couvre les pays de la CEMAC.", "The trial covers the CEMAC countries."), 422)
     lecture = lire_fichier(contenu, nom_fichier)
     structurels = [a for a in lecture.anomalies if a.code in _STRUCTURELS]
     if structurels:
-        raise ErreurMetier("fichier_illisible", structurels[0].message, 422)
+        raise ErreurMetier("fichier_illisible", traduire(structurels[0].code, structurels[0].message), 422)
     if len(lecture.lignes) > MAX_SALARIES:
-        raise ErreurMetier("essai_trop_grand", f"L'essai porte sur {MAX_SALARIES} salariés au plus : inscrivez-vous "
-                           "pour évaluer tout votre personnel.", 422, {"effectif": len(lecture.lignes)})
+        raise ErreurMetier("essai_trop_grand", t(
+            f"L'essai porte sur {MAX_SALARIES} salariés au plus : inscrivez-vous pour évaluer tout votre personnel.",
+            f"The trial covers {MAX_SALARIES} employees at most: sign up to value all your staff."),
+            422, {"effectif": len(lecture.lignes)})
     ref = referentiel_courant()
     try:
         convention = ref.convention(convention_code, date_evaluation)
     except LookupError as e:
         raise ErreurMetier("convention_introuvable", str(e), 422) from None
     if convention.pays != pays:
-        raise ErreurMetier("convention_autre_pays", f"{convention.code} n'est pas une convention de {pays}.", 422)
+        raise ErreurMetier("convention_autre_pays", t(f"{convention.code} n'est pas une convention de {pays}.",
+                                                       f"{convention.code} is not a collective agreement of {pays}."), 422)
     regles = None
     if categories:
         for c in categories:
@@ -57,7 +61,7 @@ def evaluer_essai(*, contenu: bytes, nom_fichier: str, pays: str, date_evaluatio
         "effectif": len(lecture.lignes), "convention": {"code": convention.code, "libelle": convention.libelle},
         "date_evaluation": date_evaluation.isoformat(), "fonds_disponible": fonds_disponible,
         "totaux": etudes._totaux(r), "echeancier": etudes.echeancier(r, date_evaluation),
-        "sensibilite": None if principale is None else {"libelle": "Taux d'actualisation − 1 point", **principale},
-        "anomalies": [asdict(a) for a in anomalies][:20], "nombre_anomalies": len(anomalies),
+        "sensibilite": None if principale is None else {"libelle": t("Taux d'actualisation − 1 point", "Discount rate − 1 point"), **principale},
+        "anomalies": anomalies_en_clair([asdict(a) for a in anomalies][:20]), "nombre_anomalies": len(anomalies),
         "non_scelle": True,
     }

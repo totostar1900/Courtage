@@ -1,11 +1,20 @@
 // Le guide : un texte, lu par l'écran Guide, cité par les infobulles, parcouru par la visite.
 // Un chapitre dit ce qu'on fait, pourquoi, et ce que la plateforme fait pour vous — dans cet ordre.
 
+// Deux langues : le texte français est écrit ici tel quel ; l'anglais vit à côté, dans ./chapitres-en, chapitre par
+// chapitre et section par section, dans le même ordre. `CHAPITRES` se relit dans la langue du moment (une liste
+// vivante, comme les étapes de la visite) : pas de texte figé à l'import.
+
+import { langue } from "../i18n";
+import { CHAPITRES_EN, GROUPES_EN } from "./chapitres-en";
 import type { CleTerme } from "./glossaire";
+import { listeVivante } from "./visite";
+
+type Groupe = "Commencer" | "Le parcours" | "Comprendre" | "Référence";
 
 export interface Chapitre {
   id: string;
-  groupe: "Commencer" | "Le parcours" | "Comprendre" | "Référence";
+  groupe: string;           // le nom du groupe, dans la langue du moment (l'un de GROUPES)
   titre: string;
   resume: string;
   sections: { titre: string; texte: string[] }[];
@@ -13,7 +22,7 @@ export interface Chapitre {
   termes?: CleTerme[];
 }
 
-export const CHAPITRES: Chapitre[] = [
+const FR: (Chapitre & { groupe: Groupe })[] = [
   {
     id: "bienvenue", groupe: "Commencer", titre: "Ce que fait la plateforme",
     resume: "Votre engagement d'IFC, calculé avant d'être vendu, puis mis en concurrence.",
@@ -44,10 +53,10 @@ export const CHAPITRES: Chapitre[] = [
         "« Essayer sans compte » calcule votre engagement à l'écran : votre personnel (300 salariés au plus), votre fonds, la convention seule ou un modèle type.",
         "Rien n'est gardé sur la plateforme ; l'estimation n'est ni scellée ni imprimable. « Enregistrer mes résultats » mène à l'inscription, qui reprend votre saisie." ] },
       { titre: "S'inscrire", texte: [
-        "Votre téléphone et votre adresse électronique sont vérifiés par un code chacun. Vous indiquez votre nom, votre fonction et l'entreprise : raison sociale, pays, numéro RCCM (obligatoire), taille, secteur, adresse.",
+        "Votre téléphone et votre adresse électronique sont vérifiés par un code chacun. Vous indiquez votre nom, votre fonction et l'entreprise : raison sociale, pays, numéro RCCM (obligatoire), taille, secteur, adresse. Vous acceptez les conditions d'utilisation et la politique de confidentialité ; la version acceptée reste sur votre compte (« Mon profil »).",
         "Le document RCCM peut suivre : déposez-le depuis le bandeau de votre dossier. Une entreprise n'a qu'un dossier : un numéro RCCM déjà inscrit renvoie vers son administrateur." ] },
       { titre: "En attendant la confirmation", texte: [
-        "Votre conseiller vous contacte sous deux jours ouvrés, vérifie l'entreprise et confirme l'inscription. D'ici là, tout le travail est ouvert : personnel, régime, simulations, études à l'écran, départs, messages à votre conseiller.",
+        "Votre conseiller vous contacte sous deux jours ouvrés, vérifie l'entreprise et confirme l'inscription. D'ici là, tout le travail est ouvert : personnel, régime, simulations, études à l'écran, départs, messages à votre conseiller. Un courriel vous prévient de ce qui vous attend (la confirmation, un message, un mandat à signer) ; ces avis se coupent dans « Mon profil ».",
         "Ce qui sort de la plateforme attend la confirmation : rapports scellés, exports, notes, invitation de collègues, catalogue anonyme, mandat. Une inscription non confirmée est effacée au bout de 30 jours ; vous pouvez aussi la retirer vous-même." ] },
     ],
   },
@@ -193,7 +202,7 @@ export const CHAPITRES: Chapitre[] = [
       { titre: "Signer le mandat", texte: [
         "Depuis « Accompagnement », l'entreprise dit ce qu'elle attend : placer son engagement, remettre son contrat en concurrence, faire porter ses départs, être conseillée sur son régime.",
         "Le conseiller propose un mandat de courtage : les missions, la date d'effet, la durée, le préavis, l'exclusivité. Le texte complet s'affiche sur la page.",
-        "L'administrateur le lit et le signe en ligne, sur le texte affiché. Le mandat signé est scellé, vérifiable par son numéro. Rien n'engage avant la signature." ] },
+        "L'administrateur le lit et le signe en ligne, sur le texte affiché, en disant en quelle qualité : représentant légal de l'entreprise, ou délégataire — il dépose alors la délégation de pouvoir, que le conseiller vérifie. Le mandat signé est scellé, vérifiable par son numéro. Rien n'engage avant la signature." ] },
       { titre: "Quand un salarié part", texte: [
         "Sous mandat : vous déclarez le départ, nous montons le dossier, le transmettons et suivons le paiement. Pour ce dossier seulement, nous recueillons l'identité du bénéficiaire.",
         "Sans mandat au jour du départ, la prise en charge s'est faite entre l'entreprise et son assureur : vous gardez la fiche de calcul scellée et déclarez ce qui a été payé, sans nom.",
@@ -331,4 +340,39 @@ export const CHAPITRES: Chapitre[] = [
   },
 ];
 
-export const GROUPES = ["Commencer", "Le parcours", "Comprendre", "Référence"] as const;
+const GROUPES_FR: Groupe[] = ["Commencer", "Le parcours", "Comprendre", "Référence"];
+
+/** L'anglais posé sur le français : même id, mêmes sections, même nombre de paragraphes. Ce qui manquerait reste en
+ *  français plutôt que de disparaître. */
+function enAnglais(c: Chapitre & { groupe: Groupe }): Chapitre {
+  const en = CHAPITRES_EN[c.id];
+  return {
+    ...c,
+    groupe: GROUPES_EN[c.groupe],
+    titre: en?.titre ?? c.titre,
+    resume: en?.resume ?? c.resume,
+    sections: c.sections.map((s, i) => ({
+      titre: en?.sections[i]?.titre ?? s.titre,
+      texte: s.texte.map((x, k) => en?.sections[i]?.texte[k] ?? x),
+    })),
+  };
+}
+
+// Une liste par langue, construite une fois : un chapitre garde son identité d'une lecture à l'autre
+// (`CHAPITRES.indexOf(c)` retrouve le chapitre que `CHAPITRES.find` a rendu).
+let anglais: Chapitre[] | undefined;
+
+/** Les chapitres, dans la langue du moment. */
+export function chapitres(): Chapitre[] {
+  if (langue() !== "en") return FR;
+  return (anglais ??= FR.map(enAnglais));
+}
+
+/** Les groupes du sommaire, dans la langue du moment. */
+export function groupes(): string[] {
+  return langue() === "en" ? GROUPES_FR.map((g) => GROUPES_EN[g]) : GROUPES_FR;
+}
+
+/** Les mêmes listes, relues à chaque accès : pour qui les importe comme des constantes. */
+export const CHAPITRES: Chapitre[] = listeVivante(chapitres);
+export const GROUPES: string[] = listeVivante(groupes);

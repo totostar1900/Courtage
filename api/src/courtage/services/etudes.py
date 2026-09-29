@@ -19,7 +19,8 @@ from sqlalchemy.orm import Session
 from courtage.actuariat.ifc import VERSION_MOTEUR, Hypotheses, Regles, Resultat, comparer_baremes, evaluer
 from courtage.db import Document, Etude, FicheRegime, Organisation
 from courtage.erreurs import ErreurMetier, Introuvable
-from courtage.fichier import Anomalie, controler, controler_parametres, controler_resultat, salaries
+from courtage.fichier import Anomalie, anomalies_en_clair, controler, controler_parametres, controler_resultat, salaries
+from courtage.langue import t
 from courtage.referentiel import motifs_de_refus, referentiel_courant
 
 from . import baremes, experience, fichiers, hypotheses, journaliser, regimes
@@ -69,9 +70,10 @@ def raison_de_garder(session: Session, etude: Etude) -> str | None:
     if etude.statut != "emise":
         return None
     if session.scalar(select(func.count()).select_from(FicheRegime).where(FicheRegime.etude_id == etude.id)):
-        return "Un cahier des charges la cite : elle reste tant que le cahier existe."
+        return t("Un cahier des charges la cite : elle reste tant que le cahier existe.",
+                 "A specification cites it: it stays as long as the specification exists.")
     if session.scalar(select(func.count()).select_from(Etude).where(Etude.remplace_etude_id == etude.id)):
-        return "Une étude plus récente la remplace et la cite."
+        return t("Une étude plus récente la remplace et la cite.", "A more recent study replaces it and cites it.")
     return None
 
 
@@ -80,7 +82,8 @@ def supprimer(session: Session, etude: Etude, auteur: uuid.UUID, *, confirmation
     cite ; son rapport part avec elle, son sceau reste : le numéro se vérifie toujours."""
     if etude.statut == "emise":
         if (confirmation or "").strip().upper() != CONFIRMATION:
-            raise ErreurMetier("confirmation_requise", f"Écrire « {CONFIRMATION} » pour supprimer une étude émise.", 422)
+            raise ErreurMetier("confirmation_requise", t(f"Écrire « {CONFIRMATION} » pour supprimer une étude émise.",
+                                                         f"Type “{CONFIRMATION}” to delete an issued study."), 422)
         raison = raison_de_garder(session, etude)
         if raison:
             raise ErreurMetier("etude_citee", raison, 409)
@@ -102,7 +105,8 @@ def emettre(session: Session, org: Organisation, etude: Etude, auteur: uuid.UUID
     _exiger_brouillon(etude)
     motifs = motifs_emission(session, org, etude, aujourd_hui)
     if motifs:
-        raise ErreurMetier("emission_refusee", "L'étude ne peut pas être émise : " + ", ".join(motifs) + ".", 409,
+        raise ErreurMetier("emission_refusee", t("L'étude ne peut pas être émise : ", "The study cannot be issued: ")
+                           + ", ".join(motifs) + ".", 409,
                            {"motifs": motifs})
     etude.statut = "emise"
     etude.emise_par = auteur
@@ -177,12 +181,12 @@ def en_clair(session: Session, org: Organisation, etude: Etude, aujourd_hui: dat
                        "statut": convention.statut, "verification": convention.verification},
         "referentiel_version": etude.referentiel_version, "version_moteur": etude.version_moteur,
         "hypotheses": {**etude.hypotheses, "lues": hypotheses.pour_le_lecteur(
-            etude.hypotheses["valeurs"], etude.hypotheses["ecarts"], r["sensibilites"], r["totaux"]["dette"])},
+            etude.hypotheses["valeurs"], etude.hypotheses["ecarts"], r["sensibilites"], r["totaux"]["dette"], ecran=True)},
         "fonds_disponible": etude.fonds_disponible,
         "regime": regime, "bareme_entreprise": bareme, "totaux_convention": r.get("totaux_convention"),
         "par_categorie": r.get("par_categorie"),
         "totaux": r["totaux"], "echeancier": r["echeancier"], "sensibilites": r["sensibilites"],
-        "lignes": r["lignes"], "anomalies": r["anomalies"], "emission": emission,
+        "lignes": r["lignes"], "anomalies": anomalies_en_clair(r["anomalies"]), "emission": emission,
         "experience": r.get("experience"),
         "empreinte": etude.empreinte,
         "emise_le": etude.emise_le.isoformat() if etude.emise_le else None,
@@ -231,7 +235,8 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         conventions = regimes.conventions_de(session, version, saisie.date_evaluation)
         if saisie.convention_code and saisie.convention_code not in {c.code for c in conventions}:
             raise ErreurMetier("convention_hors_regime",
-                               f"Le régime ne s'appuie pas sur {saisie.convention_code}.", 422)
+                               t(f"Le régime ne s'appuie pas sur {saisie.convention_code}.",
+                                 f"The plan does not rest on {saisie.convention_code}."), 422)
         convention = next((c for c in conventions if c.code == saisie.convention_code), conventions[0])
         constats_regime = regimes.constats(session, version, saisie.date_evaluation)
     elif saisie.convention_code:
@@ -240,7 +245,8 @@ def _calculer(session: Session, org: Organisation, saisie: Saisie, sauf: uuid.UU
         except LookupError as e:
             raise ErreurMetier("convention_introuvable", str(e), 422) from None
     else:
-        raise ErreurMetier("convention_ou_regime_requis", "Choisir une convention ou une version du régime.", 422)
+        raise ErreurMetier("convention_ou_regime_requis", t("Choisir une convention ou une version du régime.",
+                                                            "Choose a collective agreement or a version of the plan."), 422)
 
     valeurs, ecarts = _hypotheses(saisie)
     h = hypotheses_moteur(valeurs, saisie.date_evaluation, saisie.fonds_disponible)
@@ -302,8 +308,10 @@ def exiger_categories_connues(lecture, regles: dict[str, Regles]) -> None:
             inconnues.setdefault(l.categorie or "(vide)", []).append(l.numero)
     if inconnues:
         raise ErreurMetier("categories_inconnues",
-                           "Des salariés relèvent de catégories que le régime ne prévoit pas : "
-                           + ", ".join(sorted(inconnues)) + ". Ajouter une catégorie « * » ou ces catégories.",
+                           t("Des salariés relèvent de catégories que le régime ne prévoit pas : ",
+                             "Some employees fall under categories the plan does not provide for: ")
+                           + ", ".join(sorted(inconnues))
+                           + t(". Ajouter une catégorie « * » ou ces catégories.", ". Add a “*” category or these categories."),
                            422, {"categories": sorted(inconnues), "lignes": inconnues})
 
 
@@ -320,7 +328,8 @@ def _hypotheses(saisie: Saisie) -> tuple[dict, list[dict]]:
     ecarts = [{**e, "justification": saisie.justification} for e in ecarts]
     if ecarts and not (saisie.justification or "").strip():
         raise ErreurMetier("justification_requise",
-                           "Une hypothèse qui s'écarte du référentiel doit être justifiée.", 422,
+                           t("Une hypothèse qui s'écarte du référentiel doit être justifiée.",
+                             "An assumption that departs from the reference set must be justified."), 422,
                            {"champs": [e["champ"] for e in ecarts]})
     return valeurs, ecarts
 
@@ -395,4 +404,5 @@ def _sensibilites(sal, h: Hypotheses, convention, regles) -> dict:
 
 def _exiger_brouillon(etude: Etude) -> None:
     if etude.statut != "brouillon":
-        raise ErreurMetier("etude_emise", "Cette étude est émise : elle ne change plus. Créer une nouvelle étude.", 409)
+        raise ErreurMetier("etude_emise", t("Cette étude est émise : elle ne change plus. Créer une nouvelle étude.",
+                                            "This study is issued: it no longer changes. Create a new study."), 409)

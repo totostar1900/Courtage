@@ -11,6 +11,8 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 
+from courtage.langue import t
+
 GARDER_UN_AN = "public, max-age=31536000, immutable"
 NE_PAS_GARDER = "no-cache"
 
@@ -24,7 +26,7 @@ def servir_interface(app: FastAPI, dossier: Path) -> None:
     @app.get("/{chemin:path}", include_in_schema=False)
     def page(chemin: str, request: Request):
         if chemin == "api" or chemin.startswith("api/"):
-            return JSONResponse({"code": "introuvable", "message": "Route inconnue.", "details": {}}, status_code=404)
+            return JSONResponse({"code": "introuvable", "message": t("Route inconnue.", "Unknown route."), "details": {}}, status_code=404)
         fichier = (dossier / chemin).resolve()
         if chemin and fichier.is_file() and fichier.is_relative_to(dossier):
             cache = GARDER_UN_AN if chemin.startswith("assets/") else NE_PAS_GARDER

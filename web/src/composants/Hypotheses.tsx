@@ -62,6 +62,7 @@ export function Hypotheses({ catalogue: c, saisie: s, onChange, lues, ouvert }: 
   function effet(nom: string): string {
     const mesure = lues?.find((l) => l.champ === nom)?.effet;
     if (mesure && /sur cette étude/.test(mesure)) return mesure.replace("sur cette étude", "sur votre dernière étude");
+    if (mesure && /on this study/.test(mesure)) return mesure.replace("on this study", "on your latest study");
     return champ(nom).effet.replace("{effet}", "");
   }
 

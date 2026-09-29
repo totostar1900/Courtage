@@ -292,3 +292,24 @@ Une valeur introuvable est signalée, jamais reprise en silence.
 - **Schémas** : garder `extraction/claude.py:SCHEMA` aligné sur le modèle
   `Extraction`. Un test vérifie que le schéma est strict partout.
 
+
+## Plateforme ouverte (lot P1, spec 2026-09-29)
+
+- **La vitrine** : `/` montre la vitrine sans session (`Racine` dans `App.tsx`), l'accueil des dossiers avec.
+  `/mentions-legales`, `/conditions`, `/confidentialite` sont publiques (`pages/Legal.tsx`, le français fait foi) ;
+  le pied de page les relie sur chaque écran. L'identité du cabinet vient de la configuration
+  (`courtage/cabinet.py`, `GET /public/cabinet`, variables `COURTAGE_COURTIER_*`), la même que sur le mandat ; une
+  valeur absente s'affiche entre crochets, jamais inventée.
+- **Les conditions** : changer le texte de `Legal.tsx`, c'est changer `CONDITIONS_VERSION`. L'inscription exige la
+  version en vigueur (`conditions_requises`) et le compte la garde (migration 0024).
+- **Le signataire du mandat** dit sa qualité (`representant_legal` | `delegataire`) ; le délégataire cite une
+  délégation déposée (justificatif `delegation`, par l'administrateur seul). Migration 0025, contrainte en base.
+- **Les avis par courriel** (`services/avis.py`) : `prevoir(...)` dans le service, à côté de `journaliser` ; ils
+  partent APRÈS la validation (`after_commit`), jamais à l'auteur, jamais avec le contenu du dossier, en français.
+  `session_db` pose l'expéditeur et l'adresse publique dans `session.info` ; sans eux (tâche, script), rien ne part.
+  Coupés par `utilisateurs.avis_courriel` (migration 0026). L'envoi hebdomadaire des alertes reste suspendu.
+- **Sécurité** (`api/securite.py`) : CSP stricte, pas de script en ligne ni de ressource tierce — un ajout qui en
+  demande une casse la page, ne pas relâcher la CSP sans le décider. Erreur 500 numérotée (`erreur_interne`),
+  alerte `COURTAGE_ALERTE_URL`. Ce qui reste : `docs/securite.md`.
+- **Sauvegardes** : `deploiement/verifier_sauvegarde.sh` restaure dans une base jetable et lit les contrôles
+  (`python -m courtage.sauvegarde`). DEPLOY.md §7.

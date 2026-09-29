@@ -1,7 +1,7 @@
 // Le client de l'API. L'identité passe par l'en-tête X-Utilisateur tant que
 // l'authentification (tâche 8) n'existe pas : c'est un outil de développement.
 
-import { t } from "./i18n";
+import { langue, t } from "./i18n";
 
 export class ErreurApi extends Error {
   constructor(
@@ -45,6 +45,7 @@ async function appel<T>(chemin: string, init: RequestInit = {}): Promise<T> {
   }
   const entetes = new Headers(init.headers);
   entetes.set("X-Courtage", "1");   // anti-CSRF : un autre site ne peut pas poser cet en-tête
+  entetes.set("X-Langue", langue());   // le serveur répond dans la langue de l'écran
   const moi = utilisateurCourant();
   if (moi) entetes.set("X-Utilisateur", moi);   // mode développement seulement ; ignoré par un serveur en production
   if (init.body && !(init.body instanceof FormData)) entetes.set("Content-Type", "application/json");
@@ -74,7 +75,7 @@ export const api = {
         t("La démonstration ne télécharge pas de fichier : sur le site, ce bouton enregistre le classeur.",
           "The demo does not download files: on the live site, this button saves the workbook."));
     }
-    const entetes = new Headers({ "X-Courtage": "1" });
+    const entetes = new Headers({ "X-Courtage": "1", "X-Langue": langue() });
     const moi = utilisateurCourant();
     if (moi) entetes.set("X-Utilisateur", moi);
     const r = await fetch(`/api/v1${chemin}`, { headers: entetes });

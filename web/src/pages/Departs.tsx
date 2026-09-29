@@ -54,7 +54,7 @@ export default function Departs() {
       <div className="grille g4 section">
         <Cle etiquette={t("Départs enregistrés", "Departures recorded")} valeur={String(tot.nombre)}
              sous={t(`${tot.retraites} en retraite · ${tot.autres_departs} autres`, `${tot.retraites} retirements · ${tot.autres_departs} other`)} />
-        <Cle etiquette={t("Dû selon le régime", "Due under the scheme")} valeur={millions(tot.du)} sous={montant(tot.du)} />
+        <Cle etiquette={t("Dû selon le régime", "Due under the plan")} valeur={millions(tot.du)} sous={montant(tot.du)} />
         <Cle etiquette={t("Versé aux salariés", "Paid to employees")} valeur={millions(tot.verse)} sous={montant(tot.verse)} />
         <Cle etiquette={t("Payé par le fonds", "Paid by the fund")} valeur={millions(tot.part_fonds_payee)} sous={montant(tot.part_fonds_payee)} terme="fonds" />
       </div>

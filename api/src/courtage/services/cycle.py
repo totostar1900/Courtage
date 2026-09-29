@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from courtage.db import (Adhesion, Beneficiaire, Contrat, DossierPriseEnCharge, EtatDossier, Etude, FicheRegime,
                          FichierPersonnel, Organisation, PieceDossier, Prestation, Regime, contexte)
 from courtage.erreurs import ErreurMetier
+from courtage.langue import t
 
 from . import journaliser
 
@@ -45,6 +46,22 @@ TRANSITIONS = {
 }
 LIBELLES = {"ouvert": "Ouvert", "suspendu": "Suspendu", "cloture": "Clôturé", "archive": "Archivé",
             "supprime": "Supprimé"}
+# Pour l'écran anglais, lus à la requête (`libelle_etat`, `libelle_motif`) : le code enregistré reste la clé.
+_LIBELLES_EN = {"ouvert": "Open", "suspendu": "Suspended", "cloture": "Closed", "archive": "Archived",
+                "supprime": "Deleted"}
+_MOTIFS_EN = {"impaye": "Unpaid", "litige": "Dispute", "attente_pieces": "Documents awaited", "autre": "Other reason",
+              "fin_mandat": "End of mandate", "changement_courtier": "Change of broker",
+              "cessation_activite": "Business closure", "ouvert_par_erreur": "Opened by mistake",
+              "doublon": "Duplicate"}
+
+
+def libelle_etat(etat: str) -> str:
+    return t(LIBELLES[etat], _LIBELLES_EN[etat])
+
+
+def libelle_motif(action: str, code: str) -> str | None:
+    fr = MOTIFS.get(action, {}).get(code)
+    return None if fr is None else t(fr, _MOTIFS_EN.get(code, fr))
 
 
 def _maintenant() -> datetime:
@@ -56,27 +73,32 @@ def _maintenant() -> datetime:
 def exiger_ecriture(org: Organisation) -> None:
     """Toute écriture dans le dossier : refusée s'il est clôturé (ou au-delà)."""
     if org.etat == "cloture":
-        raise ErreurMetier("dossier_cloture", "Ce dossier est clôturé : il se lit et s'exporte, il ne se modifie "
-                                              "plus. Le conseiller peut le reprendre.", 409)
+        raise ErreurMetier("dossier_cloture", t("Ce dossier est clôturé : il se lit et s'exporte, il ne se modifie "
+                                                "plus. Le conseiller peut le reprendre.",
+                                                "This file is closed: it can be read and exported, but no longer "
+                                                "changed. The adviser can reopen it."), 409)
     if org.etat in ("archive", "supprime"):
-        raise ErreurMetier("dossier_archive", "Ce dossier est archivé.", 409)
+        raise ErreurMetier("dossier_archive", t("Ce dossier est archivé.", "This file is archived."), 409)
 
 
 def exiger_emission(org: Organisation) -> None:
     """Émettre une étude, envoyer un cahier : refusé aussi quand le dossier est suspendu."""
     exiger_ecriture(org)
     if org.etat == "suspendu":
-        raise ErreurMetier("dossier_suspendu", "Ce dossier est suspendu : rien ne s'émet tant qu'il n'est pas "
-                                               "repris.", 409)
+        raise ErreurMetier("dossier_suspendu", t("Ce dossier est suspendu : rien ne s'émet tant qu'il n'est pas "
+                                                 "repris.", "This file is suspended: nothing can be issued until it "
+                                                 "is resumed."), 409)
 
 
 def exiger_accessible(org: Organisation) -> None:
     """Un dossier archivé ou supprimé ne s'ouvre plus ; ses documents se vérifient toujours par leur numéro."""
     if org.etat == "archive":
-        raise ErreurMetier("dossier_archive", "Ce dossier est archivé : il ne s'ouvre plus. Ses documents se "
-                                              "vérifient toujours par leur numéro.", 410)
+        raise ErreurMetier("dossier_archive", t("Ce dossier est archivé : il ne s'ouvre plus. Ses documents se "
+                                                "vérifient toujours par leur numéro.",
+                                                "This file is archived: it can no longer be opened. Its documents "
+                                                "can still be verified by their number."), 410)
     if org.etat == "supprime":
-        raise ErreurMetier("dossier_supprime", "Ce dossier a été supprimé.", 410)
+        raise ErreurMetier("dossier_supprime", t("Ce dossier a été supprimé.", "This file has been deleted."), 410)
 
 
 # --- Changer d'état ------------------------------------------------------------
@@ -92,24 +114,27 @@ def vide(session: Session) -> bool:
 def changer(session: Session, org: Organisation, auteur: uuid.UUID, action: str, motif_code: str | None,
             motif: str | None) -> EtatDossier:
     if action not in TRANSITIONS:
-        raise ErreurMetier("action_inconnue", f"Action inconnue : {action}.", 422)
+        raise ErreurMetier("action_inconnue", t(f"Action inconnue : {action}.", f"Unknown action: {action}."), 422)
     depart, arrivee = TRANSITIONS[action]
     if org.etat not in depart:
         raise ErreurMetier("transition_impossible",
-                           f"Un dossier {LIBELLES[org.etat].lower()} ne peut pas être {_participe(action)}.", 409)
+                           t(f"Un dossier {LIBELLES[org.etat].lower()} ne peut pas être {_participe(action)}.",
+                             f"A {_LIBELLES_EN[org.etat].lower()} file cannot be {_PARTICIPE_EN[action]}."), 409)
     motif = (motif or "").strip() or None
     if MOTIFS[action]:
         if motif_code not in MOTIFS[action]:
-            raise ErreurMetier("motif_requis", "Choisir un motif.", 422, {"motifs": list(MOTIFS[action])})
+            raise ErreurMetier("motif_requis", t("Choisir un motif.", "Choose a reason."), 422, {"motifs": list(MOTIFS[action])})
         if motif_code == "autre" and not motif:
-            raise ErreurMetier("motif_requis", "Préciser le motif.", 422)
+            raise ErreurMetier("motif_requis", t("Préciser le motif.", "Specify the reason."), 422)
     else:
         motif_code = None
         if not motif:
-            raise ErreurMetier("motif_requis", "Dire pourquoi le dossier reprend.", 422)
+            raise ErreurMetier("motif_requis", t("Dire pourquoi le dossier reprend.", "Say why the file is being resumed."), 422)
     if action == "supprimer" and not vide(session):
-        raise ErreurMetier("dossier_non_vide", "Seul un dossier vide se supprime. Celui-ci a déjà des données ou des "
-                                               "documents : le clôturer.", 409)
+        raise ErreurMetier("dossier_non_vide", t("Seul un dossier vide se supprime. Celui-ci a déjà des données ou des "
+                                                 "documents : le clôturer.",
+                                                 "Only an empty file can be deleted. This one already has data or "
+                                                 "documents: close it instead."), 409)
     org.etat, org.etat_depuis = arrivee, _maintenant()
     e = EtatDossier(organisation_id=org.id, etat=arrivee, action=action, motif_code=motif_code, motif=motif, par=auteur)
     session.add(e)
@@ -122,6 +147,9 @@ def changer(session: Session, org: Organisation, auteur: uuid.UUID, action: str,
 
 def _participe(action: str) -> str:
     return {"suspendre": "suspendu", "cloturer": "clôturé", "reprendre": "repris", "supprimer": "supprimé"}[action]
+
+
+_PARTICIPE_EN = {"suspendre": "suspended", "cloturer": "closed", "reprendre": "resumed", "supprimer": "deleted"}
 
 
 # --- Archivage -----------------------------------------------------------------
@@ -166,17 +194,17 @@ def en_clair(session: Session, org: Organisation) -> dict:
     from .rapport import nom_de
     from courtage.db import Utilisateur
     historique = [{
-        "etat": e.etat, "libelle": LIBELLES[e.etat], "action": e.action, "motif_code": e.motif_code,
-        "motif_libelle": MOTIFS.get(e.action, {}).get(e.motif_code) if e.motif_code else None, "motif": e.motif,
-        "par": nom_de(session.get(Utilisateur, e.par)) if e.par else "la plateforme (automatique)",
+        "etat": e.etat, "libelle": libelle_etat(e.etat), "action": e.action, "motif_code": e.motif_code,
+        "motif_libelle": libelle_motif(e.action, e.motif_code) if e.motif_code else None, "motif": e.motif,
+        "par": nom_de(session.get(Utilisateur, e.par)) if e.par else t("la plateforme (automatique)", "the platform (automatic)"),
         "le": e.le.isoformat(),
     } for e in session.scalars(select(EtatDossier).order_by(EtatDossier.le.desc()))]
     prevu = archivage_prevu(org)
     return {
-        "etat": org.etat, "libelle": LIBELLES[org.etat], "depuis": org.etat_depuis.isoformat(),
+        "etat": org.etat, "libelle": libelle_etat(org.etat), "depuis": org.etat_depuis.isoformat(),
         "archivage_prevu": prevu.isoformat() if prevu else None,
         "actions": [a for a, (depart, _) in TRANSITIONS.items() if org.etat in depart],
         "supprimable": org.etat in TRANSITIONS["supprimer"][0] and vide(session),
-        "motifs": {a: [{"code": c, "libelle": l} for c, l in m.items()] for a, m in MOTIFS.items()},
+        "motifs": {a: [{"code": c, "libelle": libelle_motif(a, c)} for c in m] for a, m in MOTIFS.items()},
         "historique": historique,
     }

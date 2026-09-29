@@ -1,6 +1,8 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { oublierCabinet } from "../cabinet";
 
 import { dossier, etude, ORG, ouvrir, simulerApi } from "./outils";
 
@@ -20,11 +22,16 @@ const enAttente = (extra: Record<string, unknown> = {}) =>
   ({ ...dossier("admin_client"), [`/organisations/${ORG}/activation`]: EN_ATTENTE,
      [`/organisations/${ORG}/justificatifs`]: [], ...extra });
 
+const CABINET = { "/public/cabinet": { nom: "Cabinet", agrement: "A1", adresse: "Douala", rccm: "R", courriel: "c@x.cm",
+  telephone: "1", hebergeur: "Render", conditions_version: "conditions-2026-09", manquants: [] } };
+
 describe("inscription", () => {
+  beforeEach(() => oublierCabinet());
+
   it("les deux codes, la personne, l'entreprise, puis le dossier", async () => {
     let essais = 0;
     const appels = simulerApi({
-      ...enAttente(),
+      ...enAttente(), ...CABINET,
       "POST /inscription/code": { message: "Un code vient d'être envoyé. Il expire dans 10 minutes." },
       "POST /inscription/verification": (init?: RequestInit) => {
         const corps = JSON.parse(init!.body as string);
@@ -71,6 +78,10 @@ describe("inscription", () => {
     await userEvent.type(screen.getByLabelText("Numéro RCCM"), "RC/LBV/2020/B/99");
     await userEvent.selectOptions(screen.getByLabelText("Taille"), "moins_de_50");
     await userEvent.type(screen.getByLabelText("Ville"), "Libreville");
+    // Les conditions s'acceptent avant de créer le compte.
+    expect(screen.getByRole("button", { name: "Créer mon compte" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "conditions d'utilisation" })).toHaveAttribute("href", "/conditions");
+    await userEvent.click(screen.getByRole("checkbox", { name: /J'ai lu et j'accepte/ }));
     await userEvent.click(screen.getByRole("button", { name: "Créer mon compte" }));
 
     expect(await screen.findByText(/Inscription en attente de confirmation/)).toBeInTheDocument();
@@ -80,11 +91,13 @@ describe("inscription", () => {
       nom: "Mme DRH", fonction: "DRH",
       entreprise: { nom: "AZITO", pays: "GA", rccm: "RC/LBV/2020/B/99", taille: "moins_de_50", secteur: null, adresse: null,
                     ville: "Libreville" },
+      conditions: "conditions-2026-09",
     });
   });
 
   it("une entreprise déjà inscrite : l'erreur du serveur s'affiche", async () => {
     simulerApi({
+      ...CABINET,
       "POST /inscription/code": { message: "Un code vient d'être envoyé." },
       "POST /inscription/verification": { preuve: "p" },
       "POST /inscription": () => json({ code: "entreprise_deja_inscrite",
@@ -105,6 +118,7 @@ describe("inscription", () => {
     await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
     await userEvent.type(screen.getByLabelText("Raison sociale"), "AZITO");
     await userEvent.type(screen.getByLabelText("Numéro RCCM"), "RC 1234");
+    await userEvent.click(screen.getByRole("checkbox", { name: /J'ai lu et j'accepte/ }));
     await userEvent.click(screen.getByRole("button", { name: "Créer mon compte" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Cette entreprise est déjà inscrite");
   });

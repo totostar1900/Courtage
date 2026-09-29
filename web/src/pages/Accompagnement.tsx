@@ -60,7 +60,8 @@ export default function Accompagnement() {
       {!courant && donnee.service === "courtage" && signe?.signature && (
         <div className="constat informe section"><div className="titre">{t("Mandat en vigueur", "Mandate in force")}</div>
           {t(`Signé le ${dateFr(signe.signature.le)} par ${signe.signature.nom} · N° ${signe.signature.numero}. Le contrat « courtage » court depuis le ${dateFr(signe.signature.contrat_du)}.`,
-            `Signed on ${dateFr(signe.signature.le)} by ${signe.signature.nom} · No. ${signe.signature.numero}. The brokerage contract has run since ${dateFr(signe.signature.contrat_du)}.`)}</div>
+            `Signed on ${dateFr(signe.signature.le)} by ${signe.signature.nom} · No. ${signe.signature.numero}. The brokerage contract has run since ${dateFr(signe.signature.contrat_du)}.`)}
+          <Qualite orgId={d.org.id} s={signe.signature} lire={d.role === "admin_client" || d.role === "conseiller"} /></div>
       )}
       {!courant && donnee.service === "courtage" && !signe?.signature && (
         <div className="constat informe section"><div className="titre">{t("Vous êtes en courtage", "You are under brokerage")}</div>
@@ -218,18 +219,45 @@ function TexteMandat({ m }: { m: Mandat }) {
   );
 }
 
+/** En quelle qualité le mandat a été signé ; la délégation s'ouvre pour qui la vérifie ou l'a déposée. */
+function Qualite({ orgId, s, lire }: { orgId: string; s: NonNullable<Mandat["signature"]>; lire: boolean }) {
+  if (!s.qualite_libelle) return null;
+  return (
+    <div className="discret" style={{ marginTop: 4 }}>
+      {t(`En qualité de ${s.qualite_libelle}.`, `As ${s.qualite_libelle}.`)}
+      {s.delegation && lire && <>{" "}<button className="lien" type="button"
+        onClick={() => api.ouvrir(`/organisations/${orgId}/justificatifs/${s.delegation!.id}`)}>
+        {t("Voir la délégation de pouvoir", "View the delegation of authority")}</button></>}
+    </div>
+  );
+}
+
 function Signer({ orgId, m, nom, onFait }: { orgId: string; m: Mandat; nom: string; onFait: () => void }) {
   const attente = raisonActivation(useDossier().activation, "mandat");
   const [accepte, setAccepte] = useState(false);
+  const [qualite, setQualite] = useState<"representant_legal" | "delegataire" | "">("");
+  const [delegation, setDelegation] = useState<File | null>(null);
   const [erreur, setErreur] = useState<unknown>(null);
   async function signer(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
     const f = new FormData(ev.currentTarget);
     setErreur(null);
     try {
+      let delegation_id: string | null = null;
+      if (qualite === "delegataire") {
+        if (!delegation) {
+          setErreur(new Error(t("Joindre la délégation de pouvoir qui vous autorise à signer.",
+                                "Attach the delegation of authority that entitles you to sign.")));
+          return;
+        }
+        const envoi = new FormData();
+        envoi.set("nature", "delegation");
+        envoi.set("fichier", delegation);
+        delegation_id = (await api.post<{ id: string }>(`/organisations/${orgId}/justificatifs`, envoi)).id;
+      }
       await api.post(`/organisations/${orgId}/mandats/${m.id}/signature`, {
         nom: String(f.get("nom") ?? ""), fonction: String(f.get("fonction") ?? "").trim() || null,
-        empreinte: m.proposition!.empreinte, accepte });
+        empreinte: m.proposition!.empreinte, accepte, qualite, delegation_id });
       onFait();
     } catch (e) { setErreur(e); }
   }
@@ -240,11 +268,25 @@ function Signer({ orgId, m, nom, onFait }: { orgId: string; m: Mandat; nom: stri
         <label>{t("Nom et prénom", "Full name")}<input name="nom" required minLength={3} defaultValue={nom} autoComplete="name" /></label>
         <label>{t("Fonction", "Job title")}<input name="fonction" placeholder={t("DG, DRH, DAF…", "CEO, HR director, CFO…")} /></label>
       </div>
+      <fieldset className="choix-qualite">
+        <legend>{t("Vous signez en qualité de", "You sign as")}</legend>
+        <label className="case"><input type="radio" name="qualite" checked={qualite === "representant_legal"}
+          onChange={() => setQualite("representant_legal")} />{" "}
+          {t("Représentant légal de l'entreprise (dirigeant inscrit au RCCM)", "Legal representative of the company (officer listed in the RCCM)")}</label>
+        <label className="case"><input type="radio" name="qualite" checked={qualite === "delegataire"}
+          onChange={() => setQualite("delegataire")} />{" "}
+          {t("Délégataire : j'ai reçu pouvoir de signer", "Delegate: I have been given authority to sign")}</label>
+        {qualite === "delegataire" && (
+          <label>{t("Délégation de pouvoir (PDF, JPEG ou PNG)", "Delegation of authority (PDF, JPEG or PNG)")}
+            <input type="file" name="delegation" accept="application/pdf,image/jpeg,image/png"
+                   onChange={(e) => setDelegation(e.target.files?.[0] ?? null)} /></label>
+        )}
+      </fieldset>
       <label className="case"><input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />
         {" "}{t("J'ai lu ce mandat et je l'accepte au nom de l'entreprise.", "I have read this mandate and accept it on behalf of the company.")}</label>
       <p className="discret">{t("La signature porte sur le texte ci-dessus, tel qu'il est affiché. Le mandat signé est scellé, vérifiable par son numéro, et le contrat « courtage » prend effet à sa date.",
         "The signature covers the text above, exactly as displayed. The signed mandate is sealed, verifiable by its number, and the brokerage contract takes effect on its date.")}</p>
-      <div className="actions"><button className="principal" disabled={!accepte || !!attente} title={attente ?? undefined}>
+      <div className="actions"><button className="principal" disabled={!accepte || !qualite || !!attente} title={attente ?? undefined}>
         {t("Signer le mandat", "Sign the mandate")}</button>
         {attente && <span className="discret">{attente}</span>}</div>
       <Erreur erreur={erreur} />
