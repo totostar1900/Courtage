@@ -6,7 +6,7 @@ Spécification : `docs/specs/2026-09-29-parcours-client-et-design-design.md`.
    fichier visible, qui se retire, et la suite*
 2. [x] **Téléphone.** `ChampTelephone` avec indicatif ; connexion, inscription, rappel, équipe. — *Le téléphone et son
    indicatif*
-3. [ ] **Simuler dans l'étude.** Le comparatif en volet de la page Étude ; page et menu retirés. — *Simuler rejoint
+3. [x] **Simuler dans l'étude.** Le comparatif en volet de la page Étude ; page et menu retirés. — *Simuler rejoint
    l'étude*
 4. [ ] **Contact.** Messages → Nous contacter ; bandeau ; plus de retrait d'inscription ni de nettoyage à l'écran. —
    *Nous contacter, et moins de bruit*

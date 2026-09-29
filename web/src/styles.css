@@ -724,3 +724,20 @@ a.bouton.whatsapp:hover, button.whatsapp:hover { background: #17753f; }
 .champ-telephone-pays select { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
 .champ-telephone-pays:focus-within .champ-telephone-puce { background: var(--indigo-doux); }
 .champ-telephone-ligne input { border: 0; border-radius: 0; flex: 1; min-width: 0; box-shadow: none; outline: none; }
+
+/* Les volets repliables (« plis ») : un en-tête plein et cliquable, un chevron qui tourne, le corps détaché. */
+details.pli { background: var(--surface); border: 1px solid var(--trait); border-radius: 16px; overflow: hidden;
+  box-shadow: 0 1px 2px rgba(20, 26, 51, .04); }
+details.pli > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap;
+  padding: 18px 56px 18px 22px; position: relative; font-weight: 600; font-size: 16px; color: var(--encre); }
+details.pli > summary::-webkit-details-marker { display: none; }
+details.pli > summary .discret { font-weight: 400; }
+details.pli > summary::after { content: ""; position: absolute; right: 22px; top: 50%; width: 9px; height: 9px;
+  border-right: 2px solid var(--encre-2); border-bottom: 2px solid var(--encre-2); transform: translateY(-70%) rotate(45deg);
+  transition: transform .2s ease; }
+details.pli[open] > summary::after { transform: translateY(-30%) rotate(225deg); }
+details.pli > summary:hover { background: #fafbfe; }
+details.pli[open] > summary { border-bottom: 1px solid var(--trait); }
+details.pli > .pli-corps { padding: 20px 22px 24px; }
+details.pli > .pli-corps > .carte { border: 0; padding: 0; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { details.pli > summary::after { transition: none; } }

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
 import { useConfirmation } from "../composants/Confirmer";
+import { ComparerRegimes } from "../composants/ComparerRegimes";
 import { MenuActions } from "../composants/MenuActions";
 import { CONVENTION_PAR_PAYS } from "../composants/EditeurCategories";
 import { aEnvoyer, Hypotheses, saisieParDefaut, type SaisieHypotheses } from "../composants/Hypotheses";
@@ -99,6 +100,14 @@ export default function Etudes() {
         </form>
       )}
       {d.fichiers.length === 0 && <p>{t("Déposez d'abord le fichier de votre personnel.", "First upload your staff file.")}</p>}
+
+      {d.fichiers.length > 0 && (
+        <details className="pli section" id="comparer" open={params.has("version")}>
+          <summary><span>{t("Comparer des régimes avant d'étudier", "Compare plans before the study")}</span>
+            <span className="discret">{t("la convention, vos versions, une idée de barème — côte à côte", "the agreement, your versions, a scale idea — side by side")}</span></summary>
+          <div className="pli-corps"><ComparerRegimes /></div>
+        </details>
+      )}
 
       <div className="section">
         <h2>{t("Vos études", "Your studies")}</h2>

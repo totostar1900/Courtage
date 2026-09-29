@@ -131,21 +131,6 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
     termes: ["regime", "plancher", "convention"],
   },
   {
-    id: "simulation", groupe: "Le parcours", titre: "Simuler", ecran: "simulation",
-    resume: "Comparer plusieurs versions de régime, ou tester une idée, avant de décider.",
-    sections: [
-      { titre: "Comparer", texte: [
-        "Cochez les versions à comparer, ou « Tester une idée de barème » : chaque variante est calculée sur le même personnel à la même date.",
-        "Chaque carte dit la dette, ce qu'elle ajoute à la convention, la charge, et qui en profite : si l'ajout va surtout aux mieux payés, la carte le signale.",
-        "Les résultats s'ouvrent dans un volet que la croix referme ; vos réglages restent." ] },
-      { titre: "Le comparatif", texte: [
-        "Sous les cartes, « Comparer les régimes » met les variantes côte à côte : la dette, la charge, la cotisation initiale et la dette par salarié, chacune avec son écart à la convention seule.",
-        "La courbe montre ce que chaque régime verse au départ, en mois de salaire, selon l'ancienneté ; elle s'ouvre sur la catégorie où les régimes diffèrent le plus. Survolez-la (ou touchez-la) pour lire les mois à une ancienneté.",
-        "« Qui gagne, qui perd » compare, salarié par salarié, l'indemnité au départ d'un régime à l'autre : combien gagnent, combien perdent, de combien en moyenne, et le plus gros écart, par matricule. Choisissez le point de comparaison et la catégorie.",
-        "« Voir le tableau » donne tous ces chiffres en un tableau." ] },
-    ],
-  },
-  {
     id: "etude", groupe: "Le parcours", titre: "3. L'étude et le rapport", ecran: "etudes",
     resume: "L'évaluation à une date de clôture, puis un rapport scellé.",
     sections: [
@@ -161,6 +146,21 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
         "« Exporter en Excel » donne l'étude en classeur : la synthèse et les hypothèses, l'échéancier (cumuls et parts en formules), les catégories, les sensibilités, et le calcul salarié par salarié, par matricule." ] },
     ],
     termes: ["dette", "charge", "fonds", "cotisation_nette", "frais_cotisation", "cotisation", "emission"],
+  },
+  {
+    id: "simulation", groupe: "Le parcours", titre: "Comparer des régimes", ecran: "etudes",
+    resume: "Comparer plusieurs versions de régime, ou tester une idée, avant de décider.",
+    sections: [
+      { titre: "Comparer", texte: [
+        "Sur la page Étude, ouvrez « Comparer des régimes avant d'étudier ». Cochez les versions à comparer, ou « Tester une idée de barème » : chaque variante est calculée sur le même personnel à la même date.",
+        "Chaque carte dit la dette, ce qu'elle ajoute à la convention, la charge, et qui en profite : si l'ajout va surtout aux mieux payés, la carte le signale.",
+        "Les résultats s'ouvrent dans un volet que la croix referme ; vos réglages restent." ] },
+      { titre: "Le comparatif", texte: [
+        "Sous les cartes, « Comparer les régimes » met les variantes côte à côte : la dette, la charge, la cotisation initiale et la dette par salarié, chacune avec son écart à la convention seule.",
+        "La courbe montre ce que chaque régime verse au départ, en mois de salaire, selon l'ancienneté ; elle s'ouvre sur la catégorie où les régimes diffèrent le plus. Survolez-la (ou touchez-la) pour lire les mois à une ancienneté.",
+        "« Qui gagne, qui perd » compare, salarié par salarié, l'indemnité au départ d'un régime à l'autre : combien gagnent, combien perdent, de combien en moyenne, et le plus gros écart, par matricule. Choisissez le point de comparaison et la catégorie.",
+        "« Voir le tableau » donne tous ces chiffres en un tableau." ] },
+    ],
   },
   {
     id: "financer", groupe: "Le parcours", titre: "4. Financer l'engagement", ecran: "financement",

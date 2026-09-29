@@ -114,11 +114,11 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
     ],
   },
   simulation: {
-    titre: "Simulate",
+    titre: "Compare plans",
     resume: "Compare several plan versions, or test an idea, before deciding.",
     sections: [
       { titre: "Compare", texte: [
-        "Tick the versions to compare, or “Test a scale idea”: each variant is calculated on the same staff at the same date.",
+        "On the Study page, open “Compare plans before the study”. Tick the versions to compare, or “Test a scale idea”: each variant is calculated on the same staff at the same date.",
         "Each card gives the liability, what it adds to the collective agreement, the annual cost, and who benefits: if the addition goes mainly to the best paid, the card says so.",
         "The results open in a panel that the cross closes; your settings stay." ] },
       { titre: "The comparison", texte: [

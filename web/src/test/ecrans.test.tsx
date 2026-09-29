@@ -948,11 +948,11 @@ describe("reprendre où l'on s'était arrêté", () => {
 describe("l'aide propre à chaque page", () => {
   it("chaque page du dossier a son aide", async () => {
     const { chapitresDe } = await import("../composants/AidePage");
-    for (const page of ["", "personnel", "regime", "simulation", "etudes", "financement", "cahier",
+    for (const page of ["", "personnel", "regime", "etudes", "financement", "cahier",
                         "contrat", "departs", "dossiers", "equipe"]) {
       expect(chapitresDe(page).length, `page « ${page} »`).toBeGreaterThan(0);
     }
-    expect(chapitresDe("etudes").map((c) => c.id)).toEqual(["etude", "comprendre", "methode"]);
+    expect(chapitresDe("etudes").map((c) => c.id)).toEqual(["etude", "simulation", "comprendre", "methode"]);
   });
 
   it("le bouton ouvre le chapitre de la page, ses mots, et le lien vers le guide", async () => {
@@ -974,7 +974,7 @@ describe("l'aide propre à chaque page", () => {
     await userEvent.keyboard("?");
     const aide = screen.getByRole("dialog", { name: "Aide sur cette page" });
     expect(within(aide).getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(
-      ["3. L'étude et le rapport", "Comment se calcule l'engagement", "La méthode actuarielle en détail", "Les mots de cette page"]);
+      ["3. L'étude et le rapport", "Comparer des régimes", "Comment se calcule l'engagement", "La méthode actuarielle en détail", "Les mots de cette page"]);
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await userEvent.keyboard("{Control>}k{/Control}");
@@ -1082,8 +1082,11 @@ describe("le comparatif des régimes", () => {
       resultat("Accord, version 1", 1_200_000, { M1: 600_000, M2: 200_000 }, { Cadre: [0, 2, 4], "*": [0, 1, 2] }),
       resultat("Accord, version 2", 900_000, { M1: 300_000, M2: 250_000 }, { "*": [0, 1.5, 2.5] }),
     ] } });
-    ouvrir(`/dossier/${ORG}/simulation`);
-    await userEvent.click(await screen.findByRole("button", { name: "Simuler" }));
+    // « Simuler » a rejoint la page Étude : l'ancienne adresse y mène, le volet de comparaison s'y ouvre.
+    ouvrir(`/dossier/${ORG}/simulation?version=x`);
+    const pli = (await screen.findByText("Comparer des régimes avant d'étudier")).closest("details")!;
+    expect(pli).toHaveAttribute("open");
+    await userEvent.click(within(pli as HTMLElement).getByRole("button", { name: "Comparer" }));
     const bloc = within((await screen.findByRole("heading", { name: "Comparer les régimes" })).closest(".comparatif") as HTMLElement);
     // Les noms communs se raccourcissent : « version 1 », « version 2 », pas deux « Accord, … » identiques.
     expect(bloc.getAllByText("version 1").length).toBeGreaterThan(0);
@@ -1174,7 +1177,7 @@ describe("les versions du régime", () => {
     // Le lecteur : lire, analyser, comparer, télécharger ce qui est émis ; rien d'autre.
     const m = await menu(2);
     expect(m.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(
-      ["Note aux salariés (PDF)", "Émettre la note aux assureurs (PDF)Pas encore émise.", "Analyser : légalité, pièges, coûts", "Comparer dans Simuler"]);
+      ["Note aux salariés (PDF)", "Émettre la note aux assureurs (PDF)Pas encore émise.", "Analyser : légalité, pièges, coûts", "Comparer avec d'autres"]);
     expect(screen.queryByRole("button", { name: "Faire le ménage" })).toBeNull();
   });
 
@@ -1186,7 +1189,7 @@ describe("les versions du régime", () => {
     ouvrir(`/dossier/${ORG}/regime`);
     let m = await menu(3);
     expect(m.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Modifier", "Dupliquer",
-      "Analyser : légalité, pièges, coûts", "Comparer dans Simuler", "Adopter…", "Supprimer (et 2 études en brouillon)"]);
+      "Analyser : légalité, pièges, coûts", "Comparer avec d'autres", "Adopter…", "Supprimer (et 2 études en brouillon)"]);
     await userEvent.click(m.getByRole("menuitem", { name: "Modifier" }));
     await userEvent.click(screen.getByRole("button", { name: "Enregistrer les corrections" }));
     await waitFor(() => expect(appels.some((a) => a.init?.method === "PUT")).toBe(true));

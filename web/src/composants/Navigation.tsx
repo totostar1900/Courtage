@@ -11,7 +11,7 @@ import { t } from "../i18n";
 /** Les pages du dossier, par segment d'adresse. Une fonction : la langue se lit au rendu. */
 const pages = (): Record<string, string> => ({
   "": t("Tableau de bord", "Dashboard"), personnel: t("Personnel", "Workforce"), regime: t("Régime", "Plan"),
-  simulation: t("Simuler", "Simulate"), etudes: t("Études", "Studies"), financement: t("Financement", "Funding"),
+  etudes: t("Études", "Studies"), financement: t("Financement", "Funding"),
   cahier: t("Cahier des charges", "Specifications"), contrat: t("Contrat", "Contract"), placement: t("Placement", "Placement"),
   accompagnement: t("Accompagnement", "Support"), messages: t("Messages", "Messages"), departs: t("Départs", "Departures"), equipe: t("Équipe", "Team"),
   dossiers: t("Départs", "Departures"),

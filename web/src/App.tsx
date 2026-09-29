@@ -32,7 +32,6 @@ import Placement from "./pages/Placement";
 import Profil from "./pages/Profil";
 import Regime from "./pages/Regime";
 import Reponses from "./pages/Reponses";
-import Simulation from "./pages/Simulation";
 import TableauDeBord from "./pages/TableauDeBord";
 import Verifier from "./pages/Verifier";
 import Vitrine from "./pages/Vitrine";
@@ -75,7 +74,7 @@ export default function App() {
             <Route index element={<TableauDeBord />} />
             <Route path="personnel" element={<Personnel />} />
             <Route path="regime" element={<Regime />} />
-            <Route path="simulation" element={<Simulation />} />
+            <Route path="simulation" element={<VersEtudes />} />
             <Route path="etudes" element={<Etudes />} />
             <Route path="etudes/:etude" element={<EtudeDetail />} />
             <Route path="etudes/:etude/financement" element={<Financement />} />
@@ -158,4 +157,10 @@ function BasculeLangue() {
       ))}
     </div>
   );
+}
+
+/** « Simuler » a rejoint la page Étude : l'ancienne adresse y mène, versions cochées comprises. */
+function VersEtudes() {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: "../etudes", search }} replace />;
 }
