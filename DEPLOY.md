@@ -188,6 +188,12 @@ python -m courtage.purge        # DATABASE_URL = rôle courtage_app ; imprime «
                                 #   puis « [purge] N dossier(s) archivé(s) »
 ```
 
+La même tâche envoie les **rappels du cycle annuel** : quand une étape de l'année (personnel, évaluation, relevé de
+l'assureur, revue du contrat) devient bientôt due, puis quand elle est en retard — au plus un courriel par étape, état
+et année (`[rappels] N rappel(s) du cycle annuel`). Elle a besoin de `COURTAGE_SMTP_URL`,
+`COURTAGE_COURRIEL_EXPEDITEUR` et `COURTAGE_URL_PUBLIQUE`, que le plan Render reprend du service web ; sans envoi
+configuré, elle le dit et n'envoie rien.
+
 La même tâche archive les dossiers clôturés depuis 90 jours : leur personnel déposé est vidé,
 l'identité des bénéficiaires effacée, et le dossier ne s'ouvre plus. Études, rapports scellés et journal
 restent ; chaque document se vérifie toujours par son numéro. Voir

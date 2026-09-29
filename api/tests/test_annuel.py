@@ -52,3 +52,24 @@ def test_les_etats_selon_le_jour(bases, client, azito):
         # Une étape bientôt due s'annonce (information) ; son retard, les alertes existantes le disent.
         assert {a[1]: a[0] for a in annuel.alertes(session, date(2021, 1, 5))}["annuel_personnel"] == "info"
         assert "annuel_personnel" not in {a[1] for a in annuel.alertes(session, date(2021, 2, 10))}
+
+
+def test_les_rappels_une_fois_par_etape_etat_et_annee(bases, client, azito):
+    from courtage.messagerie import CourrielJournal
+    emettre(client, azito)                                     # prochaine évaluation au 31/12/2020
+    courriel = CourrielJournal()
+
+    def passer(jour):
+        return annuel.rappeler_partout(bases[1], courriel, "https://exemple.cm", jour)
+
+    passer(date(2021, 1, 5))                                   # personnel et évaluation : bientôt dus
+    recus = [m for m in courriel.envoyes if "AZITO" in m.texte]
+    assert any("« Mettre à jour le personnel » est attendue le 30/01/2021" in m.texte for m in recus)
+    assert all("https://exemple.cm/dossier/" in m.texte for m in recus)
+    avant = len(courriel.envoyes)
+    passer(date(2021, 1, 6))                                   # le lendemain : rien de nouveau
+    assert len(courriel.envoyes) == avant
+    passer(date(2021, 2, 1))                                   # le personnel est en retard : un rappel de plus
+    assert any("est en retard" in m.texte and "Mettre à jour le personnel" in m.texte for m in courriel.envoyes[avant:])
+    # Sans expéditeur, rien ne part et rien n'est noté.
+    assert annuel.rappeler_partout(bases[1], None, None, date(2021, 3, 5)) == 0

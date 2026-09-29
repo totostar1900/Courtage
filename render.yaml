@@ -85,3 +85,10 @@ services:
         fromDatabase: { name: courtage-db, property: connectionString }
       - key: COURTAGE_MOT_DE_PASSE_APP
         fromService: { type: web, name: courtage, envVarKey: COURTAGE_MOT_DE_PASSE_APP }
+      # Les rappels du cycle annuel partent de cette tâche (DEPLOY.md §5) : l'envoi et l'adresse du site.
+      - key: COURTAGE_SMTP_URL
+        fromService: { type: web, name: courtage, envVarKey: COURTAGE_SMTP_URL }
+      - key: COURTAGE_COURRIEL_EXPEDITEUR
+        fromService: { type: web, name: courtage, envVarKey: COURTAGE_COURRIEL_EXPEDITEUR }
+      - key: COURTAGE_URL_PUBLIQUE
+        fromService: { type: web, name: courtage, envVarKey: COURTAGE_URL_PUBLIQUE }

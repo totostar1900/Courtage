@@ -12,10 +12,10 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from courtage.db import Etude, FichierPersonnel, PiecePolice, Police
+from courtage.db import Etude, FichierPersonnel, Organisation, PiecePolice, Police, RappelEnvoye, contexte
 from courtage.langue import t
 
-from . import placement
+from . import avis, placement
 
 BIENTOT = 30          # jours avant l'échéance où une étape devient « bientôt »
 TRES_EN_RETARD = 30   # jours de retard au-delà desquels l'alerte devient grave
@@ -73,7 +73,7 @@ def calendrier(session: Session, aujourd_hui: date) -> dict:
         releve = session.scalar(select(func.min(PiecePolice.releve_le)).where(
             PiecePolice.police_id == p.id, PiecePolice.nature == "releve", PiecePolice.releve_le >= n))
         echeance = n + timedelta(days=45)
-        etapes.append(Etape("releve", t(f"Recevoir le relevé annuel de {p.assureur}", f"Receive {p.assureur}'s annual statement"),
+        etapes.append(Etape("releve", t(f"Recevoir le relevé annuel de l'assureur ({p.assureur})", f"Receive the insurer's annual statement ({p.assureur})"),
                             echeance, releve, _etat(echeance, releve, aujourd_hui), "conseiller", "placement",
                             f"releve:{p.id}:{n.isoformat()}"))
         anniversaire = p.date_effet
@@ -108,3 +108,50 @@ def alertes(session: Session, aujourd_hui: date) -> list[tuple[str, str, str, st
                            t(f"Attendu le {echeance:%d/%m/%Y}, en retard de {retard} jour(s).",
                              f"Due on {echeance:%d/%m/%Y}, {retard} day(s) late."), e["lien"], e["pour"]))
     return sortie
+
+
+# --- Les rappels par courriel (la tâche quotidienne) -----------------------------------------------
+
+def _destinataires(session: Session, org: Organisation, code: str) -> list:
+    if code == "personnel":
+        return avis.entreprise(session, org.id, ("admin_client", "contributeur_client"))
+    if code == "releve":
+        return avis.conseillers(session, org.id)
+    return avis.conseillers(session, org.id) + avis.entreprise(session, org.id)
+
+
+def rappeler(session: Session, org: Organisation, aujourd_hui: date) -> int:
+    """Un courriel quand une étape devient bientôt due, puis quand elle est en retard : au plus un par étape, état et
+    année. Sans expéditeur dans la session, rien ne part et rien n'est noté."""
+    if session.info.get("courriel") is None:
+        return 0
+    envoyes = 0
+    for e in calendrier(session, aujourd_hui)["etapes"]:
+        if e["etat"] not in ("bientot", "en_retard"):
+            continue
+        if session.scalar(select(RappelEnvoye.id).where(RappelEnvoye.cle == e["cle"], RappelEnvoye.etat == e["etat"])):
+            continue
+        echeance = date.fromisoformat(e["echeance"])
+        n = avis.prevoir(session, "rappel_annuel", _destinataires(session, org, e["code"]), auteur=None, org=org.id,
+                         entreprise=org.nom, etape=e["libelle"], echeance=f"{echeance:%d/%m/%Y}", lien=e["lien"],
+                         quand="est attendue" if e["etat"] == "bientot" else "est en retard : elle était attendue")
+        session.add(RappelEnvoye(organisation_id=org.id, cle=e["cle"], etat=e["etat"], destinataires=n))
+        session.flush()
+        envoyes += 1
+    return envoyes
+
+
+def rappeler_partout(moteur, courriel, url_publique: str | None, aujourd_hui: date) -> int:
+    """Pour la tâche programmée : chaque dossier confirmé et ouvert, dans son propre contexte."""
+    from sqlalchemy import text
+    with moteur.connect() as c:
+        ids = list(c.execute(text("SELECT id FROM organisations WHERE activation = 'confirmee' AND etat = 'ouvert'")).scalars())
+    n = 0
+    for org_id in ids:
+        with Session(moteur) as session:
+            # La tâche se termine aussitôt : l'envoi se fait avant, pas dans un fil qui mourrait avec elle.
+            session.info.update(courriel=courriel, url_publique=url_publique, envoi_immediat=True)
+            with session.begin():
+                contexte(session.connection(), org_id)
+                n += rappeler(session, session.get(Organisation, org_id), aujourd_hui)
+    return n

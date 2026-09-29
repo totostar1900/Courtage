@@ -75,6 +75,10 @@ EVENEMENTS: dict[str, tuple[str, str, str]] = {
         "Votre conseiller a répondu sur un dossier de prise en charge",
         "Il y a du nouveau sur un dossier de prise en charge de {entreprise}.",
         "/dossier/{org}/dossiers/{dossier}"),
+    "rappel_annuel": (
+        "Rappel : {etape}",
+        "Pour {entreprise} : « {etape} » {quand} le {echeance}. L'engagement se remesure chaque année à la même date.",
+        "/dossier/{org}/{lien}"),
     "offre_recue": (
         "Une offre d'assureur est arrivée",
         "{assureur} a déposé son offre sur le cahier des charges de {entreprise} : à relire avant le classement.",
@@ -171,7 +175,8 @@ def _envoyer(session: Session) -> None:
     avis, courriel = session.info.pop("avis", []), session.info.get("courriel")
     if not avis or courriel is None:
         return
-    if getattr(courriel, "envoyes", None) is not None:      # le journal du développement et des tests : tout de suite
+    # Le journal du développement et des tests, ou une tâche programmée (qui se termine aussitôt) : tout de suite.
+    if getattr(courriel, "envoyes", None) is not None or session.info.get("envoi_immediat"):
         _expedier(courriel, avis)
     else:                                                   # un vrai serveur : sans faire attendre la réponse
         threading.Thread(target=_expedier, args=(courriel, avis), daemon=True).start()

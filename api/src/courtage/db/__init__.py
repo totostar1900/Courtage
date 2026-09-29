@@ -656,3 +656,14 @@ class LienAssureur(Base):
     organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
     cree_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
     revoque_le: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class RappelEnvoye(Base):
+    """Un rappel du cycle annuel déjà envoyé : une étape de l'année, dans un état, une fois."""
+    __tablename__ = "rappels_envoyes"
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, server_default=FetchedValue())
+    organisation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organisations.id"))
+    cle: Mapped[str] = mapped_column(Text)
+    etat: Mapped[str] = mapped_column(Text)
+    destinataires: Mapped[int] = mapped_column(Integer)
+    envoye_le: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=FetchedValue())
