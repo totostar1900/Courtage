@@ -4,7 +4,7 @@ Spécification : `docs/specs/2026-09-29-cloture-du-placement-design.md`.
 
 1. [x] **Socle.** Migration 0027 : `comptes_assureurs` (plateforme), `polices`, `pieces_police`, `appels_prime`
    (sous RLS) ; modèles ; contrôles du démarrage. — *Socle du placement : polices, appels, registre des comptes*
-2. [ ] **Registre des comptes d'assureurs.** Enregistrer (contre-appel exigé), remplacer, lire ; administrateur de la
+2. [x] **Registre des comptes d'assureurs.** Enregistrer (contre-appel exigé), remplacer, lire ; administrateur de la
    plateforme. — *Le registre des comptes bancaires des assureurs*
 3. [ ] **La police.** Création depuis le choix ou à la main, pièces, signature, statut calculé jusqu'à « en
    vigueur ». — *La police, de l'offre retenue à la mise en vigueur*
