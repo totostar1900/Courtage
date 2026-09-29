@@ -908,3 +908,5 @@ a.bouton.bouton-clair:hover { background: rgba(255, 255, 255, .1); border-color:
   .entete .droite a[href="/verifier"] { display: none; }
 }
 .vitrine-assurances li.vitrine-gratuit { padding-left: 22px; }
+/* Le bandeau d'inscription se détache de la page qui suit : 32 px, le double d'avant. */
+.constat.bandeau-activation { margin-bottom: 32px; }
