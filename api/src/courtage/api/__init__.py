@@ -58,6 +58,8 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     app = FastAPI(title="Courtage", version="0.1.0")
     from courtage.langue import MiddlewareLangue
     app.add_middleware(MiddlewareLangue)
+    from .securite import installer
+    installer(app, production)          # en-têtes de sécurité, erreur 500 numérotée, alerte
     app.state.moteur = moteur
     app.state.authentification = authentification
     app.state.sceau = ConfigSceau.depuis(cle_sceau, url_publique)
