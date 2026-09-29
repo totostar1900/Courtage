@@ -423,3 +423,7 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
 - Le pied nomme le cabinet comme exploitant, sous son nom légal ; les documents scellés gardent ce nom légal.
 - « courtage » reste le nom du métier dans le texte, et les noms techniques (`courtage_session`, `X-Courtage`,
   `COURTAGE_*`, le paquet) ne changent pas.
+- La vitrine : « Être rappelé » est un bouton du bandeau ; trois engagements en bande ; « Ce que vous obtenez » mène
+  par la concurrence des assureurs et le suivi dans la durée ; « Qui est derrière Nitch » dit l'équipe (les faits
+  donnés par le cabinet : 50+ ans cumulés, actuaires, Cameroun · Afrique · Europe · Amérique — n'en ajouter aucun).
+  La vitrine ne parle pas de la rémunération du courtier ; les conditions d'utilisation, si.
