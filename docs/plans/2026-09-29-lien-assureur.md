@@ -10,4 +10,4 @@ Spécification : `docs/specs/2026-09-29-lien-assureur-design.md`.
    classée avec les autres ; avis aux conseillers. — *L'assureur dépose son offre par un lien*
 4. [x] **Écrans.** La consultation sur la page du cahier ; la page publique `/offre/:jeton`. — *Écrans de la
    consultation*
-5. [ ] Guide, démonstration, CLAUDE.md, carte ; suites vertes, `tsc` propre.
+5. [x] Guide, démonstration, CLAUDE.md, carte ; suites vertes, `tsc` propre.
