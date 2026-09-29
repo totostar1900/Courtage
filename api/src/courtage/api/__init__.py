@@ -85,11 +85,13 @@ def creer_app(moteur: Engine, authentification: ModeAuthentification = "session"
     from .inscription import routeur_inscription
     from .essai import routeur_essai
     from .profil import routeur_profil
+    from .public import routeur_public
     from .routes import routeur
     from .referentiel import routeur_referentiel
     from .sante import routeur_sante
     app.include_router(routeur_sante, prefix="/api/v1")
     app.include_router(routeur_referentiel, prefix="/api/v1")
+    app.include_router(routeur_public, prefix="/api/v1")
     app.include_router(routeur_connexion, prefix="/api/v1/auth")
     app.include_router(routeur_inscription, prefix="/api/v1")
     app.include_router(routeur_essai, prefix="/api/v1")

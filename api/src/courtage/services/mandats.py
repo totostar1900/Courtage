@@ -10,7 +10,6 @@ l'empreinte du texte le prouve. Signé, le mandat est scellé (MC-), et un contr
 """
 import hashlib
 import json
-import os
 import uuid
 from datetime import date, datetime, timezone
 
@@ -65,9 +64,9 @@ VERSION_TEXTE = "mandat-courtage-2"
 
 def courtier() -> dict:
     """L'identité du cabinet, par la configuration : jamais inventée."""
-    return {"nom": os.environ.get("COURTAGE_COURTIER_NOM") or "[raison sociale du cabinet]",
-            "agrement": os.environ.get("COURTAGE_COURTIER_AGREMENT") or "[numéro d'agrément]",
-            "adresse": os.environ.get("COURTAGE_COURTIER_ADRESSE") or "[adresse du siège]"}
+    from courtage import cabinet
+    c = cabinet.identite()
+    return {"nom": c["nom"], "agrement": c["agrement"], "adresse": c["adresse"]}
 
 
 def _date(d: date) -> str:
