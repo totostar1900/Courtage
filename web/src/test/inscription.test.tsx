@@ -84,6 +84,7 @@ describe("inscription", () => {
     await userEvent.click(screen.getByRole("button", { name: "Continuer" }));
     // Quatrième étape : les besoins, qui partent avec l'inscription comme demande d'accompagnement.
     expect(await screen.findByRole("heading", { name: "Vos besoins" })).toBeInTheDocument();
+    expect(screen.getByText(/^Ce que vous attendez de nous\./)).toBeInTheDocument();      // en « nous », comme la vitrine
     expect(await screen.findByRole("checkbox", { name: /Placer notre engagement/ })).toBeChecked();
     await userEvent.click(screen.getByRole("checkbox", { name: /Remettre en concurrence/ }));
     await userEvent.type(screen.getByLabelText(/Précisions/), "Contrat actuel échu en mars.");
