@@ -6,6 +6,7 @@ import { Anomalies, Cle, Constats, Erreur, Tiroir, useCharge, Volet } from "../c
 import { Terme } from "../composants/Terme";
 import { dateFr, millions, montant } from "../format";
 import { t } from "../i18n";
+import { ChoixConvention } from "../composants/ChoixConvention";
 import { ExpliquerCalcul } from "../composants/Calcul";
 import type { ApercuImport, CalculPrestation, Constat, ContratsDossier, MotifDepart, Prestation, Prestations } from "../types";
 import { useDossier } from "./Dossier";
@@ -253,8 +254,9 @@ function FormulaireDepart({ onFermer, onFait, corriger }: { onFermer: () => void
           <label>{t("Salaire mensuel de référence (F)", "Reference monthly salary (F)")}<input name="salaire_mensuel_reference" type="number" min={0} required
                  defaultValue={c?.salaire_mensuel_reference} /></label>
           <label>{t("Montant versé au salarié (F)", "Amount paid to the employee (F)")}<input name="verse" type="number" min={0} defaultValue={c?.verse ?? ""} /></label>
-          <label>{t("Convention (sans régime adopté)", "Collective agreement (if no scheme adopted)")}<input name="convention_code" placeholder={t("par défaut : celle de la dernière étude", "default: the one from the latest study")}
-                 defaultValue={c?.calcul.source?.type === "convention" ? c.calcul.source.convention_code : ""} /></label>
+          <ChoixConvention pays={d.org.pays} libelle={t("Convention (sans régime adopté)", "Collective agreement (if no scheme adopted)")}
+                           name="convention_code" facultatif={t("Celle de la dernière étude", "The one from the latest study")}
+                           defaut={c?.calcul.source?.type === "convention" ? c.calcul.source.convention_code : ""} />
           <label>{t("Demandé au fonds (F)", "Requested from the fund (F)")}<input name="part_fonds_demandee" type="number" min={0} defaultValue={c?.part_fonds_demandee ?? ""} /></label>
           <label>{t("Payé par le fonds (F)", "Paid by the fund (F)")}<input name="part_fonds_payee" type="number" min={0} defaultValue={c?.part_fonds_payee ?? ""} /></label>
           <label>{t("Payé le", "Paid on")}<input name="payee_le" type="date" defaultValue={c?.payee_le ?? ""} /></label>
@@ -308,7 +310,8 @@ function ImportHistorique({ onFermer, onFait }: { onFermer: () => void; onFait: 
         "A spreadsheet, one line per departure: staff number, hiring date, departure date, reason, reference monthly salary; and if you have them, the amount paid, what the fund paid and when. Five years is enough. A column of names is ignored.")}</p>
       <div className="grille g3" style={{ alignItems: "end" }}>
         <DepotFichier libelle={t("Fichier (xlsx ou csv)", "File (xlsx or csv)")} accept=".xlsx,.csv" fichier={fichier} onChange={(f) => { setFichier(f); setApercu(null); }} />
-        <label>{t("Convention (sans régime adopté)", "Collective agreement (if no scheme adopted)")}<input value={convention} onChange={(e) => setConvention(e.target.value)} placeholder={t("celle de la dernière étude", "the one from the latest study")} /></label>
+        <ChoixConvention pays={d.org.pays} libelle={t("Convention (sans régime adopté)", "Collective agreement (if no scheme adopted)")}
+                         valeur={convention} onChange={setConvention} facultatif={t("Celle de la dernière étude", "The one from the latest study")} />
         <div className="actions"><button type="button" disabled={!fichier} onClick={() => envoyer(false)}>{t("Lire le fichier", "Read the file")}</button></div>
       </div>
       <Erreur erreur={erreur} />

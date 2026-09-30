@@ -226,9 +226,16 @@ describe("les départs", () => {
     const appels = simulerApi({ ...dossier("admin_client"), [`/organisations/${ORG}/prestations`]: { prestations: [], totaux: liste.totaux },
       [`/organisations/${ORG}/contrats`]: contrat,
       [`POST /organisations/${ORG}/prestations/apercu`]: { du: 3625000, calcul, constats: [], service: "comparaison" },
-      [`POST /organisations/${ORG}/prestations`]: depart });
+      [`POST /organisations/${ORG}/prestations`]: depart, "/referentiel/conventions": { conventions: [
+        { code: "CI_CCI", pays: "CI", libelle: "Convention collective interprofessionnelle de Côte d'Ivoire", en_vigueur_aujourd_hui: true },
+        { code: "CM_COMMERCE", pays: "CM", libelle: "Commerce du Cameroun", en_vigueur_aujourd_hui: true }] } });
     ouvrir(`/dossier/${ORG}/departs`);
     await userEvent.click(await screen.findByRole("button", { name: "Déclarer un départ" }));
+    // La convention se choisit (celles du pays seulement), ou reste celle de la dernière étude.
+    const convention = await screen.findByRole("combobox", { name: "Convention (sans régime adopté)" });
+    await waitFor(() => expect([...(convention as HTMLSelectElement).options].map((o) => o.text))
+      .toEqual(["Celle de la dernière étude", "Convention collective interprofessionnelle de Côte d'Ivoire"]));
+    expect(convention).toHaveValue("");
     await userEvent.type(screen.getByLabelText("Matricule"), "A-017");
     await userEvent.type(screen.getByLabelText("Date d'embauche"), "2000-01-01");
     await userEvent.type(screen.getByLabelText("Date de départ"), "2020-01-01");
@@ -800,19 +807,34 @@ describe("le catalogue anonyme", () => {
     expect(screen.queryByLabelText("Convention collective")).toBeNull(); // chaque catégorie dit déjà sa convention
     expect(screen.getByText(/Ce que votre entreprise s'est engagée à verser/)).toBeInTheDocument();
     await userEvent.selectOptions(base, "");
-    const liste = await screen.findByRole("combobox", { name: "Convention collective" });   // une liste, pas un champ libre
+    const formulaire = within(base.closest("form")!);
+    const liste = await formulaire.findByRole("combobox", { name: "Convention collective" });   // une liste, pas un champ libre
     expect(liste).toHaveValue("CM_COMMERCE");
     expect([...(liste as HTMLSelectElement).options].map((o) => o.value)).toEqual(["CM_BANQUES", "CM_COMMERCE"]);  // le pays seul, un code une fois
-    expect(screen.getByRole("option", { name: /du commerce du Cameroun \(révisée\)/ })).toBeInTheDocument();
+    expect(formulaire.getByRole("option", { name: /du commerce du Cameroun \(révisée\)/ })).toBeInTheDocument();
+    // La comparaison des régimes, sur la même page, choisit la sienne dans la même liste.
+    expect(screen.getByRole("combobox", { name: "Convention" })).toHaveValue("CM_COMMERCE");
     expect(screen.getByText(/Ce que la loi et la convention de votre branche vous obligent à verser/)).toBeInTheDocument();
+  });
+
+  it("le régime choisit la convention plancher de chaque catégorie dans la liste du pays", async () => {
+    simulerApi(camerounais("admin_client", { "/referentiel/conventions": conventionsConnues, [`/organisations/${ORG}/regimes`]: [] }));
+    ouvrir(`/dossier/${ORG}/regime`);
+    await userEvent.click(await screen.findByRole("button", { name: "Décrire un régime" }));
+    const plancher = await screen.findByRole("combobox", { name: "Convention plancher" });
+    await waitFor(() => expect(plancher).toHaveValue("CM_COMMERCE"));
+    await userEvent.selectOptions(plancher, "CM_BANQUES");
+    expect(plancher).toHaveValue("CM_BANQUES");
+    expect(screen.queryByRole("textbox", { name: "Convention plancher" })).toBeNull();
   });
 
   it("une seule convention pour le pays : elle se lit, elle ne se choisit ni ne se tape", async () => {
     simulerApi({ ...dossier("admin_client"), "/referentiel/conventions": conventionsConnues });
     ouvrir(`/dossier/${ORG}/etudes`);                                   // AZITO, en Côte d'Ivoire, sans régime
-    expect(await screen.findByText("Convention collective interprofessionnelle de Côte d'Ivoire")).toBeInTheDocument();
-    expect(screen.queryByRole("combobox", { name: "Convention collective" })).toBeNull();
-    expect(screen.queryByRole("textbox", { name: "Convention collective" })).toBeNull();
+    const formulaire = within((await screen.findByLabelText("Base de calcul")).closest("form")!);
+    expect(await formulaire.findByText("Convention collective interprofessionnelle de Côte d'Ivoire")).toBeInTheDocument();
+    expect(formulaire.queryByRole("combobox", { name: "Convention collective" })).toBeNull();
+    expect(formulaire.queryByRole("textbox", { name: "Convention collective" })).toBeNull();
   });
 
   it("le conseiller ne partage pas pour l'entreprise", async () => {
