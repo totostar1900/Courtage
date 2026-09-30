@@ -53,9 +53,9 @@ describe("parcours", () => {
     expect(etapes({ ...vide, fichiers: 1, etudesEmises: 1, fiches: 1, offreRetenue: true }).some((x) => x.suivant)).toBe(false);
   });
 
-  it("l'accompagnement ouvre le parcours ; un mandat à signer est l'étape suivante", () => {
-    expect(etapes(vide)[0].cle).toBe("accompagnement");
-    expect(etapes({ ...vide, mandat: "aucun" }).find((x) => x.suivant)?.cle).toBe("accompagnement");
+  it("le contrat ouvre le parcours ; un mandat à signer est l'étape suivante", () => {
+    expect(etapes(vide)[0].cle).toBe("contrat");
+    expect(etapes({ ...vide, mandat: "aucun" }).find((x) => x.suivant)?.cle).toBe("contrat");
     expect(etapes({ ...vide, mandat: "demande" }).find((x) => x.suivant)?.cle).toBe("personnel");
   });
 });

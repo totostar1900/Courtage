@@ -391,14 +391,22 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
 - **Un téléphone** : toujours `ChampTelephone` (indicatif + numéro national → E.164). `composer` / `decomposer`.
 - **L'essai** garde sa saisie trente minutes dans le navigateur (`garde_le`, `DUREE_ESSAI_MS`) ; « Retirer » l'oublie.
 - **Plus de page Simuler** : le comparatif de régimes est un pli de la page Étude (`ComparerRegimes`, `#comparer`).
-- **Plus d'écriture de message dans l'application** : la page Contact (`/contact`, alias `/messages`) ouvre WhatsApp,
-  le courriel ou l'appel (`contact.ts`) ; l'ancien fil se lit, replié. Ni retrait d'inscription ni « Nettoyer »
-  à l'écran (les routes API restent).
+- **Aucun fil écrit dans l'application** : la page Contact (`/contact`, alias `/messages`) ouvre WhatsApp,
+  le courriel ou l'appel (`contact.ts`) ; l'ancien fil ne s'affiche plus, ni son compte de non-lus. Un bouton
+  WhatsApp flotte en bas à droite (`BoutonWhatsApp`) : vers le conseiller dans un dossier (à défaut, le cabinet),
+  vers le cabinet sur les pages publiques ; jamais pour le courtier. Ni retrait d'inscription ni « Nettoyer »
+  à l'écran (les routes API restent, celles des messages aussi).
 - **Capacité `departs`** (`activation.SOUS_CONTRAT`) : déclarer, importer, corriger un départ ou ouvrir une prise
   en charge exige un contrat en vigueur — une police « en vigueur » du placement, ou un contrat de courtage avec son
   assureur (`contrat_en_vigueur`). Les tests d'API qui déclarent des départs appellent `sous_contrat` (outils).
 - **L'accompagnement dès l'inscription** : `POST /inscription` accepte `accompagnement: {besoins, message}` (même
-  transaction), `GET /public/besoins` donne les cases. « Accompagnement » ouvre le parcours (`parcours.ts`).
+  transaction), `GET /public/besoins` donne les cases.
+- **Plus de page Accompagnement** (2026-09-30) : le mandat se demande, se propose, se lit et se signe dans la page
+  Contrat (`pages/Mandat.tsx`, monté par `Contrat.tsx`, ancre `#mandat`) ; `/accompagnement` y mène, et les avis
+  (`avis.py`) pointent sur `/contrat`. « Contrat » ouvre le parcours (`parcours.ts`) et n'est plus en double dans
+  les outils du menu.
+- **L'étude dit sa base de calcul** : le minimum de la convention collective (avec son code) ou une version du
+  régime de l'entreprise (chaque catégorie y porte déjà sa convention ; le champ convention disparaît).
 - **Les offres** : la page `financement` est « Offres » (`OffresDossier`) — les réponses du dernier cahier, rien
   d'autre ; plus aucune comparaison sur des chiffres saisis. Classement par **rendement net** (`financement.rendement_net`,
   `classement_rendement`) ; la recommandée est la meilleure des conformes hors `pour_comparaison` (migration 0033).
@@ -425,6 +433,11 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
   `COURTAGE_*`, le paquet) ne changent pas.
 - La vitrine : « Être rappelé » est un bouton du bandeau ; trois engagements en bande ; « Ce que vous obtenez » mène
   par la concurrence des assureurs et le suivi dans la durée ; « L'expérience à votre service » dit l'équipe (les faits
-  donnés par le cabinet : 50+ ans cumulés, actuaires, Cameroun · Afrique · Europe · Amérique — n'en ajouter aucun).
-  Aucune page de présentation (vitrine, inscription, essai, accompagnement, contenus, guide) ne parle de la
+  donnés par le cabinet : 50+ ans cumulés, actuaires, Cameroun · Afrique · Europe — jamais l'Amérique ; n'en ajouter aucun).
+  Aucune page de présentation (vitrine, inscription, essai, contrat, contenus, guide) ne parle de la
   rémunération du courtier : seuls les conditions d'utilisation et le mandat la disent (garde : vitrine.test.tsx).
+- Le visuel du bandeau d'accueil défile (`ApercuDefilant`) : l'engagement, les offres classées, les départs à venir,
+  un dossier suivi — des chiffres d'exemple, marqués « Exemple ». Pause au survol et au focus, immobile quand
+  l'appareil demande moins de mouvement.
+- Trois thèmes : clair, **pénombre** (`data-theme="dim"`, une ardoise à mi-chemin, chaque couleur ≥ 4,5:1), sombre.
+

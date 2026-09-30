@@ -33,6 +33,8 @@ export default function Etudes() {
     () => (derniere ? api.get<Etude>(`/organisations/${d.org.id}/etudes/${derniere}`) : Promise.resolve(null)), [derniere]);
   const [saisie, setSaisie] = useState<SaisieHypotheses | null>(null);
   const [justification, setJustification] = useState(params.get("justification") ?? "");
+  // La base de calcul : "" = le minimum de la convention collective ; sinon une version du régime de l'entreprise.
+  const [base, setBase] = useState<string>(() => versions.find(enCours)?.id ?? "");
   const hypotheses = saisie ?? (catalogue ? saisieParDefaut(catalogue, proposee ? { taux_turnover: Number(proposee) } : {}) : null);
   const envoi = catalogue && hypotheses ? aEnvoyer(catalogue, hypotheses) : {};
   const ajustees = Object.keys(envoi).length > 0;
@@ -70,14 +72,21 @@ export default function Etudes() {
             <label>{t("Date d'évaluation (une clôture)", "Valuation date (a year-end)")}
               <input name="date_evaluation" type="date" required defaultValue={d.fichiers[0]?.date_donnees} />
             </label>
-            <label>{t("Base", "Basis")}
-              <select name="regime_version_id" defaultValue={versions.find(enCours)?.id ?? ""}>
-                <option value="">{t("la convention seule", "the collective agreement only")}</option>
-                {versions.map((v) => <option key={v.id} value={v.id}>{libelleVersion(v, v.nomRegime)}</option>)}
+            <label>{t("Base de calcul", "Calculation basis")}
+              <select name="regime_version_id" value={base} onChange={(e) => setBase(e.target.value)}>
+                <option value="">{t("Le minimum de la convention collective", "The collective agreement's minimum")}</option>
+                {versions.map((v) => <option key={v.id} value={v.id}>{t("Votre régime : ", "Your plan: ")}{libelleVersion(v, v.nomRegime)}</option>)}
               </select>
             </label>
-            <label>{t("Convention (sans régime)", "Collective agreement (no plan)")}<input name="convention_code" defaultValue={CONVENTION_PAR_PAYS[d.org.pays]} /></label>
+            {base === "" && (
+              <label>{t("Convention collective", "Collective agreement")}<input name="convention_code" defaultValue={CONVENTION_PAR_PAYS[d.org.pays]} /></label>
+            )}
           </div>
+          <p className="discret aide-base" data-base={base === "" ? "convention" : "regime"}>{base === ""
+            ? t("Ce que la loi et la convention de votre branche vous obligent à verser, au minimum. C'est la base quand l'entreprise n'a rien décidé de plus ; comparez-la à votre régime pour voir ce que vos engagements propres coûtent en plus.",
+                "What the law and your industry's collective agreement require you to pay, at the minimum. It is the basis when the company has decided nothing more; compare it with your plan to see what your own commitments cost on top.")
+            : t("Ce que votre entreprise s'est engagée à verser : accord d'entreprise, usage ou contrats, au-dessus du minimum de la convention. Chaque catégorie de votre régime dit déjà sur quelle convention elle s'appuie ; il n'y a rien à choisir de plus.",
+                "What your company has committed to pay: company agreement, practice or contracts, above the collective agreement's minimum. Each category of your plan already states the agreement it rests on; there is nothing more to choose.")}</p>
           <label style={{ maxWidth: 260 }}>{t("Fonds déjà constitué (F)", "Fund already accumulated (F)")}<input name="fonds_disponible" type="number" min={0} defaultValue={0} /></label>
           {proposee && (
             <div className="constat informe section">

@@ -1,6 +1,6 @@
 /* Identité « Glacier » (2026-09-29, docs/design/identite-glacier.md) : blanc de glace et encre polaire, des traits
    d'un pixel, un seul cyan froid pour ce qui compte, Geist pour le texte, Geist Mono pour les chiffres, des angles de
-   2 px. Deux thèmes : celui de l'appareil par défaut ; `data-theme` (theme.ts) l'impose. Les noms des jetons sont
+   2 px. Trois thèmes : clair, pénombre, sombre ; celui de l'appareil par défaut, `data-theme` (theme.ts) impose un choix. Les noms des jetons sont
    restés ceux d'avant (--indigo, --ocre…) : chaque règle qui les lit a changé de peau sans être réécrite. */
 :root {
   --fond: #f5f7f9;
@@ -84,9 +84,37 @@
   --voile: rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
+/* Pénombre : le vrai milieu entre le clair et le sombre — une ardoise (L* 34 à 39 quand le clair est à 97 et le
+   sombre à 3), le texte clair dessus, chaque couleur au moins à 4,5:1 sur la surface. Écrit après le sombre : à poids
+   égal, il l'emporte même sur un appareil réglé en sombre. */
+:root[data-theme="dim"] {
+  --fond: #46515e;
+  --surface: #515d6b;
+  --surface-2: #4b5764;
+  --encre: #f4f8fb;
+  --encre-2: #dde5ec;
+  --discret: #ccd5de;
+  --trait: #627080;
+  --trait-fort: #7a8898;
+  --indigo: #f4f8fb;
+  --indigo-vif: #a9ebff;
+  --indigo-doux: #3f5a6c;
+  --accent: #94e6ff;
+  --ocre: #a9ebff;
+  --ocre-doux: #3f5a6c;
+  --bien: #99f2cb;
+  --bien-doux: #3c5a52;
+  --attention: #ffe09a;
+  --attention-doux: #5e5540;
+  --grave: #ffc9c3;
+  --grave-doux: #664a4c;
+  --entete-fond: #4b5764;
+  --voile: rgba(10, 14, 20, .55);
+  color-scheme: dark;
+}
 /* À l'impression, toujours clair : c'est du papier. */
 @media print {
-  :root:not([data-theme="papier"]), :root[data-theme="dark"] {   /* même poids que les règles sombres, écrit après */
+  :root:not([data-theme="papier"]), :root[data-theme="dark"], :root[data-theme="dim"] {   /* même poids que les règles sombres, écrit après */
     --fond: #f5f7f9;
     --surface: #ffffff;
     --surface-2: #f8fafb;
@@ -638,19 +666,6 @@ tr.choisie > td { background: var(--indigo-doux); }
 .inscription-faits dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .echeance-retard { color: var(--grave); font-weight: 700; }
 .tiroir label.case { display: flex; align-items: center; gap: 8px; }
-.conversation { display: grid; gap: 14px; }
-.fil-messages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px;
-  max-height: 60vh; overflow-y: auto; }
-.message { max-width: min(80%, 560px); padding: 10px 14px; border: 1px solid var(--trait); border-radius: var(--rayon);
-  background: var(--fond); }
-.message.mien { align-self: flex-end; background: var(--indigo-doux); border-color: transparent; }
-.message.autre { align-self: flex-start; }
-.message-tete { font-size: 13px; margin-bottom: 4px; }
-.message-texte { white-space: pre-wrap; overflow-wrap: anywhere; }
-.message-pied { font-size: 12px; margin-top: 6px; text-align: right; }
-.message-lu { color: var(--bien); font-weight: 600; }
-.conversation-saisie textarea { width: 100%; resize: vertical; }
-@media (max-width: 700px) { .message { max-width: 92%; } }
 
 /* --- Inscription en attente de confirmation ------------------------------------------------------------------
    Le bandeau en tête du dossier ; le filigrane « Estimation — non scellée » sur les résultats d'une étude en
@@ -964,7 +979,7 @@ tr.cliquable:hover td { background: var(--surface-2); }
 .offre.meilleure { border: 1px solid var(--bien); box-shadow: inset 0 2px 0 var(--bien); }
 
 /* Les plis, les frises, les dépôts : les mêmes angles. */
-details.pli, details.hypotheses, .appel, .pipeline li, .alerte, .message, .texte-mandat, .explication, .coordonnees,
+details.pli, details.hypotheses, .appel, .pipeline li, .alerte, .texte-mandat, .explication, .coordonnees,
 .menu-liste, .palette, .visite-bulle, .choix-carte, .televersement-zone, .televersement-fichier, .inscription-etapes li,
 .segments, .segments button, .bouton-aide, kbd, .tiroir, .fenetre, .aide-panneau, .bulle-barre, .terme .bulle,
 button.menu-points, .menu-liste button, .palette li, .guide-nav a, .reprendre, .bouton-profil, .apercu-carte,
@@ -1015,8 +1030,58 @@ a.bouton.bouton-clair { background: var(--fond); }
 .vitrine-assurances strong { color: var(--encre); }
 .vitrine-gratuit { background: none; padding: 0 0 0 22px; }
 .vitrine-une-visuel { display: grid; place-items: center; }
-.apercu-carte { width: min(380px, 100%); background: var(--surface); color: var(--encre); border: 1px solid var(--trait-fort);
-  padding: 22px; box-shadow: 16px 16px 0 -1px var(--fond), 16px 16px 0 0 var(--trait-fort); transform: none; }
+/* L'aperçu qui défile : les cartes superposées dans une même case, une seule visible ; un fondu et un glissé courts. */
+.apercu-defilant { width: min(380px, 100%); display: grid; gap: 18px; }
+.apercu-pile { display: grid; }
+.apercu-pile > .apercu-carte { grid-area: 1 / 1; opacity: 0; transform: translateY(8px); visibility: hidden;
+  transition: opacity .45s ease, transform .45s ease, visibility 0s linear .45s; }
+.apercu-pile > .apercu-carte.visible { opacity: 1; transform: none; visibility: visible; transition: opacity .45s ease, transform .45s ease; }
+@media (prefers-reduced-motion: reduce) { .apercu-pile > .apercu-carte { transition: none; transform: none; } }
+.apercu-carte { width: 100%; background: var(--surface); color: var(--encre); border: 1px solid var(--trait-fort);
+  padding: 22px; box-shadow: 16px 16px 0 -1px var(--fond), 16px 16px 0 0 var(--trait-fort); }
+.apercu-exemple { font: 500 10px/1 var(--chiffres); letter-spacing: .12em; text-transform: uppercase; color: var(--discret);
+  border: 1px solid var(--trait-fort); padding: 4px 6px; }
+.apercu-sous { font-size: 12.5px; color: var(--discret); margin: 10px 0 14px; }
+.apercu-offres { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 12px; }
+.apercu-offres li { display: grid; grid-template-columns: 84px 1fr 58px; align-items: center; gap: 12px; font-size: 13.5px; }
+.apercu-offres strong { font-family: var(--chiffres); font-weight: 500; text-align: right; }
+.apercu-jauge { height: 8px; background: var(--surface-2); border: 1px solid var(--trait); }
+.apercu-jauge > span { display: block; height: 100%; background: var(--encre); opacity: .8; }
+.apercu-offres li.tete .apercu-jauge > span { background: var(--accent); opacity: 1; }
+.apercu-offres li.tete strong { color: var(--indigo-vif); }
+.apercu-annees { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; align-items: end; height: 132px; margin: 14px 0 12px;
+  border-bottom: 1px solid var(--trait-fort); }
+.apercu-annees > div { display: grid; justify-items: center; gap: 4px; }
+.apercu-colonne { width: 100%; background: var(--encre); opacity: .85; }
+.apercu-annees > div:nth-child(4) .apercu-colonne { background: var(--accent); opacity: 1; }
+.apercu-valeur, .apercu-an { font: 500 11px/1 var(--chiffres); color: var(--discret); }
+.apercu-an { margin-bottom: -18px; }
+.apercu-annees + .apercu-ligne { margin-top: 22px; }
+.apercu-etapes { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 10px; font-size: 13.5px; }
+.apercu-etapes li { display: flex; align-items: center; gap: 10px; }
+.apercu-etapes li > span { width: 12px; height: 12px; border: 1px solid var(--trait-fort); flex: none; }
+.apercu-etapes li.fait > span { background: var(--accent); border-color: var(--accent); }
+.apercu-etapes li.attente { color: var(--discret); }
+/* Le bouton WhatsApp, en bas à droite de chaque écran où il a un destinataire. Le vert de WhatsApp est l'exception
+   voulue à la règle des jetons (identite-glacier.md). Au-dessus de la barre du dossier sur téléphone ; jamais imprimé. */
+.bouton-whatsapp { position: fixed; right: 20px; bottom: 20px; z-index: 40; display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 16px 12px 14px; background: #1f8f4e; color: #fff; text-decoration: none; font-weight: 600; font-size: 14.5px;
+  border-radius: var(--rayon); box-shadow: 0 6px 18px rgba(0, 0, 0, .22); }
+.bouton-whatsapp:hover { background: #17753f; color: #fff; }
+.bouton-whatsapp:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 900px) { .dossier + .bouton-whatsapp { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 700px) {
+  .bouton-whatsapp { padding: 14px; right: 16px; }
+  .bouton-whatsapp:not(.dossier + .bouton-whatsapp) { bottom: 16px; }
+  .bouton-whatsapp span { display: none; }
+}
+@media print { .bouton-whatsapp { display: none !important; } }
+/* Les points : quatre traits fins, le courant à l'accent ; le nom est dans l'étiquette et l'infobulle. */
+.apercu-points { display: flex; gap: 8px; justify-content: center; }
+.apercu-points button { background: transparent; border: 0; padding: 10px 0; min-height: 0; cursor: pointer; }
+.apercu-points button span { display: block; width: 36px; height: 3px; background: var(--trait-fort); font-size: 0; overflow: hidden; }
+.apercu-points button[aria-pressed="true"] span { background: var(--accent); }
+.apercu-points button:hover span { background: var(--encre-2); }
 .apercu-tete { display: flex; justify-content: space-between; align-items: center; font: 500 10.5px/1.4 var(--chiffres);
   letter-spacing: .12em; text-transform: uppercase; color: var(--discret); }
 .apercu-chiffre { font-size: 40px; font-weight: 500; letter-spacing: -.04em; margin: 10px 0 16px; }

@@ -12,7 +12,6 @@ const CHEMINS: Record<string, string> = {
   departs: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
   messages: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
   equipe: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",
-  accompagnement: "M8 12h8M12 8v8M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0",
 };
 
 export function Icone({ nom, taille = 18 }: { nom: keyof typeof CHEMINS | string; taille?: number }) {

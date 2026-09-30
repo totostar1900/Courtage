@@ -4,6 +4,7 @@ import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, DEMO, ErreurApi } from "./api";
 import { useCharge } from "./composants/communs";
 import { changerLangue, t, useLangue } from "./i18n";
+import { WhatsAppCabinet } from "./composants/BoutonWhatsApp";
 import Marque from "./composants/Marque";
 import PiedDePage from "./composants/PiedDePage";
 import Titre from "./composants/Titre";
@@ -13,7 +14,6 @@ import Accueil from "./pages/Accueil";
 import Cahier from "./pages/Cahier";
 import Connexion from "./pages/Connexion";
 import Contrat from "./pages/Contrat";
-import Accompagnement from "./pages/Accompagnement";
 import Departs from "./pages/Departs";
 import Dossier from "./pages/Dossier";
 import DossierPriseEnCharge from "./pages/DossierPEC";
@@ -43,6 +43,10 @@ export default function App() {
   const l = useLangue();
   // `/` sans session : la vitrine. L'en-tête le sait, pour proposer « Se connecter » plutôt que le profil.
   const [visiteur, setVisiteur] = useState(false);
+  const { pathname } = useLocation();
+  // Le bouton WhatsApp du cabinet : pour le visiteur et sur les pages publiques (pas celle de l'assureur consulté).
+  // Dans un dossier, c'est le dossier qui pose le sien, vers le conseiller.
+  const whatsappCabinet = (visiteur || PUBLIQUES.some((p) => pathname.startsWith(p))) && !pathname.startsWith("/offre");
   return (
     <Fragment key={l}>
       <Entete visiteur={visiteur} />
@@ -85,7 +89,7 @@ export default function App() {
             <Route path="cahier/:fiche" element={<Reponses />} />
             <Route path="contrat" element={<Contrat />} />
             <Route path="placement" element={<Placement />} />
-            <Route path="accompagnement" element={<Accompagnement />} />
+            <Route path="accompagnement" element={<Navigate to="../contrat" replace />} />
             <Route path="departs" element={<Departs />} />
             <Route path="equipe" element={<Equipe />} />
             <Route path="contact" element={<Messages />} />
@@ -96,6 +100,7 @@ export default function App() {
         </Routes>
       </main>
       <PiedDePage />
+      {whatsappCabinet && <WhatsAppCabinet />}
     </Fragment>
   );
 }
@@ -151,12 +156,13 @@ function Entete({ visiteur }: { visiteur: boolean }) {
 }
 
 /** FR | EN : la langue de l'interface, gardée dans ce navigateur. */
-/** Automatique (celui de l'appareil), clair, sombre : trois icônes, à côté de FR · EN. */
+/** Automatique (celui de l'appareil), clair, pénombre, sombre : quatre icônes, à côté de FR · EN. */
 function BasculeTheme() {
   const [theme, setTheme] = useState<Theme>(lireTheme);
   const choix: [Theme, string, ReactNode][] = [
     ["auto", t("Thème de l'appareil", "Device theme"), <><circle cx="12" cy="12" r="8" /><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" /></>],
     ["clair", t("Thème clair", "Light theme"), <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>],
+    ["penombre", t("Thème pénombre", "Dim theme"), <><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" opacity=".45" /></>],
     ["sombre", t("Thème sombre", "Dark theme"), <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />],
   ];
   return (

@@ -1,4 +1,5 @@
 import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { oublierCabinet } from "../cabinet";
@@ -28,6 +29,13 @@ describe("vitrine et pages légales", () => {
     expect(screen.getByRole("heading", { name: "Les assureurs en concurrence pour vous" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "L'expérience à votre service" })).toBeInTheDocument();
     expect(screen.getByText(/plus de 50 ans d'expérience cumulée/)).toBeInTheDocument();
+    expect(screen.getByText("Du Cameroun à l'Europe")).toBeInTheDocument();
+    // L'aperçu défile ; ses points le mènent à la main.
+    const offres = screen.getByRole("button", { name: "Voir : Les offres" });
+    expect(offres).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(offres);
+    expect(offres).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Offres classées").closest(".apercu-carte")).toHaveClass("visible");
     expect(await screen.findAllByText(/Purpose Capital Courtage/, {}, { timeout: 4000 })).not.toHaveLength(0);
     // L'en-tête propose de se connecter, pas le profil.
     expect(await screen.findByRole("link", { name: "Se connecter" }, { timeout: 4000 })).toHaveAttribute("href", "/connexion");
@@ -36,6 +44,9 @@ describe("vitrine et pages légales", () => {
     expect(screen.getByRole("link", { name: "Nitch, accueil" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("img", { name: "Nitch" })).toBeInTheDocument();
     expect(screen.getByText(/exploitée par Purpose Capital Courtage/)).toBeInTheDocument();
+    // Le visiteur écrit au cabinet sur WhatsApp, depuis le bouton en bas à droite.
+    expect(screen.getByRole("link", { name: "Écrire au cabinet sur WhatsApp" }).getAttribute("href"))
+      .toMatch(/^https:\/\/wa\.me\/237699000000\?text=/);
   });
 
   it("avec une session, / reste l'accueil des dossiers", async () => {
@@ -80,6 +91,13 @@ describe("la rémunération du courtier", () => {
       .map(([chemin]) => chemin);
     expect(Object.keys(sources).length).toBeGreaterThan(20);        // le filtre a bien lu les sources
     expect(fautifs).toEqual([]);
+  });
+});
+
+describe("les marchés de l'équipe", () => {
+  it("ne citent jamais l'Amérique", () => {
+    const sources = import.meta.glob(["../**/*.{ts,tsx}", "!../test/**"], { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+    expect(Object.entries(sources).filter(([, texte]) => /amérique|america/i.test(texte)).map(([c]) => c)).toEqual([]);
   });
 });
 

@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
@@ -22,8 +21,9 @@ const MISSIONS: Record<string, string[]> = {
   prestations: ["gestion"], regime: ["analyse"],
 };
 
-/** Demander un accompagnement en courtage ; le conseiller propose le mandat ; l'entreprise le lit et le signe. */
-export default function Accompagnement() {
+/** Le mandat de courtage, dans la page Contrat : l'entreprise le demande, le conseiller le propose, l'entreprise le lit
+ *  et le signe ; l'historique garde chaque demande. (Il avait sa page, « Accompagnement » ; `/accompagnement` y mène.) */
+export default function Mandat() {
   const d = useDossier();
   const { donnee, erreur, recharger } = useCharge(() => api.get<Mandats>(`/organisations/${d.org.id}/mandats`), []);
   const [demander, fenetre] = useConfirmation();
@@ -51,13 +51,11 @@ export default function Accompagnement() {
   return (
     <>
       {fenetre}
-      <h1>{t("Accompagnement en courtage", "Brokerage support")}</h1>
-      <p>{t("Un courtier vous représente auprès des assureurs : il analyse votre engagement, consulte le marché, compare les offres, vous recommande la meilleure et suit ensuite le contrat et les départs en retraite. Vous restez seuls à choisir l'assureur. Tout commence par un mandat, que vous lisez et signez ici.",
-        "A broker represents you with insurers: they analyse your obligation, consult the market, compare the offers, recommend the best one, and then follow the contract and the retirements. The choice of insurer remains yours alone. It all starts with a mandate, which you read and sign here.")}</p>
+      <h2 id="mandat" className="section">{t("Le mandat de courtage", "The brokerage mandate")}</h2>
 
       {!courant && donnee.service !== "courtage" && (client
         ? <Demande orgId={d.org.id} besoins={donnee.besoins} onFait={fait} />
-        : <p className="carte section discret">{t("Aucune demande d'accompagnement pour l'instant : l'entreprise la fait depuis cette page.", "No request for brokerage support yet: the company makes it from this page.")}</p>)}
+        : <p className="carte section discret">{t("Aucune demande de mandat pour l'instant : l'entreprise la fait depuis cette page.", "No mandate request yet: the company makes it from this page.")}</p>)}
       {!courant && donnee.service === "courtage" && signe?.signature && (
         <div className="constat informe section"><div className="titre">{t("Mandat en vigueur", "Mandate in force")}</div>
           {t(`Signé le ${dateFr(signe.signature.le)} par ${signe.signature.nom} · N° ${signe.signature.numero}. Le contrat « courtage » court depuis le ${dateFr(signe.signature.contrat_du)}.`,
@@ -66,14 +64,13 @@ export default function Accompagnement() {
       )}
       {!courant && donnee.service === "courtage" && !signe?.signature && (
         <div className="constat informe section"><div className="titre">{t("Vous êtes en courtage", "You are under brokerage")}</div>
-          {t("Votre mandat de courtage a été enregistré par votre conseiller : ", "Your brokerage mandate was recorded by your adviser: ")}
-          <Link to="../contrat">{t("voir le contrat", "see the contract")}</Link>.</div>
+          {t("Votre mandat de courtage a été enregistré par votre conseiller ; le contrat est ci-dessus.", "Your brokerage mandate was recorded by your adviser; the contract is above.")}</div>
       )}
 
       {courant && (
         <section className="carte section" aria-labelledby="mandat-courant">
           <div className="actions" style={{ justifyContent: "space-between", marginTop: 0 }}>
-            <h2 id="mandat-courant" style={{ margin: 0 }}>{courant.statut === "demande" ? t("Votre demande", "Your request") : t("Le mandat proposé", "The proposed mandate")}</h2>
+            <h3 id="mandat-courant" style={{ margin: 0 }}>{courant.statut === "demande" ? t("Votre demande", "Your request") : t("Le mandat proposé", "The proposed mandate")}</h3>
             <span className={`etat ${STATUTS[courant.statut][1]}`}>{STATUTS[courant.statut][0]}</span>
           </div>
           <p className="discret">{t(`Demandé le ${dateFr(courant.demande_le)} par ${courant.demande_par} :`, `Requested on ${dateFr(courant.demande_le)} by ${courant.demande_par}:`)}{" "}
@@ -103,7 +100,7 @@ export default function Accompagnement() {
 
       {passes.length > 0 && (
         <div className="section">
-          <h2>{t("Historique", "History")}</h2>
+          <h3>{t("Les demandes et mandats passés", "Past requests and mandates")}</h3>
           <div className="defile"><table>
             <thead><tr><th>{t("Demandé le", "Requested on")}</th><th>{t("État", "Status")}</th><th>{t("Détail", "Details")}</th><th aria-label={t("Document", "Document")} /></tr></thead>
             <tbody>{passes.map((m) => (
@@ -136,7 +133,7 @@ function Demande({ orgId, besoins, onFait }: { orgId: string; besoins: Mandats["
   }
   return (
     <form className="carte section formulaire" onSubmit={envoyer} aria-labelledby="demande-titre">
-      <h2 id="demande-titre" style={{ marginTop: 0 }}>{t("Demander un accompagnement", "Request brokerage support")}</h2>
+      <h3 id="demande-titre" style={{ marginTop: 0 }}>{t("Demander un accompagnement en courtage", "Request brokerage support")}</h3>
       <fieldset><legend>{t("Ce que vous attendez", "What you expect")}</legend>
         {besoins.map((b) => (
           <label key={b.code} className="case"><input type="checkbox" name="besoins" value={b.code} /> {b.libelle}</label>
@@ -144,8 +141,8 @@ function Demande({ orgId, besoins, onFait }: { orgId: string; besoins: Mandats["
       </fieldset>
       <label>{t("Précisions (facultatif)", "Details (optional)")}
         <textarea name="message" rows={3} maxLength={2000} placeholder={t("Échéance de votre contrat actuel, contraintes, questions…", "End date of your current contract, constraints, questions…")} /></label>
-      <p className="discret">{t("Votre conseiller vous propose ensuite un mandat de courtage, à lire et signer sur cette page. Rien ne vous engage avant la signature, et l'accompagnement ne vous coûte rien.",
-        "Your adviser then proposes a brokerage mandate, to read and sign on this page. Nothing binds you before you sign, and the support costs you nothing.")}</p>
+      <p className="discret">{t("Votre conseiller vous propose ensuite un mandat de courtage, à lire et signer ici, sur la page Contrat. Rien ne vous engage avant la signature, et l'accompagnement ne vous coûte rien.",
+        "Your adviser then proposes a brokerage mandate, to read and sign here, on the Contract page. Nothing binds you before you sign, and the support costs you nothing.")}</p>
       <div className="actions"><button className="principal">{t("Envoyer la demande", "Send the request")}</button></div>
       <Erreur erreur={erreur} />
     </form>

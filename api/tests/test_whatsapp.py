@@ -37,7 +37,7 @@ def test_un_avis_part_aussi_sur_whatsapp_pour_qui_l_a_demande(client, bases, azi
                 headers=en_tant_que(azito["drh"]))
     [m] = wa.expediteur.envoyes
     assert m.telephone == tel
-    assert m.texte.startswith("Un message vous attend — ") and m.texte.endswith(f"/dossier/{azito['org']}/messages")
+    assert m.texte.startswith("Un message vous attend — ") and m.texte.endswith(f"/dossier/{azito['org']}/contact")
     assert "Effectif" not in m.texte and "AZITO" not in m.texte     # le sujet et le lien, rien du dossier
     # L'auteur n'est jamais prévenu de son propre acte, sur aucun canal.
     client.post(f"{V1}/organisations/{azito['org']}/messages", json={"texte": "Reçu."},

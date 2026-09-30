@@ -26,7 +26,7 @@ def test_un_message_previent_l_autre_cote_sans_son_texte(client, bases, azito):
     assert r.status_code in (200, 201), r.text
     [avis_conseiller] = recus(client, bases, azito["conseiller"])
     assert "a écrit dans le fil du dossier AZITO" in avis_conseiller
-    assert f"/dossier/{azito['org']}/messages" in avis_conseiller
+    assert f"/dossier/{azito['org']}/contact" in avis_conseiller
     assert "effectif" not in avis_conseiller                  # le texte reste sur la plateforme
     assert recus(client, bases, azito["drh"]) == []           # l'auteur n'est pas prévenu de son propre acte
     client.post(f"{V1}/organisations/{azito['org']}/messages", json={"texte": "Bien reçu."},

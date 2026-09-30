@@ -29,7 +29,7 @@ describe("la file des inscriptions", () => {
     const retard = within(carte).getByText("en retard");
     expect(retard).toHaveClass("etat", "grave");
     expect(carte).toHaveClass("en-retard");
-    expect(within(carte).getByText("2 non lu(s)")).toBeInTheDocument();
+    expect(within(carte).queryByText(/non lu/)).toBeNull();                  // plus de fil écrit : plus de compte de non-lus
     expect(within(carte).getByText("Mme Ngo")).toBeInTheDocument();
     const autre = screen.getByRole("article", { name: "Cimenterie Sud" });
     expect(within(autre).queryByText("en retard")).not.toBeInTheDocument();
@@ -107,28 +107,28 @@ describe("la file des inscriptions", () => {
 });
 
 describe("nous contacter", () => {
-  it("l'entreprise écrit à son conseiller sur WhatsApp ou par courriel ; l'ancien fil se lit, replié", async () => {
-    const fil = { cote: "entreprise", messages: [
-      { id: "m1", cote: "courtier", auteur: "Awa Nkoulou", texte: "Bonjour, je vous appelle demain.",
-        le: "2026-09-27T10:00:00+00:00", lu_le: "2026-09-27T11:00:00+00:00" },
-    ] };
+  it("l'entreprise écrit à son conseiller sur WhatsApp ou par courriel ; aucun fil écrit sur la plateforme", async () => {
     const eq = equipe("lecteur_client");
     eq.membres = eq.membres.map((m) => (m.role === "conseiller" ? { ...m, telephone: "+237699000011" } : m));
-    simulerApi({ ...dossier("lecteur_client"), [`/organisations/${ORG}/equipe`]: eq, [`/organisations/${ORG}/messages`]: fil });
+    simulerApi({ ...dossier("lecteur_client"), [`/organisations/${ORG}/equipe`]: eq });
     ouvrir(`/dossier/${ORG}/contact`);
     expect(await screen.findByRole("heading", { name: "Nous contacter" })).toBeInTheDocument();
     const whatsapp = await screen.findByRole("link", { name: "Écrire sur WhatsApp" });
     expect(whatsapp.getAttribute("href")).toMatch(/^https:\/\/wa\.me\/237\d+\?text=/);
     expect(screen.getByRole("link", { name: "Écrire un courriel" }).getAttribute("href")).toMatch(/^mailto:/);
-    // L'historique reste lisible, on n'y écrit plus.
-    expect(await screen.findByText("Bonjour, je vous appelle demain.")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Votre message")).toBeNull();
+    expect(screen.queryByText("Messages écrits sur la plateforme")).toBeNull();
+    // Et, sur chaque page du dossier, le bouton WhatsApp en bas à droite, vers le conseiller.
+    const flottant = screen.getByRole("link", { name: "Écrire à votre conseiller sur WhatsApp" });
+    expect(flottant).toHaveClass("bouton-whatsapp");
+    expect(flottant.getAttribute("href")).toMatch(/^https:\/\/wa\.me\/237699000011\?text=/);
   });
 
-  it("le conseiller voit les personnes de l'entreprise, avec leurs boutons", async () => {
-    simulerApi({ ...dossier("conseiller"), [`/organisations/${ORG}/messages`]: { cote: "courtier", messages: [] } });
+  it("le conseiller voit les personnes de l'entreprise, avec leurs boutons ; pas de bouton flottant pour lui", async () => {
+    simulerApi({ ...dossier("conseiller") });
     ouvrir(`/dossier/${ORG}/messages`);        // l'ancienne adresse mène à la même page
     expect(await screen.findByRole("heading", { name: "Contacter l'entreprise" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Écrire sur WhatsApp" }).length).toBeGreaterThan(0);
+    expect(document.querySelector(".bouton-whatsapp")).toBeNull();
   });
 });
+
