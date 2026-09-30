@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useParams } from "react-router-dom";
 
 import { api } from "../api";
@@ -72,6 +72,13 @@ export default function Dossier() {
 
   const { pathname } = useLocation();
   const cabinet = useCabinet();
+  // Le rail se fige là où il se trouve, page en haut : il ne bouge ni quand la page défile, ni d'une page à l'autre.
+  const rail = useRef<HTMLElement>(null);
+  const charge = Boolean(donnee);
+  useLayoutEffect(() => {
+    const r = rail.current;
+    if (r) r.style.setProperty("--rail-haut", `${Math.round(r.getBoundingClientRect().top + window.scrollY)}px`);
+  }, [charge]);
   const [menu, setMenu] = useState(false);
   useEffect(() => { setMenu(false); }, [pathname]);     // une page choisie referme le menu (téléphone)
   // Chaque page ouverte devient l'endroit où reprendre (« Vos dossiers » le proposera à la prochaine visite).
@@ -92,7 +99,7 @@ export default function Dossier() {
            data-impression={donnee.activation.etat !== "confirmee"
              ? t("L'impression s'ouvre après confirmation de votre inscription", "Printing opens once your sign-up is confirmed")
              : undefined}>
-        <aside>
+        <aside ref={rail}>
           <div className="dossier-tete">
             <div>
               <NavLink to="." end className="discret" style={{ textDecoration: "none" }}>

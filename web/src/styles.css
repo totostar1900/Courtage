@@ -161,6 +161,13 @@ p { margin: 0 0 10px; color: var(--encre-2); max-width: 72ch; }
 .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .dossier { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 56px; }
+/* Le rail ne bouge pas : il reste sous l'en-tête quand la page défile, et la place de la barre de défilement est
+   toujours réservée (une page courte ne la montre pas, une longue si : sans cela, tout glissait de côté). */
+html { scrollbar-gutter: stable; }
+@media (min-width: 901px) {
+  .dossier > aside { position: sticky; top: var(--rail-haut, 89px); align-self: start; max-height: calc(100vh - var(--rail-haut, 89px) - 16px); overflow-y: auto;
+    overscroll-behavior: contain; scrollbar-width: thin; }
+}
 @media (max-width: 900px) { .g2, .g3, .g4, .dossier { grid-template-columns: 1fr; } }
 /* Sur téléphone, un tableau large défile dans son cadre au lieu d'élargir la colonne (et le menu) du dossier. */
 @media (max-width: 900px) { .dossier { grid-template-columns: minmax(0, 1fr); } }
@@ -213,6 +220,10 @@ tr.cliquable { cursor: pointer; } tr.cliquable:hover td { background: var(--indi
 
 /* Formulaires et boutons */
 label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--encre-2); }
+/* Une valeur que l'on ne choisit pas (une seule possible) : lue comme un champ, sans en être un. */
+.champ-lu { display: grid; gap: 4px; align-content: start; }
+.champ-lu-libelle { font-size: 13px; font-weight: 500; color: var(--encre-2); }
+.champ-lu > [data-convention] { padding: 10px 0; font-size: 14px; color: var(--encre); }
 input, select, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--trait); border-radius: 8px; background: var(--surface); color: var(--encre); }
 input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--ocre); outline-offset: 1px; }
 button { font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 10px; border: 1px solid var(--trait); background: var(--surface); color: var(--encre); cursor: pointer; }
@@ -815,18 +826,25 @@ a.bouton.whatsapp:hover, button.whatsapp:hover { background: #17753f; }
 
 /* Le téléphone et son indicatif (composants/ChampTelephone.tsx) : une puce drapeau + indicatif, le vrai menu posé
    dessus (invisible mais au clavier et au lecteur d'écran), puis le numéro. */
-.champ-telephone { display: grid; gap: 6px; }
+.champ-telephone { display: grid; gap: 6px; position: relative; }
 .champ-telephone > label { font-weight: 600; font-size: 13px; color: var(--encre-2); }
 .champ-telephone-ligne { display: flex; align-items: stretch; border: 1px solid var(--trait); border-radius: 10px;
   background: var(--surface); overflow: hidden; }
 .champ-telephone-ligne:focus-within { border-color: var(--indigo-vif); box-shadow: 0 0 0 1px var(--indigo-vif); }
-.champ-telephone-pays { position: relative; display: flex; flex: none; border-right: 1px solid var(--trait); background: var(--surface-2); }
-.champ-telephone-puce { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 12px; font-weight: 600;
-  color: var(--encre); font-variant-numeric: tabular-nums; }
-.champ-telephone-puce .drapeau { font-size: 18px; line-height: 1; }
-.champ-telephone-puce svg { color: var(--discret); }
-.champ-telephone-pays select { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
-.champ-telephone-pays:focus-within .champ-telephone-puce { background: var(--indigo-doux); }
+.champ-telephone-pays { display: flex; align-items: center; gap: 6px; flex: none; padding-left: 12px;
+  border-right: 1px solid var(--trait); background: var(--surface-2); }
+.champ-telephone-pays .drapeau { font-size: 18px; line-height: 1; }
+.champ-telephone-pays:focus-within { background: var(--indigo-doux); }
+.champ-telephone-ligne input.champ-telephone-indicatif { flex: none; width: 76px; padding-left: 2px; background: transparent;
+  font-weight: 600; font-variant-numeric: tabular-nums; color: var(--encre); }
+/* La liste des pays : sous le champ, filtrée à mesure ; au clavier (↑ ↓, Entrée, Échap) comme à la souris. */
+.champ-telephone-liste { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 25; list-style: none; margin: 0;
+  padding: 4px; max-height: 264px; overflow-y: auto; background: var(--surface); border: 1px solid var(--trait-fort);
+  box-shadow: var(--ombre-flottante); }
+.champ-telephone-liste li { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center; padding: 8px 10px;
+  cursor: pointer; font-size: 14px; }
+.champ-telephone-liste li[aria-selected="true"] { background: var(--indigo-doux); }
+.champ-telephone-code { font-family: var(--chiffres); font-size: 13px; color: var(--discret); }
 .champ-telephone-ligne input { border: 0; border-radius: 0; flex: 1; min-width: 0; box-shadow: none; outline: none; }
 
 /* Les volets repliables (« plis ») : un en-tête plein et cliquable, un chevron qui tourne, le corps détaché. */
@@ -940,7 +958,7 @@ label { font-size: 13px; font-weight: 500; }
 ::placeholder { color: var(--discret); opacity: .8; }
 .champ-telephone-ligne { border-color: var(--trait-fort); border-radius: var(--rayon); }
 .champ-telephone-ligne input, .champ-telephone-ligne input:focus { min-height: 42px; box-shadow: none; }
-.champ-telephone-puce { font-family: var(--chiffres); font-weight: 500; }
+.champ-telephone-indicatif { font-family: var(--chiffres); font-weight: 500; }
 .champ-telephone-ligne input { font-family: var(--chiffres); }
 
 /* Les tableaux : des traits d'un pixel, l'en-tête en capitales. */

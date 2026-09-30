@@ -53,7 +53,7 @@ export default function Profil() {
   async function deconnecter() {
     await api.post("/auth/deconnexion").catch(() => undefined);
     seConnecter(null);
-    aller("/connexion");
+    aller("/");                     // l'accueil : la vitrine, pour qui n'a plus de session
   }
 
   return (

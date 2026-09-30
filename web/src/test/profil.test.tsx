@@ -71,4 +71,17 @@ describe("l'espace profil", () => {
     await waitFor(() => expect(appels.some((a) => a.init?.method === "PATCH")).toBe(true));
     expect(JSON.parse(String(appels.find((a) => a.init?.method === "PATCH")!.init!.body))).toEqual({ avis_whatsapp: true });
   });
+
+  it("se déconnecter ramène à l'accueil, la vitrine", async () => {
+    let connecte = true;
+    const d = dossier("admin_client");
+    simulerApi({ ...d, "/moi/profil": profil, "POST /auth/deconnexion": { message: "Déconnecté." },
+      "/moi": () => (connecte ? d["/moi"] : new Response(JSON.stringify({ code: "non_authentifie", message: "Connectez-vous." }),
+        { status: 401, headers: { "content-type": "application/json" } })) });
+    ouvrir("/profil");
+    const bouton = await screen.findByRole("button", { name: "Se déconnecter" });
+    connecte = false;
+    await userEvent.click(bouton);
+    expect(await screen.findByRole("heading", { name: /chiffrées puis placées/ }, { timeout: 4000 })).toBeInTheDocument();
+  });
 });

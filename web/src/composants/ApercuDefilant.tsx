@@ -19,7 +19,7 @@ function Panneau({ titre, etat, children }: { titre: string; etat?: ReactNode; c
 }
 
 function panneaux(): { nom: string; corps: ReactNode }[] {
-  const offres: [string, number, boolean][] = [["A", 3.12, true], ["B", 2.85, false], ["C", 2.41, false]];
+  const offres: [string, number, boolean][] = [["A", 4.85, true], ["B", 4.4, false], ["C", 3.95, false]];
   const departs: [string, number][] = [["2027", 8.4], ["2028", 12.1], ["2029", 5.2], ["2030", 18.6], ["2031", 9.9]];
   const etapes: [string, boolean][] = [
     [t("Départ déclaré", "Departure declared"), true], [t("Montant recalculé", "Amount recalculated"), true],
@@ -31,7 +31,7 @@ function panneaux(): { nom: string; corps: ReactNode }[] {
         <div className="apercu-chiffre">135,8 M F</div>
         <div className="apercu-barres">{[38, 12, 30, 6, 64, 8, 22, 46, 18, 14].map((h, i) => <span key={i} style={{ height: `${h}px` }} />)}</div>
         <div className="apercu-ligne"><span>{t("Offres reçues", "Offers received")}</span><strong>3</strong></div>
-        <div className="apercu-ligne"><span>{t("Meilleur rendement net", "Best net return")}</span><strong>3,12 %</strong></div>
+        <div className="apercu-ligne"><span>{t("Meilleur rendement net", "Best net return")}</span><strong>4,85 %</strong></div>
       </Panneau>) },
     { nom: t("Les offres", "The offers"), corps: (
       <Panneau titre={t("Offres classées", "Offers ranked")}>
@@ -40,7 +40,7 @@ function panneaux(): { nom: string; corps: ReactNode }[] {
           {offres.map(([nom, taux, tete]) => (
             <li key={nom} className={tete ? "tete" : undefined}>
               <span>{t(`Assureur ${nom}`, `Insurer ${nom}`)}</span>
-              <span className="apercu-jauge"><span style={{ width: `${(taux / 3.5) * 100}%` }} /></span>
+              <span className="apercu-jauge"><span style={{ width: `${(taux / 5.5) * 100}%` }} /></span>
               <strong>{taux.toFixed(2).replace(".", ",")} %</strong>
             </li>
           ))}
