@@ -28,8 +28,6 @@ export function astuces(): Astuce[] {
       "An internal provision has no charges, but no return either: three departures in the same year are paid from the cash available at the time."), chapitre: "financer" },
   { texte: t("Dans le cahier des charges, aucune ligne ne décrit moins de trois salariés : un assureur ne peut reconnaître personne.",
       "In the specifications, no line describes fewer than three employees: an insurer cannot identify anyone."), chapitre: "cahier" },
-  { texte: t("Le mandat de courtage est gratuit pour vous : seul l'assureur retenu rémunère le courtier.",
-      "The brokerage mandate costs you nothing: only the chosen insurer pays the broker."), chapitre: "contrat" },
   { texte: t("Un départ en démission ne coûte pas d'IFC, mais l'enregistrer (sans nom) mesure la rotation réelle de votre personnel — et une rotation mesurée vaut mieux qu'une rotation supposée.",
       "A resignation costs no end-of-service benefit, but recording it (without a name) measures your actual staff turnover — and measured turnover beats assumed turnover."), chapitre: "departs" },
   { texte: t("En courtage, l'identité d'un bénéficiaire ne sert qu'à son paiement : elle est effacée douze mois après, et le dossier scellé se vérifie toujours par son numéro.",

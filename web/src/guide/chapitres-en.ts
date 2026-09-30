@@ -203,7 +203,7 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "The platform pays nothing and receives nothing. The insurer sends a premium call with its bank details; the adviser records it here; you transfer from your bank to the insurer's account, then declare the transfer (date, amount, reference) and attach your bank's advice.",
         "The adviser uploads the insurer's receipt and confirms it: the call moves from “paid (declared)” to “received (confirmed)”. A due date passed with no declared transfer shows as overdue." ] },
       { titre: "Bank details, against fraud", texte: [
-        "Each call is checked against the account the broker registered for that insurer, after having it confirmed by phone. A different or unknown account shows in red: “Do not pay”. The adviser then calls the insurer back on the number they know, never the one on the call received, and records who confirmed.",
+        "Each call is checked against the account we registered for that insurer, after having it confirmed by phone. A different or unknown account shows in red: “Do not pay”. The adviser then calls the insurer back on the number they know, never the one on the call received, and records who confirmed.",
         "Bank details are never sent by email: the notice only says a call is waiting. A “new bank account” received by email is not paid before being confirmed here." ] },
       { titre: "Fund statements", texte: [
         "The adviser uploads the insurer's statements with the fund amount. The page reconciles them with the premiums received and the fund your latest study uses: a difference is a finding to explain, never a blocking error." ] },

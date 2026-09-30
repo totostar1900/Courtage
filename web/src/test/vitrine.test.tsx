@@ -91,7 +91,7 @@ describe("la rémunération du courtier", () => {
     const sources = import.meta.glob(["../**/*.{ts,tsx}", "!../test/**", "!../pages/Legal.tsx"],
       { query: "?raw", import: "default", eager: true }) as Record<string, string>;
     const fautifs = Object.entries(sources)
-      .filter(([, texte]) => /courtier est rémunéré|broker is paid/i.test(texte))
+      .filter(([, texte]) => /rémunér|broker is paid|pays the broker/i.test(texte))
       .map(([chemin]) => chemin);
     expect(Object.keys(sources).length).toBeGreaterThan(20);        // le filtre a bien lu les sources
     expect(fautifs).toEqual([]);
