@@ -232,7 +232,7 @@ function EtEnsuite({ whatsapp }: { whatsapp: string | null }) {
     [t("Un conseiller vous appelle", "An adviser calls you"), t("Sous deux jours ouvrés : il confirme l'entreprise et vos besoins.", "Within two working days: they confirm the company and your needs.")],
     [t("Le rapport scellé", "The sealed report"), t("L'évaluation relue, émise, vérifiable par son numéro.", "The valuation reviewed, issued, verifiable by its number.")],
     [t("Les assureurs consultés", "Insurers consulted"), t("Votre conseiller vous apporte leurs offres, classées par rendement net.", "Your adviser brings you their offers, ranked by net return.")],
-    [t("Vous choisissez", "You choose"), t("Sans frais : le courtier est rémunéré par l'assureur retenu.", "Free of charge: the broker is paid by the insurer chosen.")],
+    [t("Vous choisissez", "You choose"), t("Sur des chiffres, sans frais pour l'entreprise.", "On figures, at no cost to the company.")],
   ];
   return (
     <div className="carte section et-ensuite" aria-labelledby="et-ensuite">

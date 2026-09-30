@@ -61,8 +61,8 @@ export function PageIfc() {
         ["Le bon choix dépend de la taille de l'entreprise, de sa trésorerie et du calendrier des départs. C'est une décision de l'entreprise, avec son expert-comptable.",
          "The right choice depends on the company's size, its cash and the timing of departures. It is the company's decision, with its accountant."]]} />
       <Bloc titre={["Ce que fait la plateforme", "What the platform does"]} paragraphes={[
-        ["Elle chiffre l'engagement selon votre convention et votre régime, met les assureurs en concurrence sur ce chiffre, puis suit chaque départ jusqu'au paiement. L'accompagnement ne coûte rien à l'entreprise : le courtier est rémunéré par l'assureur retenu.",
-         "It costs the liability under your agreement and your plan, puts insurers in competition on that figure, then follows each departure until payment. The support costs the company nothing: the broker is paid by the insurer chosen."]]} />
+        ["Elle chiffre l'engagement selon votre convention et votre régime, met les assureurs en concurrence sur ce chiffre, puis suit chaque départ jusqu'au paiement. L'accompagnement ne coûte rien à l'entreprise.",
+         "It costs the liability under your agreement and your plan, puts insurers in competition on that figure, then follows each departure until payment. The support costs the company nothing."]]} />
       <p><Link to="/ifc/cameroun">{t("Les IFC au Cameroun →", "End-of-service benefits in Cameroon →")}</Link>{" · "}
         <Link to="/guide">{t("La méthode, en détail, dans le guide", "The method, in detail, in the guide")}</Link></p>
       <Appel />

@@ -200,7 +200,7 @@ const FR: (Chapitre & { groupe: Groupe })[] = [
     sections: [
       { titre: "Un seul service", texte: [
         "La plateforme est votre courtier : vous la mandatez, elle consulte les assureurs, place votre engagement, puis porte vos prestations auprès de l'assureur retenu.",
-        "Le mandat est gratuit pour l'entreprise : le courtier est rémunéré uniquement par la commission de l'assureur retenu, dont il communique le taux sur simple demande.",
+        "Le mandat est gratuit pour l'entreprise : ni la plateforme ni l'accompagnement ne lui sont facturés. Ses conditions sont écrites dans le mandat, lu avant la signature.",
         "Le contrat de courtage naît de la signature du mandat ; l'écran « Contrat » le montre, avec l'assureur une fois le contrat placé." ] },
       { titre: "Signer le mandat", texte: [
         "Depuis « Accompagnement », l'entreprise dit ce qu'elle attend : placer son engagement, remettre son contrat en concurrence, faire porter ses départs, être conseillée sur son régime.",

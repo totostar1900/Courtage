@@ -426,4 +426,5 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
 - La vitrine : « Être rappelé » est un bouton du bandeau ; trois engagements en bande ; « Ce que vous obtenez » mène
   par la concurrence des assureurs et le suivi dans la durée ; « L'expérience à votre service » dit l'équipe (les faits
   donnés par le cabinet : 50+ ans cumulés, actuaires, Cameroun · Afrique · Europe · Amérique — n'en ajouter aucun).
-  La vitrine ne parle pas de la rémunération du courtier ; les conditions d'utilisation, si.
+  Aucune page de présentation (vitrine, inscription, essai, accompagnement, contenus, guide) ne parle de la
+  rémunération du courtier : seuls les conditions d'utilisation et le mandat la disent (garde : vitrine.test.tsx).

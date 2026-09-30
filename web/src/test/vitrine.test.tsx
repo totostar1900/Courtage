@@ -70,3 +70,16 @@ describe("être trouvé", () => {
     await waitFor(() => expect(document.title).toBe("Essayer sans compte — Nitch"));
   });
 });
+
+describe("la rémunération du courtier", () => {
+  it("n'est dite que par les conditions d'utilisation et par le mandat, jamais sur une page de présentation", () => {
+    const sources = import.meta.glob(["../**/*.{ts,tsx}", "!../test/**", "!../pages/Legal.tsx"],
+      { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+    const fautifs = Object.entries(sources)
+      .filter(([, texte]) => /courtier est rémunéré|broker is paid/i.test(texte))
+      .map(([chemin]) => chemin);
+    expect(Object.keys(sources).length).toBeGreaterThan(20);        // le filtre a bien lu les sources
+    expect(fautifs).toEqual([]);
+  });
+});
+
