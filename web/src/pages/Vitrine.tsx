@@ -15,11 +15,11 @@ export default function Vitrine() {
       texte: t("Déposez votre fichier du personnel, décrivez votre régime et votre fonds : l'étude se calcule à l'écran. Rien n'est gardé.",
                "Upload your staff file, describe your plan and your fund: the study is calculated on screen. Nothing is kept.") },
     { titre: t("S'inscrire", "Sign up"),
-      texte: t("Téléphone et courriel vérifiés, numéro RCCM de l'entreprise. Le courtier confirme sous deux jours ouvrés ; en attendant, vous travaillez.",
-               "Phone and email verified, the company's RCCM number. The broker confirms within two working days; meanwhile, you can work.") },
-    { titre: t("Mandater le courtier", "Appoint the broker"),
-      texte: t("Un mandat lu et signé en ligne, scellé. Le courtier consulte les assureurs, compare leurs offres et vous recommande la plus adaptée ; vous choisissez.",
-               "A mandate read and signed online, sealed. The broker consults insurers, compares their offers and recommends the best fit; you choose.") },
+      texte: t("Téléphone et courriel vérifiés, numéro RCCM de l'entreprise. Nous confirmons sous deux jours ouvrés ; en attendant, vous travaillez.",
+               "Phone and email verified, the company's RCCM number. We confirm within two working days; meanwhile, you can work.") },
+    { titre: t("Nous mandater", "Appoint us"),
+      texte: t("Un mandat lu et signé en ligne, scellé. Nous consultons les assureurs, comparons leurs offres et vous recommandons la plus adaptée ; vous choisissez.",
+               "A mandate read and signed online, sealed. We consult insurers, compare their offers and recommend the best fit; you choose.") },
     { titre: t("Suivre le contrat", "Follow the contract"),
       texte: t("Départs, dossiers de prise en charge avec leurs délais, évaluation de chaque année : tout reste au même endroit, tracé.",
                "Departures, benefit claim files with their deadlines, each year's valuation: everything stays in one place, recorded.") },
@@ -49,19 +49,19 @@ export default function Vitrine() {
   const equipe = [
     ["50+", t("années d'expérience cumulée dans l'assurance", "cumulated years of experience in insurance")],
     [t("Actuaires", "Actuaries"), t("chevronnés, et professionnels du marché de l'assurance", "seasoned, alongside insurance market professionals")],
-    [t("Du Cameroun à l'Europe", "From Cameroon to Europe"),
-     t("Une pratique des marchés locaux, africains et européens", "Hands-on practice of local, African and European markets")],
+    [t("Cameroun et Afrique centrale", "Cameroon and Central Africa"),
+     t("Une connaissance approfondie du secteur de l'assurance", "In-depth knowledge of the insurance sector")],
   ];
   const questions = [
     [t("Combien coûte l'accompagnement ?", "What does the support cost?"),
-     t("Rien pour l'entreprise : ni l'usage de la plateforme ni l'accompagnement du courtier ne vous sont facturés. Les conditions sont écrites dans le mandat, que vous lisez avant de signer.",
-       "Nothing for the company: neither the platform nor the broker's support is charged to you. The terms are written in the mandate, which you read before signing.")],
+     t("Rien pour l'entreprise : ni l'usage de la plateforme ni notre accompagnement ne vous sont facturés. Les conditions sont écrites dans le mandat, que vous lisez avant de signer.",
+       "Nothing for the company: neither the platform nor our support is charged to you. The terms are written in the mandate, which you read before signing.")],
     [t("Mes salariés sont-ils nommés ?", "Are my employees named?"),
      t("Non. Le fichier du personnel se lit par matricule, dates et salaires : aucun nom n'est lu ni gardé. Une identité n'apparaît que dans un dossier de prise en charge, sous mandat.",
        "No. The staff file is read by employee number, dates and salaries: no name is read or kept. An identity appears only in a benefit claim file, under mandate.")],
     [t("Qui voit nos données ?", "Who sees our data?"),
-     t("Votre équipe, selon les droits que vous donnez, et le conseiller que le courtier désigne. Un assureur ne reçoit qu'un cahier des charges anonymisé.",
-       "Your team, with the rights you give, and the adviser the broker assigns. An insurer receives only anonymised tender specifications.")],
+     t("Votre équipe, selon les droits que vous donnez, et le conseiller que nous désignons. Un assureur ne reçoit qu'un cahier des charges anonymisé.",
+       "Your team, with the rights you give, and the adviser we assign. An insurer receives only anonymised tender specifications.")],
     [t("Quels pays ?", "Which countries?"),
      t("Les six pays de la CEMAC, dont la plateforme connaît les conventions collectives.",
        "The six CEMAC countries, whose collective agreements the platform knows.")],
@@ -77,9 +77,10 @@ export default function Vitrine() {
         <div className="vitrine-une-texte">
           <p className="surtitre surtitre-clair">{t("Courtage IFC · CEMAC", "End-of-service benefit brokerage · CEMAC")}</p>
           <h1>{t("Vos indemnités de fin de carrière, chiffrées puis placées", "Your end-of-service benefits, costed then placed")}</h1>
-          <p className="vitrine-chapeau">{t(
-            "Un courtier en ligne pour les entreprises de la CEMAC : il chiffre votre engagement envers vos salariés, fait jouer la concurrence entre les assureurs pour le financer, puis vous accompagne dans la négociation avec les meilleurs d'entre eux et dans la gestion de votre contrat au quotidien.",
-            "An online broker for CEMAC companies: it costs your commitment to your employees, makes insurers compete to fund it, then supports you in negotiating with the best of them and in running your contract day to day.")}</p>
+          <p className="vitrine-chapeau"><strong>{t("Votre courtier en ligne, pour les entreprises de la CEMAC.",
+            "Your online broker, for CEMAC companies.")}</strong><br />
+            {t("Nous chiffrons votre engagement envers vos salariés, mettons les assureurs en concurrence pour le financer, puis vous accompagnons dans la négociation et la gestion de votre contrat au quotidien.",
+              "We cost your commitment to your employees, put insurers in competition to fund it, then support you through the negotiation and the day-to-day running of your contract.")}</p>
           <div className="actions">
             <Link to="/essai" className="bouton principal bouton-grand">{t("Essayer sans compte", "Try without an account")}</Link>
             <Link to="/inscription" className="bouton bouton-grand bouton-clair">{t("S'inscrire", "Sign up")}</Link>
@@ -118,8 +119,8 @@ export default function Vitrine() {
         <p className="surtitre">{t("Le service", "The service")}</p>
         <h2 id="vitrine-apports">{t("Ce que vous obtenez", "What you get")}</h2>
         <p className="vitrine-intro">{t(
-          "Le marché mis en concurrence pour vous, et un courtier à vos côtés pour trouver, à chaque moment, la solution et le rendement qui répondent le mieux à votre besoin.",
-          "The market competing for you, and a broker at your side to find, at every moment, the solution and the return that best meet your need.")}</p>
+          "Le marché mis en concurrence pour vous, et nous à vos côtés pour trouver, à chaque moment, la solution et le rendement qui répondent le mieux à votre besoin.",
+          "The market competing for you, and us at your side to find, at every moment, the solution and the return that best meet your need.")}</p>
         <div className="grille g3">
           {apports.map(([titre, texte], i) => (
             <div key={titre} className={`carte carte-icone${i === 0 ? " carte-vedette" : ""}`}>
@@ -166,8 +167,8 @@ export default function Vitrine() {
         <section aria-labelledby="vitrine-rappel" className="carte vitrine-rappel">
           <p className="surtitre">{t("Être rappelé", "Get a call back")}</p>
           <h2 id="vitrine-rappel" style={{ marginTop: 0 }}>{t("Parler à un conseiller", "Talk to an adviser")}</h2>
-          <p>{t("Vous préférez en parler avant d'essayer ? Laissez votre numéro : le courtier vous rappelle, au créneau que vous choisissez.",
-            "Rather talk it through before trying? Leave your number: the broker calls you back at the time you choose.")}</p>
+          <p>{t("Vous préférez en parler avant d'essayer ? Laissez votre numéro : nous vous rappelons, au créneau que vous choisissez.",
+            "Rather talk it through before trying? Leave your number: we call you back at the time you choose.")}</p>
           <EtreRappele />
         </section>
 

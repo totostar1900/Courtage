@@ -29,7 +29,11 @@ describe("vitrine et pages légales", () => {
     expect(screen.getByRole("heading", { name: "Les assureurs en concurrence pour vous" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "L'expérience à votre service" })).toBeInTheDocument();
     expect(screen.getByText(/plus de 50 ans d'expérience cumulée/)).toBeInTheDocument();
-    expect(screen.getByText("Du Cameroun à l'Europe")).toBeInTheDocument();
+    expect(screen.getByText("Cameroun et Afrique centrale")).toBeInTheDocument();
+    expect(screen.getByText("Une connaissance approfondie du secteur de l'assurance")).toBeInTheDocument();
+    // La vitrine parle en « nous » : plus de « le courtier » à la troisième personne.
+    expect(screen.getByText("Votre courtier en ligne, pour les entreprises de la CEMAC.")).toBeInTheDocument();
+    expect(document.querySelector(".vitrine")!.textContent).not.toMatch(/le courtier (vous|confirme|consulte|désigne)|du courtier/);
     // L'aperçu défile ; ses points le mènent à la main.
     const offres = screen.getByRole("button", { name: "Voir : Les offres" });
     expect(offres).toHaveAttribute("aria-pressed", "false");
