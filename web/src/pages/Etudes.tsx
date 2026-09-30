@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import { Erreur, useCharge } from "../composants/communs";
 import { useConfirmation } from "../composants/Confirmer";
+import { ChoixConvention } from "../composants/ChoixConvention";
 import { ComparerRegimes } from "../composants/ComparerRegimes";
 import { MenuActions } from "../composants/MenuActions";
 import { CONVENTION_PAR_PAYS } from "../composants/EditeurCategories";
@@ -16,18 +17,6 @@ import { demandeSuppression, raisonDeNePasSupprimer } from "../suppressionEtude"
 import { useDossier } from "./Dossier";
 import { raisonActivation } from "../activation";
 
-interface ConventionConnue { code: string; pays: string; libelle: string; en_vigueur_aujourd_hui: boolean }
-
-/** Une convention par code, pour le pays : le libellé de la version en vigueur (à défaut, la dernière lue). */
-function conventionsDuPays(liste: ConventionConnue[], pays: string): ConventionConnue[] {
-  const parCode = new Map<string, ConventionConnue>();
-  for (const c of liste.filter((x) => x.pays === pays)) {
-    const deja = parCode.get(c.code);
-    if (!deja || (c.en_vigueur_aujourd_hui && !deja.en_vigueur_aujourd_hui)) parCode.set(c.code, c);
-  }
-  return [...parCode.values()].sort((a, b) => a.libelle.localeCompare(b.libelle, "fr"));
-}
-
 export default function Etudes() {
   const d = useDossier();
   const naviguer = useNavigate();
@@ -39,10 +28,6 @@ export default function Etudes() {
   // La version qui s'applique d'abord.
   const versions = d.regimes.flatMap((r) => ordonner(r.versions).map((v) => ({ ...v, nomRegime: r.nom })));
   const { donnee: catalogue } = useCharge(() => api.get<CatalogueHypotheses>("/referentiel/hypotheses"), []);
-  // Les conventions que la plateforme connaît pour le pays de l'entreprise : on en choisit une, on ne la tape pas.
-  const { donnee: referentiel } = useCharge(
-    () => api.get<{ conventions: ConventionConnue[] }>("/referentiel/conventions").catch(() => ({ conventions: [] })), []);
-  const conventions = conventionsDuPays(referentiel?.conventions ?? [], d.org.pays);
   // La dernière étude donne l'effet de chaque hypothèse mesuré sur l'entreprise.
   const derniere = d.etudes[0]?.id;
   const { donnee: precedente } = useCharge(
@@ -94,19 +79,10 @@ export default function Etudes() {
                 {versions.map((v) => <option key={v.id} value={v.id}>{t("Votre régime : ", "Your plan: ")}{libelleVersion(v, v.nomRegime)}</option>)}
               </select>
             </label>
-            {base === "" && (conventions.length > 1 ? (
-              <label>{t("Convention collective", "Collective agreement")}
-                <select name="convention_code" defaultValue={conventions.some((c) => c.code === CONVENTION_PAR_PAYS[d.org.pays])
-                  ? CONVENTION_PAR_PAYS[d.org.pays] : conventions[0].code}>
-                  {conventions.map((c) => <option key={c.code} value={c.code}>{c.libelle}</option>)}
-                </select></label>
-            ) : (
-              <div className="champ-lu">
-                <span className="champ-lu-libelle">{t("Convention collective", "Collective agreement")}</span>
-                <span data-convention>{conventions[0]?.libelle ?? CONVENTION_PAR_PAYS[d.org.pays] ?? "—"}</span>
-                <input type="hidden" name="convention_code" value={conventions[0]?.code ?? CONVENTION_PAR_PAYS[d.org.pays] ?? ""} />
-              </div>
-            ))}
+            {base === "" && (
+              <ChoixConvention pays={d.org.pays} libelle={t("Convention collective", "Collective agreement")} name="convention_code"
+                               defaut={CONVENTION_PAR_PAYS[d.org.pays]} />
+            )}
           </div>
           <p className="discret aide-base" data-base={base === "" ? "convention" : "regime"}>{base === ""
             ? t("Ce que la loi et la convention de votre branche vous obligent à verser, au minimum. C'est la base quand l'entreprise n'a rien décidé de plus ; comparez-la à votre régime pour voir ce que vos engagements propres coûtent en plus.",

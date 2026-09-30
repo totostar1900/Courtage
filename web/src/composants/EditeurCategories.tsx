@@ -1,4 +1,5 @@
 import { t } from "../i18n";
+import { ChoixConvention } from "./ChoixConvention";
 import type { Categorie } from "../types";
 
 export const CONVENTION_PAR_PAYS: Record<string, string> = { CI: "CI_CCI", CM: "CM_COMMERCE" };
@@ -38,9 +39,8 @@ export function EditeurCategories({ categories, onChange, pays }: {
               <input value={c.categorie} onChange={(e) => maj(i, { categorie: e.target.value })}
                      placeholder={t("* pour tout le personnel", "* for all staff")} aria-label={t(`Nom de la catégorie ${i + 1}`, `Name of category ${i + 1}`)} />
             </label>
-            <label>{t("Convention plancher", "Floor agreement")}
-              <input value={c.convention_code} onChange={(e) => maj(i, { convention_code: e.target.value })} />
-            </label>
+            <ChoixConvention pays={pays} libelle={t("Convention plancher", "Floor agreement")} valeur={c.convention_code}
+                             onChange={(code) => maj(i, { convention_code: code })} />
             <label>{t("Base de salaire", "Salary basis")}
               <select value={c.base_salaire} onChange={(e) => maj(i, { base_salaire: e.target.value as Categorie["base_salaire"] })}>
                 <option value="dernier">{t("dernier salaire", "last salary")}</option>

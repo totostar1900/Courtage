@@ -8,6 +8,7 @@ import { Constats, Erreur, Volet } from "./communs";
 import { EditeurCategories, CONVENTION_PAR_PAYS, categorieVide } from "./EditeurCategories";
 import { millions, montant, pct } from "../format";
 import { t } from "../i18n";
+import { ChoixConvention } from "./ChoixConvention";
 import { libelleVersion, ordonner } from "../regimes";
 import type { Categorie, Constat, Totaux } from "../types";
 import { useDossier } from "../pages/Dossier";
@@ -71,7 +72,7 @@ export function ComparerRegimes() {
             </select>
           </label>
           <label>{t("Date d'évaluation", "Valuation date")}<input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
-          <label>{t("Convention", "Collective agreement")}<input value={convention} onChange={(e) => setConvention(e.target.value)} /></label>
+          <ChoixConvention pays={d.org.pays} libelle={t("Convention", "Collective agreement")} valeur={convention} onChange={setConvention} />
           <label>{t("Fonds constitué (F)", "Fund built up (F)")}<input type="number" min={0} value={fonds} onChange={(e) => setFonds(Number(e.target.value))} /></label>
         </div>
         {versions.length > 0 && (

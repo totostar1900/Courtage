@@ -444,8 +444,11 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
   CEMAC en tête. L'indicatif se tape (« +33 », « 33 », « France », « fr ») ou se choisit dans la liste filtrée ; un
   indicatif partagé (+1, +44, +7) garde le pays choisi. `composer` passe par la bibliothèque : le 0 national tombe
   où le plan de numérotation le veut (France), reste où il fait partie du numéro (Côte d'Ivoire).
-- **L'étude** choisit la convention dans les conventions du pays (`GET /referentiel/conventions`) ; une seule : elle
-  se lit, sans champ.
+- **Une convention ne se tape jamais** (`composants/ChoixConvention.tsx`) : l'étude, la comparaison de régimes, la
+  convention plancher de chaque catégorie d'un régime, la déclaration et l'import des départs la choisissent parmi
+  celles du pays (`GET /referentiel/conventions`, un code une fois) ; une seule, elle se lit, sans champ ; un code
+  enregistré que le référentiel ne connaît plus reste affiché tel quel. Aux départs, l'option vide garde son sens :
+  celle de la dernière étude.
 - **Le rail du dossier ne bouge pas** : collé à sa place au défilement (`--rail-haut`, mesuré au chargement), chaque
   page s'ouvre en haut (`App.tsx`), et `scrollbar-gutter: stable` garde la place de la barre de défilement.
 - Se déconnecter mène à l'accueil (`/`).
