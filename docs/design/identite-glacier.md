@@ -12,8 +12,8 @@ logotype viendront plus tard ; tout ce qui suit s'y adaptera sans réécriture.
   en cours, la barre qui compte. Le bouton principal est à l'encre, pas en couleur.
 - **Geist** pour le texte ; **Geist Mono** pour les chiffres (montants, taux, dates en tableau) et les étiquettes en
   capitales espacées. Les offres s'alignent chiffre à chiffre.
-- **Trois thèmes**, dessinés chacun : blanc de glace et encre polaire ; **pénombre**, une ardoise à mi-chemin (L* 34
-  à 39, quand le clair est à 97 et le sombre à 3 ; chaque couleur au moins à 4,5:1 sur la surface) ; nuit polaire et
+- **Trois thèmes**, dessinés chacun : blanc de glace et encre polaire ; **pénombre**, un gris neutre à mi-chemin (L* 33
+  à 37, quand le clair est à 97 et le sombre à 3 ; chaque couleur au moins à 4,5:1 sur la surface) ; nuit polaire et
   glace. Celui de l'appareil par défaut ; « Automatique · Clair · Pénombre · Sombre » à côté de FR · EN (`theme.ts`,
   `data-theme` sur la racine : `light`, `dim`, `dark`). À
   l'impression, toujours clair. Les documents scellés (PDF) ne changent pas : ce sont des documents.

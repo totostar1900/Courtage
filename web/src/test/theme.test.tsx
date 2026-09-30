@@ -27,7 +27,7 @@ describe("le thème clair ou sombre", () => {
     await userEvent.click(screen.getByRole("button", { name: "Thème pénombre" }));
     expect(document.documentElement).toHaveAttribute("data-theme", "dim");   // le milieu, entre les deux
     expect(lireTheme()).toBe("penombre");
-    expect(couleurs()).toEqual(["#46515e", "#46515e"]);
+    expect(couleurs()).toEqual(["#4b4d50", "#4b4d50"]);
     await userEvent.click(screen.getByRole("button", { name: "Thème clair" }));
     expect(document.documentElement).toHaveAttribute("data-theme", "light");
     await userEvent.click(auto);

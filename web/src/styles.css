@@ -84,32 +84,32 @@
   --voile: rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
-/* Pénombre : le vrai milieu entre le clair et le sombre — une ardoise (L* 34 à 39 quand le clair est à 97 et le
+/* Pénombre : le vrai milieu entre le clair et le sombre — un gris neutre (L* 33 à 37 quand le clair est à 97 et le
    sombre à 3), le texte clair dessus, chaque couleur au moins à 4,5:1 sur la surface. Écrit après le sombre : à poids
    égal, il l'emporte même sur un appareil réglé en sombre. */
 :root[data-theme="dim"] {
-  --fond: #46515e;
-  --surface: #515d6b;
-  --surface-2: #4b5764;
-  --encre: #f4f8fb;
-  --encre-2: #dde5ec;
-  --discret: #ccd5de;
-  --trait: #627080;
-  --trait-fort: #7a8898;
-  --indigo: #f4f8fb;
+  --fond: #4b4d50;
+  --surface: #56585b;
+  --surface-2: #505255;
+  --encre: #f5f6f7;
+  --encre-2: #e0e2e4;
+  --discret: #cfd2d5;
+  --trait: #6a6c70;
+  --trait-fort: #808286;
+  --indigo: #f5f6f7;
   --indigo-vif: #a9ebff;
-  --indigo-doux: #3f5a6c;
+  --indigo-doux: #4d5c63;
   --accent: #94e6ff;
   --ocre: #a9ebff;
-  --ocre-doux: #3f5a6c;
+  --ocre-doux: #4d5c63;
   --bien: #99f2cb;
-  --bien-doux: #3c5a52;
+  --bien-doux: #4a5a53;
   --attention: #ffe09a;
-  --attention-doux: #5e5540;
+  --attention-doux: #5e5846;
   --grave: #ffc9c3;
-  --grave-doux: #664a4c;
-  --entete-fond: #4b5764;
-  --voile: rgba(10, 14, 20, .55);
+  --grave-doux: #634e50;
+  --entete-fond: #505255;
+  --voile: rgba(12, 12, 14, .55);
   color-scheme: dark;
 }
 /* À l'impression, toujours clair : c'est du papier. */
