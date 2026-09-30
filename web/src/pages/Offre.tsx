@@ -39,8 +39,8 @@ export default function Offre() {
         ))}
       </ul>
 
-      {c.etat === "repondue" && <p className="constat informe">{t(`Votre réponse est reçue (le ${dateFr(c.repondue_le)}). Le courtier la relit et vous contactera s'il faut la préciser.`,
-        `Your response has been received (on ${dateFr(c.repondue_le)}). The broker is reviewing it and will contact you if it needs clarifying.`)}</p>}
+      {c.etat === "repondue" && <p className="constat informe">{t(`Votre réponse est reçue (le ${dateFr(c.repondue_le)}). Nous la relisons et vous contacterons s'il faut la préciser.`,
+        `Your response has been received (on ${dateFr(c.repondue_le)}). We are reviewing it and will contact you if it needs clarifying.`)}</p>}
       {(c.etat === "close" || c.etat === "annulee") && <p className="constat bloquant">{t("Cette consultation est close : elle ne reçoit plus de réponse.",
         "This consultation is closed: it no longer accepts responses.")}</p>}
       {(c.etat === "envoyee" || c.etat === "ouverte") && <Depot jeton={jeton!} onFait={recharger} />}
@@ -89,14 +89,14 @@ function Depot({ jeton, onFait }: { jeton: string; onFait: () => void }) {
         <label>{t("Délai de paiement d'une prestation (jours)", "Benefit payment period (days)")}<input name="delai_paiement_jours" type="number" min={1} /></label>
         <label>{t("Préavis de transfert (mois)", "Transfer notice (months)")}<input name="transfert_preavis_mois" type="number" min={0} /></label>
         <label>{t("Pénalité de transfert (%)", "Transfer penalty (%)")}<input name="transfert_penalite" type="number" step={0.1} min={0} /></label>
-        <label>{t("L'étude du courtier sert de base", "The broker's study is used as the basis")}{choixOui("accepte_etude_plateforme")}</label>
+        <label>{t("Notre étude sert de base", "Our study is used as the basis")}{choixOui("accepte_etude_plateforme")}</label>
         <label>{t("Relevé annuel du fonds", "Annual fund statement")}{choixOui("reporting_annuel")}</label>
         <label>{t("Participation servie (5 dernières années)", "Profit sharing paid (last 5 years)")}<input name="historique_participation" placeholder="3,1 % ; 3,4 % ; …" /></label>
       </div>
       <label>{t("Commentaire", "Comment")}<input name="commentaire" /></label>
       <DepotFichier libelle={t("Votre offre signée (PDF)", "Your signed offer (PDF)")} accept="application/pdf" fichier={offre} onChange={setOffre} />
       <div className="actions"><button className="principal" disabled={envoi}>{t("Déposer mon offre", "Upload my offer")}</button></div>
-      <p className="discret">{t("Une seule réponse par lien. Pour la modifier ensuite, écrivez au courtier.", "One response per link. To change it afterwards, write to the broker.")}</p>
+      <p className="discret">{t("Une seule réponse par lien. Pour la modifier ensuite, écrivez-nous.", "One response per link. To change it afterwards, write to us.")}</p>
       <Erreur erreur={erreur} />
     </form>
   );
