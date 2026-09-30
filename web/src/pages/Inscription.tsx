@@ -160,8 +160,8 @@ export default function Inscription() {
       {etape === 4 && (
         <form className="carte formulaire" onSubmit={inscrire}>
           <h2 style={{ marginTop: 0 }}>{t("Vos besoins", "Your needs")}</h2>
-          <p>{t("Ce que vous attendez de votre courtier. Votre conseiller s'en sert pour préparer votre mandat : rien ne vous engage avant la signature, et l'accompagnement ne vous coûte rien — le courtier est rémunéré par l'assureur retenu.",
-            "What you expect from your broker. Your adviser uses it to prepare your mandate: nothing binds you before you sign, and the support costs you nothing — the broker is paid by the insurer chosen.")}</p>
+          <p>{t("Ce que vous attendez de votre courtier. Votre conseiller s'en sert pour préparer votre mandat : rien ne vous engage avant la signature, et l'accompagnement ne vous coûte rien.",
+            "What you expect from your broker. Your adviser uses it to prepare your mandate: nothing binds you before you sign, and the support costs you nothing.")}</p>
           <fieldset className="choix-cartes"><legend className="visuellement-cache">{t("Ce que vous attendez", "What you expect")}</legend>
             {(listeBesoins?.besoins ?? []).map((x) => (
               <label key={x.code} className={`choix-carte${besoins.includes(x.code) ? " coche" : ""}`}>

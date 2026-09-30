@@ -180,7 +180,7 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
     sections: [
       { titre: "A single service", texte: [
         "The platform is your broker: you give it a mandate, it consults insurers, places your liability, then handles your benefit payments with the chosen insurer.",
-        "The mandate is free for the company: the broker is paid only by the chosen insurer's commission, whose rate it discloses on request.",
+        "The mandate is free for the company: neither the platform nor the support is charged to it. Its terms are written in the mandate, read before signing.",
         "The brokerage contract starts when the mandate is signed; the “Contract” screen shows it, with the insurer once the contract is placed." ] },
       { titre: "Signing the mandate", texte: [
         "From “Support”, the company says what it expects: placing its liability, putting its contract back out to competition, having its departures handled, advice on its plan.",
