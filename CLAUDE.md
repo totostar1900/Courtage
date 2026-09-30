@@ -440,4 +440,13 @@ de paiement, ni compte du cabinet : une prime qui passerait par le courtier n'ex
   un dossier suivi — des chiffres d'exemple, marqués « Exemple ». Pause au survol et au focus, immobile quand
   l'appareil demande moins de mouvement.
 - Trois thèmes : clair, **pénombre** (`data-theme="dim"`, une ardoise à mi-chemin, chaque couleur ≥ 4,5:1), sombre.
+- **Téléphone** (`ChampTelephone`) : tous les pays de `libphonenumber-js` (245), nommés par `Intl.DisplayNames` ; la
+  CEMAC en tête. L'indicatif se tape (« +33 », « 33 », « France », « fr ») ou se choisit dans la liste filtrée ; un
+  indicatif partagé (+1, +44, +7) garde le pays choisi. `composer` passe par la bibliothèque : le 0 national tombe
+  où le plan de numérotation le veut (France), reste où il fait partie du numéro (Côte d'Ivoire).
+- **L'étude** choisit la convention dans les conventions du pays (`GET /referentiel/conventions`) ; une seule : elle
+  se lit, sans champ.
+- **Le rail du dossier ne bouge pas** : collé à sa place au défilement (`--rail-haut`, mesuré au chargement), chaque
+  page s'ouvre en haut (`App.tsx`), et `scrollbar-gutter: stable` garde la place de la barre de défilement.
+- Se déconnecter mène à l'accueil (`/`).
 

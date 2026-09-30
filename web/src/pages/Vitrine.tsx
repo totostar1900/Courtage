@@ -78,8 +78,8 @@ export default function Vitrine() {
           <p className="surtitre surtitre-clair">{t("Courtage IFC · CEMAC", "End-of-service benefit brokerage · CEMAC")}</p>
           <h1>{t("Vos indemnités de fin de carrière, chiffrées puis placées", "Your end-of-service benefits, costed then placed")}</h1>
           <p className="vitrine-chapeau">{t(
-            "Un courtier en ligne pour les entreprises de la CEMAC : il mesure votre engagement envers vos salariés, met les assureurs en concurrence pour le financer, et suit chaque départ jusqu'au paiement.",
-            "An online broker for CEMAC companies: it measures your commitment to your employees, puts insurers in competition to fund it, and follows each departure until payment.")}</p>
+            "Un courtier en ligne pour les entreprises de la CEMAC : il chiffre votre engagement envers vos salariés, fait jouer la concurrence entre les assureurs pour le financer, puis vous accompagne dans la négociation avec les meilleurs d'entre eux et dans la gestion de votre contrat au quotidien.",
+            "An online broker for CEMAC companies: it costs your commitment to your employees, makes insurers compete to fund it, then supports you in negotiating with the best of them and in running your contract day to day.")}</p>
           <div className="actions">
             <Link to="/essai" className="bouton principal bouton-grand">{t("Essayer sans compte", "Try without an account")}</Link>
             <Link to="/inscription" className="bouton bouton-grand bouton-clair">{t("S'inscrire", "Sign up")}</Link>

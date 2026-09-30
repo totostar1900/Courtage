@@ -786,16 +786,33 @@ describe("le catalogue anonyme", () => {
     expect(screen.getByRole("button", { name: "Retirer du catalogue" })).toBeInTheDocument();
   });
 
-  it("l'étude dit sa base de calcul : le régime adopté, ou le minimum de la convention avec son code", async () => {
-    simulerApi(camerounais("admin_client"));
+  const conventionsConnues = { conventions: [
+    { code: "CM_COMMERCE", pays: "CM", libelle: "Convention collective nationale du commerce du Cameroun (version antérieure à 2024)", en_vigueur_aujourd_hui: false },
+    { code: "CM_COMMERCE", pays: "CM", libelle: "Convention collective nationale du commerce du Cameroun (révisée)", en_vigueur_aujourd_hui: true },
+    { code: "CM_BANQUES", pays: "CM", libelle: "Convention collective nationale des banques du Cameroun", en_vigueur_aujourd_hui: true },
+    { code: "CI_CCI", pays: "CI", libelle: "Convention collective interprofessionnelle de Côte d'Ivoire", en_vigueur_aujourd_hui: true }] };
+
+  it("l'étude dit sa base de calcul : le régime adopté, ou le minimum de la convention, choisie dans une liste", async () => {
+    simulerApi(camerounais("admin_client", { "/referentiel/conventions": conventionsConnues }));
     ouvrir(`/dossier/${ORG}/etudes`);
     const base = await screen.findByLabelText("Base de calcul");
     expect(base).toHaveValue("v1");                                    // le régime en vigueur, d'office
     expect(screen.queryByLabelText("Convention collective")).toBeNull(); // chaque catégorie dit déjà sa convention
     expect(screen.getByText(/Ce que votre entreprise s'est engagée à verser/)).toBeInTheDocument();
     await userEvent.selectOptions(base, "");
-    expect(screen.getByLabelText("Convention collective")).toHaveValue("CM_COMMERCE");
+    const liste = await screen.findByRole("combobox", { name: "Convention collective" });   // une liste, pas un champ libre
+    expect(liste).toHaveValue("CM_COMMERCE");
+    expect([...(liste as HTMLSelectElement).options].map((o) => o.value)).toEqual(["CM_BANQUES", "CM_COMMERCE"]);  // le pays seul, un code une fois
+    expect(screen.getByRole("option", { name: /du commerce du Cameroun \(révisée\)/ })).toBeInTheDocument();
     expect(screen.getByText(/Ce que la loi et la convention de votre branche vous obligent à verser/)).toBeInTheDocument();
+  });
+
+  it("une seule convention pour le pays : elle se lit, elle ne se choisit ni ne se tape", async () => {
+    simulerApi({ ...dossier("admin_client"), "/referentiel/conventions": conventionsConnues });
+    ouvrir(`/dossier/${ORG}/etudes`);                                   // AZITO, en Côte d'Ivoire, sans régime
+    expect(await screen.findByText("Convention collective interprofessionnelle de Côte d'Ivoire")).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Convention collective" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Convention collective" })).toBeNull();
   });
 
   it("le conseiller ne partage pas pour l'entreprise", async () => {
@@ -1485,6 +1502,7 @@ describe("le contrat en tête du parcours", () => {
     const parcours = await screen.findByRole("link", { name: /^Contrat/ });
     expect(screen.queryByRole("link", { name: /^Accompagnement/ })).toBeNull();          // la page n'existe plus
     expect(screen.getAllByRole("link", { name: /^Contrat/ })).toHaveLength(1);           // et le contrat n'est plus en double
+    expect(parcours.closest("aside")!.style.getPropertyValue("--rail-haut")).toMatch(/^\d+px$/);  // le rail se fige là où il est
     expect(parcours.closest("li")).toHaveClass("suivant");
     expect(parcours.closest("ol")!.querySelector("li:nth-child(2) a")).toBe(parcours);   // après le tableau de bord
     expect(await screen.findByText(/Un mandat de courtage vous attend/)).toBeInTheDocument();

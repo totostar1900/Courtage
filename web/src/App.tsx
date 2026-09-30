@@ -47,6 +47,11 @@ export default function App() {
   // Le bouton WhatsApp du cabinet : pour le visiteur et sur les pages publiques (pas celle de l'assureur consulté).
   // Dans un dossier, c'est le dossier qui pose le sien, vers le conseiller.
   const whatsappCabinet = (visiteur || PUBLIQUES.some((p) => pathname.startsWith(p))) && !pathname.startsWith("/offre");
+  // Une autre page s'ouvre en haut : sans cela, elle héritait du défilement de la précédente (écrêté à sa hauteur),
+  // et le rail sautait sous le pointeur. Une ancre (#mandat) garde son propre saut.
+  useEffect(() => {
+    if (!window.location.hash && !navigator.userAgent.includes("jsdom")) window.scrollTo(0, 0);
+  }, [pathname]);
   return (
     <Fragment key={l}>
       <Entete visiteur={visiteur} />
