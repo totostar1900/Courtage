@@ -91,10 +91,6 @@ export default function FileInscriptions({ onDecision }: { onDecision?: () => vo
                   </div>
                 ))}
               </dd>
-              <dt>{t("Messages", "Messages")}</dt>
-              <dd>{i.messages_non_lus > 0
-                ? <span className="etat attention">{t(`${i.messages_non_lus} non lu(s)`, `${i.messages_non_lus} unread`)}</span>
-                : t("aucun non lu", "none unread")}</dd>
             </dl>
             <div className="discret">{t(`Effacée le ${dateFr(i.expire_le)} si elle n'est pas confirmée.`,
               `Deleted on ${dateFr(i.expire_le)} if not confirmed.`)}</div>

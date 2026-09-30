@@ -38,5 +38,3 @@ export interface Inscription {
   demandeur: { nom: string | null; fonction: string | null; telephone: string | null; courriel: string | null } | null;
 }
 
-export interface Message { id: string; cote: "entreprise" | "courtier"; auteur: string; texte: string; le: string; lu_le: string | null }
-export interface Fil { messages: Message[]; cote: "entreprise" | "courtier" }

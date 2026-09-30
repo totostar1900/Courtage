@@ -9,6 +9,8 @@ import Visite, { lancerVisite } from "../composants/Visite";
 import { VISITE_DOSSIER } from "../guide/visite";
 import { etapes, type EtatDossier } from "../parcours";
 import { Icone } from "../composants/Icones";
+import BoutonWhatsApp from "../composants/BoutonWhatsApp";
+import { useCabinet } from "../cabinet";
 import { noterReprise } from "../reprise";
 import type { Equipe, EtatCycle, EtudeResume, Fiche, Fichier, Membre, Moi, Regime, Role } from "../types";
 import { BandeauCycle } from "../composants/CycleDossier";
@@ -27,7 +29,6 @@ export interface ContexteDossier {
   equipe: Membre[];
   etat: EtatDossier;
   activation: Activation;
-  nonLus: number;
   recharger: () => void;
 }
 
@@ -42,7 +43,7 @@ export function useDossier(): ContexteDossier {
 export default function Dossier() {
   const { org } = useParams();
   const { donnee, erreur, recharger } = useCharge(async () => {
-    const [moi, fichiers, regimes, etudes, fiches, equipe, activation, nonLus, mandat] = await Promise.all([
+    const [moi, fichiers, regimes, etudes, fiches, equipe, activation, mandat] = await Promise.all([
       api.get<Moi>("/moi"),
       api.get<Fichier[]>(`/organisations/${org}/fichiers`),
       api.get<Regime[]>(`/organisations/${org}/regimes`),
@@ -50,7 +51,6 @@ export default function Dossier() {
       api.get<Fiche[]>(`/organisations/${org}/fiches`),
       api.get<Equipe>(`/organisations/${org}/equipe`).then((e) => e.membres),
       api.get<Activation>(`/organisations/${org}/activation`).catch(() => CONFIRMEE),
-      api.get<{ non_lus: number }>(`/organisations/${org}/messages/non-lus`).then((r) => r.non_lus).catch(() => 0),
       api.get<{ mandats: { statut: string }[] }>(`/organisations/${org}/mandats`)
         .then((r) => {
           const s = r.mandats.map((m) => m.statut);
@@ -67,10 +67,11 @@ export default function Dossier() {
       fiches: fiches.length, mandat: mandat as EtatDossier["mandat"], offreRetenue: fiches.some((f) => f.attribuee),
       sousMandat: activation.etat === "confirmee" && activation.capacites.cahier,
     };
-    return { org: o, role: o.role, fichiers, regimes, etudes, fiches, equipe, etat, activation, nonLus, moiId: moi.id };
+    return { org: o, role: o.role, fichiers, regimes, etudes, fiches, equipe, etat, activation, moiId: moi.id };
   }, [org]);
 
   const { pathname } = useLocation();
+  const cabinet = useCabinet();
   const [menu, setMenu] = useState(false);
   useEffect(() => { setMenu(false); }, [pathname]);     // une page choisie referme le menu (téléphone)
   // Chaque page ouverte devient l'endroit où reprendre (« Vos dossiers » le proposera à la prochaine visite).
@@ -118,8 +119,6 @@ export default function Dossier() {
             ))}
           </ol>
           <ol className="parcours" style={{ marginTop: 14 }} data-visite="outils">
-            <li><NavLink to="contrat" className={({ isActive }) => (isActive ? "actif" : "")}>
-              <Icone nom="contrat" />{t("Contrat", "Contract")}</NavLink></li>
             <li><NavLink to="placement" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="placement" />{t("Placement", "Placement")}</NavLink></li>
             <li><NavLink to="departs" className={({ isActive }) => (isActive ? "actif" : "")}>
@@ -131,7 +130,7 @@ export default function Dossier() {
                     <rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg></span>)}</NavLink></li>
             <li><NavLink to="contact" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="messages" />{t("Contact", "Contact")}
-              {donnee.nonLus > 0 && <span className="pastille-rail" aria-label={t(`${donnee.nonLus} non lu(s)`, `${donnee.nonLus} unread`)}>{donnee.nonLus}</span>}</NavLink></li>
+</NavLink></li>
             <li><NavLink to="equipe" className={({ isActive }) => (isActive ? "actif" : "")}>
               <Icone nom="equipe" />{t("Équipe", "Team")}</NavLink></li>
           </ol>
@@ -165,6 +164,12 @@ export default function Dossier() {
         <BarreMobile d={donnee} />
         <Visite etapes={VISITE_DOSSIER} auto />
       </div>
+      {donnee.role !== "conseiller" && (
+        <BoutonWhatsApp telephone={conseiller?.telephone ?? cabinet?.telephone}
+                        libelle={conseiller ? t("Écrire à votre conseiller sur WhatsApp", "Write to your adviser on WhatsApp")
+                          : t("Écrire au cabinet sur WhatsApp", "Write to the firm on WhatsApp")}
+                        message={t(`Bonjour, je vous écris au sujet du dossier ${donnee.org.nom}.`, `Hello, I am writing about the file ${donnee.org.nom}.`)} />
+      )}
     </Contexte.Provider>
   );
 }

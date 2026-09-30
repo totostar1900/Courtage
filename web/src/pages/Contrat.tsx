@@ -9,6 +9,7 @@ import type { ContratsDossier } from "../types";
 import { MenuActions } from "../composants/MenuActions";
 import { useConfirmation } from "../composants/Confirmer";
 import { useDossier } from "./Dossier";
+import Mandat from "./Mandat";
 
 // Lu au rendu (la langue peut changer) : une fonction, pas une constante figée à l'import.
 const departs = () => [
@@ -22,7 +23,8 @@ const departs = () => [
 // Un contrat enregistré avant le courtage seul peut dire « comparaison » : il reste lisible.
 const libelleService = (s: string) => (s === "courtage" ? t("Courtage", "Brokerage") : t("Comparaison (ancien service)", "Comparison (former service)"));
 
-/** Le service que nous vous rendons, et ce qu'il change le jour où un salarié part. */
+/** Le service que nous vous rendons, ce qu'il change le jour où un salarié part, et le mandat qui le fonde : demandé,
+ *  proposé, signé ici. */
 export default function Contrat() {
   const d = useDossier();
   const { donnee, erreur, recharger } = useCharge(() => api.get<ContratsDossier>(`/organisations/${d.org.id}/contrats`), []);
@@ -65,11 +67,15 @@ export default function Contrat() {
         )}
         <div className="actions">
           <Link to="/guide/contrat">{t("Le courtage : le guide", "Brokerage: the guide")}</Link>
-          {!sousMandat && <Link to="../accompagnement">{t("Demander un accompagnement en courtage →", "Request brokerage support →")}</Link>}
+          {!sousMandat && <a href="#mandat">{d.etat.mandat === "propose" ? t("Lire et signer le mandat proposé ↓", "Read and sign the proposed mandate ↓")
+            : d.etat.mandat === "demande" ? t("Où en est votre demande ↓", "Where your request stands ↓")
+            : t("Demander un accompagnement en courtage ↓", "Request brokerage support ↓")}</a>}
         </div>
       </div>
 
       {donnee.constats.length > 0 && <div className="section"><Constats constats={donnee.constats} /></div>}
+
+      <Mandat />
 
       {donnee.historique.length > 0 && (
         <div className="section">

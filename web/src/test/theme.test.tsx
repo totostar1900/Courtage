@@ -24,6 +24,10 @@ describe("le thème clair ou sombre", () => {
     expect(document.documentElement).toHaveAttribute("data-theme", "dark");
     expect(lireTheme()).toBe("sombre");
     expect(couleurs()).toEqual(["#070b10", "#070b10"]);   // la barre du navigateur suit le thème imposé
+    await userEvent.click(screen.getByRole("button", { name: "Thème pénombre" }));
+    expect(document.documentElement).toHaveAttribute("data-theme", "dim");   // le milieu, entre les deux
+    expect(lireTheme()).toBe("penombre");
+    expect(couleurs()).toEqual(["#46515e", "#46515e"]);
     await userEvent.click(screen.getByRole("button", { name: "Thème clair" }));
     expect(document.documentElement).toHaveAttribute("data-theme", "light");
     await userEvent.click(auto);

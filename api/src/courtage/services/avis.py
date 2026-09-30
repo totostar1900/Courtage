@@ -48,24 +48,24 @@ EVENEMENTS: dict[str, tuple[str, str, str]] = {
     "message": (
         "Un message vous attend",
         "{qui} a écrit dans le fil du dossier {entreprise}.",
-        "/dossier/{org}/messages"),
+        "/dossier/{org}/contact"),
     "mandat_demande": (
         "Demande d'accompagnement",
         "{entreprise} demande un accompagnement en courtage.",
-        "/dossier/{org}/accompagnement"),
+        "/dossier/{org}/contrat"),
     "mandat_propose": (
         "Un mandat de courtage est à signer",
         "Votre conseiller vous propose un mandat de courtage pour {entreprise}. Lisez-le, puis signez-le ou "
         "déclinez-le.",
-        "/dossier/{org}/accompagnement"),
+        "/dossier/{org}/contrat"),
     "mandat_signe": (
         "Le mandat de courtage est signé",
         "{entreprise} a signé le mandat de courtage (N° {numero}).",
-        "/dossier/{org}/accompagnement"),
+        "/dossier/{org}/contrat"),
     "mandat_refuse": (
         "Le mandat proposé a été décliné",
         "{entreprise} a décliné le mandat de courtage proposé.",
-        "/dossier/{org}/accompagnement"),
+        "/dossier/{org}/contrat"),
     "offre_choisie": (
         "L'entreprise a choisi une offre",
         "{entreprise} a choisi une offre sur le cahier des charges.",

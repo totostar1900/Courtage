@@ -49,7 +49,7 @@ export default function Departs() {
             ? t("En courtage, nous porterons la prise en charge auprès de votre assureur.", "Under brokerage, we will handle the benefit payment with your insurer.")
             : t("Sans mandat, la prise en charge reste entre vous et votre assureur. Signez un mandat pour que nous la portions.",
                 "Without a mandate, the benefit payment stays between you and your insurer. Sign a mandate for us to handle it.")}{" "}
-          <Link to={contrat.service === "courtage" ? "../contrat" : "../accompagnement"}>
+          <Link to={"../contrat"}>
             {contrat.service === "courtage" ? t("Votre contrat", "Your contract") : t("Demander un accompagnement", "Request brokerage support")}</Link>
         </p>
       )}
@@ -337,7 +337,7 @@ function ImportHistorique({ onFermer, onFait }: { onFermer: () => void; onFait: 
 /** Avant le contrat : ce qui ouvre les départs, et où en est le chemin. */
 function DepartsFermes() {
   const pas: [string, string, string][] = [
-    [t("Le mandat de courtage", "The brokerage mandate"), t("Demandé, proposé, signé en ligne.", "Requested, proposed, signed online."), "../accompagnement"],
+    [t("Le mandat de courtage", "The brokerage mandate"), t("Demandé, proposé, signé en ligne.", "Requested, proposed, signed online."), "../contrat"],
     [t("Les offres des assureurs", "The insurers' offers"), t("Votre conseiller les apporte ; vous choisissez.", "Your adviser brings them; you choose."), "../financement"],
     [t("Le contrat signé et en vigueur", "The contract signed and in force"), t("Police reçue, signée, première prime encaissée.", "Policy received, signed, first premium received."), "../placement"],
   ];

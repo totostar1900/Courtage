@@ -45,7 +45,6 @@ export function dossier(role: "admin_client" | "contributeur_client" | "conseill
       notes_regime: true, fiche_de_calcul: true, equipe: true, catalogue: true, extraction_claude: true, mandat: true,
       cahier: true, departs: true }, libelles: {}, rccm: null, taille: null, adresse: null, ville: null, demandee_le: null,
       decidee_le: null, motif: null },
-    [`/organisations/${ORG}/messages/non-lus`]: { non_lus: 0 },
     "/moi": { id: "u", email: null, admin_plateforme: false, organisations: [{ id: ORG, nom: "AZITO", pays: "CI", role }] },
     [`/organisations/${ORG}/fichiers`]: [{ id: "f1", nom_fichier: "p.xlsx", depose_le: "2026-09-26T10:00:00", date_donnees: "2019-12-31", periodicite: "annuel", effectif: 23, anomalies: [] }],
     [`/organisations/${ORG}/regimes`]: [],

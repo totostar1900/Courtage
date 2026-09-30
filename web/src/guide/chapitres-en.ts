@@ -43,7 +43,7 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "Your phone and your email address are each verified with a code. You give your name, your position and the company: company name, country, RCCM number (required), size, sector, address. Finally you say what you expect from your broker (place the liability, put your contract out to tender, have your departures handled, get advice): that is your support request, which your adviser turns into a mandate to sign. You accept the terms of use and the privacy policy; the version accepted stays on your account (“My profile”).",
         "The RCCM document can follow: upload it from your file's banner. A company has only one file: an RCCM number already registered points to its administrator." ] },
       { titre: "While awaiting confirmation", texte: [
-        "Your adviser contacts you within two working days, checks the company and confirms the sign-up. Until then, all the work is open: staff, plan, comparisons, on-screen studies; your adviser can be reached on WhatsApp, by email or by phone, from “Contact”. An email tells you when something is waiting for you (the confirmation, a message, a mandate to sign); these notices can be turned off in “My profile”, where you can also get them on WhatsApp, at your account's number — the subject and the link, nothing else.",
+        "Your adviser contacts you within two working days, checks the company and confirms the sign-up. Until then, all the work is open: staff, plan, comparisons, on-screen studies; your adviser can be reached on WhatsApp, by email or by phone, from “Contact” or the WhatsApp button at the bottom right. An email tells you when something is waiting for you (the confirmation, a mandate to sign); these notices can be turned off in “My profile”, where you can also get them on WhatsApp, at your account's number — the subject and the link, nothing else.",
         "Anything that leaves the platform waits for confirmation: sealed reports, exports, notes, inviting colleagues, the anonymous catalogue, the mandate. An unconfirmed sign-up is erased after 30 days." ] },
     ],
   },
@@ -183,7 +183,7 @@ export const CHAPITRES_EN: Record<string, ChapitreEn> = {
         "The mandate is free for the company: neither the platform nor the support is charged to it. Its terms are written in the mandate, read before signing.",
         "The brokerage contract starts when the mandate is signed; the “Contract” screen shows it, with the insurer once the contract is placed." ] },
       { titre: "Signing the mandate", texte: [
-        "From “Support”, the company says what it expects: placing its liability, putting its contract back out to competition, having its departures handled, advice on its plan.",
+        "From the “Contract” page, the company says what it expects: placing its liability, putting its contract back out to competition, having its departures handled, advice on its plan.",
         "The adviser proposes a brokerage mandate: the assignments, the effective date, the term, the notice period, exclusivity. The full text is shown on the page.",
         "The administrator reads it and signs it online, on the text shown, saying in what capacity: legal representative of the company, or delegate — who then uploads the delegation of authority, which the adviser checks. The signed mandate is sealed and can be verified by its number. Nothing is binding before signature." ] },
       { titre: "When an employee leaves", texte: [

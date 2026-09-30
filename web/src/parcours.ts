@@ -9,7 +9,7 @@ export interface EtatDossier {
   etudesEmises: number;
   etudesBrouillon: number;
   fiches: number;
-  /** Où en est l'accompagnement : rien demandé, demandé, un mandat proposé à signer, signé. `null` : inconnu. */
+  /** Où en est le mandat de courtage : rien demandé, demandé, un mandat proposé à signer, signé. `null` : inconnu. */
   mandat?: "aucun" | "demande" | "propose" | "signe" | null;
   /** Une offre a été retenue sur un cahier des charges. */
   offreRetenue?: boolean;
@@ -18,7 +18,7 @@ export interface EtatDossier {
 }
 
 export interface Etape {
-  cle: "accompagnement" | "personnel" | "regime" | "etudes" | "financement" | "cahier";
+  cle: "contrat" | "personnel" | "regime" | "etudes" | "financement" | "cahier";
   libelle: string;
   fait: boolean;
   suivant: boolean;
@@ -27,9 +27,9 @@ export interface Etape {
 
 export function etapes(e: EtatDossier): Etape[] {
   const brutes: Omit<Etape, "suivant">[] = [
-    // L'accompagnement d'abord : c'est ce que l'entreprise vient chercher. « Fait » dès qu'il est demandé, sauf quand
-    // un mandat attend sa signature.
-    { cle: "accompagnement", libelle: t("Accompagnement", "Support"),
+    // Le contrat d'abord : le mandat de courtage s'y demande et s'y signe, et c'est ce que l'entreprise vient chercher.
+    // « Fait » dès qu'il est demandé, sauf quand un mandat attend sa signature.
+    { cle: "contrat", libelle: t("Contrat", "Contract"),
       fait: Boolean(e.sousMandat) || e.mandat == null || e.mandat === "demande" || e.mandat === "signe",
       aide: e.mandat === "propose" ? t("Un mandat de courtage vous attend : lisez-le, puis signez-le.",
                                        "A brokerage mandate is waiting for you: read it, then sign it.")

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 
 import { useCabinet } from "../cabinet";
 import { useMesure } from "../mesure";
+import ApercuDefilant from "../composants/ApercuDefilant";
 import EtreRappele from "../composants/EtreRappele";
 import { t } from "../i18n";
 
@@ -48,7 +49,8 @@ export default function Vitrine() {
   const equipe = [
     ["50+", t("années d'expérience cumulée dans l'assurance", "cumulated years of experience in insurance")],
     [t("Actuaires", "Actuaries"), t("chevronnés, et professionnels du marché de l'assurance", "seasoned, alongside insurance market professionals")],
-    [t("Quatre marchés", "Four markets"), t("Cameroun · Afrique · Europe · Amérique", "Cameroon · Africa · Europe · America")],
+    [t("Du Cameroun à l'Europe", "From Cameroon to Europe"),
+     t("Une pratique des marchés locaux, africains et européens", "Hands-on practice of local, African and European markets")],
   ];
   const questions = [
     [t("Combien coûte l'accompagnement ?", "What does the support cost?"),
@@ -88,15 +90,7 @@ export default function Vitrine() {
           </div>
           <p className="vitrine-liens"><Link to="/connexion">{t("Déjà un compte ? Se connecter", "Already have an account? Sign in")}</Link></p>
         </div>
-        <div className="vitrine-une-visuel" aria-hidden="true">
-          <div className="apercu-carte">
-            <div className="apercu-tete"><span>{t("Votre engagement au 31/12", "Your liability at 31/12")}</span><span className="etat bien">{t("Scellé", "Sealed")}</span></div>
-            <div className="apercu-chiffre">135,8 M F</div>
-            <div className="apercu-barres">{[38, 12, 30, 6, 64, 8, 22, 46, 18, 14].map((h, i) => <span key={i} style={{ height: `${h}px` }} />)}</div>
-            <div className="apercu-ligne"><span>{t("Offres reçues", "Offers received")}</span><strong>3</strong></div>
-            <div className="apercu-ligne"><span>{t("Meilleur rendement net", "Best net return")}</span><strong>3,12 %</strong></div>
-          </div>
-        </div>
+        <div className="vitrine-une-visuel"><ApercuDefilant /></div>
       </section>
 
       <ul className="vitrine-garanties" aria-label={t("Nos engagements", "Our commitments")}>
@@ -143,8 +137,8 @@ export default function Vitrine() {
           <p className="surtitre">{t("L'équipe", "The team")}</p>
           <h2 id="vitrine-equipe">{t("L'expérience à votre service", "Experience at your service")}</h2>
           <p>{t(
-            "Une équipe de professionnels de l'assurance et d'actuaires chevronnés, forte de plus de 50 ans d'expérience cumulée sur les marchés du Cameroun, d'Afrique, d'Europe et d'Amérique.",
-            "A team of insurance professionals and seasoned actuaries, with more than 50 years of cumulated experience in the markets of Cameroon, Africa, Europe and America.")}</p>
+            "Une équipe de professionnels de l'assurance et d'actuaires chevronnés, forte de plus de 50 ans d'expérience cumulée sur les marchés du Cameroun, d'Afrique et d'Europe.",
+            "A team of insurance professionals and seasoned actuaries, with more than 50 years of cumulated experience in the markets of Cameroon, Africa and Europe.")}</p>
           <p>{t(
             "Nous mettons cette expertise au service de vos engagements et de vos portefeuilles d'assurance, pour en révéler les opportunités et le potentiel. Nous comprenons votre besoin, nous connaissons le marché et les solutions qu'il offre : nous le mettons en concurrence pour vous.",
             "We dedicate this expertise to your commitments and your insurance portfolios, to unlock their opportunities and potential. We understand your need, we know the market and the solutions it offers: we get it competing for you.")}</p>
