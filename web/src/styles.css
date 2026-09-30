@@ -1069,13 +1069,17 @@ a.bouton.bouton-clair { background: var(--fond); }
   border-radius: var(--rayon); box-shadow: 0 6px 18px rgba(0, 0, 0, .22); }
 .bouton-whatsapp:hover { background: #17753f; color: #fff; }
 .bouton-whatsapp:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-@media (max-width: 900px) { .dossier + .bouton-whatsapp { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 900px) { .dossier ~ .bouton-whatsapp { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); } }
 @media (max-width: 700px) {
   .bouton-whatsapp { padding: 14px; right: 16px; }
-  .bouton-whatsapp:not(.dossier + .bouton-whatsapp) { bottom: 16px; }
+  .bouton-whatsapp:not(.dossier ~ .bouton-whatsapp) { bottom: 16px; }
   .bouton-whatsapp span { display: none; }
 }
-@media print { .bouton-whatsapp { display: none !important; } }
+.bulle-whatsapp { position: fixed; right: 20px; bottom: 76px; z-index: 40; max-width: 280px; padding: 10px 12px; font-size: 13px;
+  background: var(--surface); color: var(--encre); border: 1px solid var(--trait-fort); box-shadow: var(--ombre-flottante); }
+.dossier ~ .bulle-whatsapp { bottom: 76px; }
+@media (max-width: 900px) { .dossier ~ .bulle-whatsapp { bottom: calc(140px + env(safe-area-inset-bottom, 0px)); } }
+@media print { .bouton-whatsapp, .bulle-whatsapp { display: none !important; } }
 /* Les points : quatre traits fins, le courant à l'accent ; le nom est dans l'étiquette et l'infobulle. */
 .apercu-points { display: flex; gap: 8px; justify-content: center; }
 .apercu-points button { background: transparent; border: 0; padding: 10px 0; min-height: 0; cursor: pointer; }

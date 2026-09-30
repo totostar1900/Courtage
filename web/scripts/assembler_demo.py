@@ -9,7 +9,7 @@ from pathlib import Path
 racine = Path(__file__).resolve().parents[1]
 dist = racine / (sys.argv[1] if len(sys.argv) > 1 else "dist-demo")
 nom = sys.argv[2] if len(sys.argv) > 2 else "demo-courtage.html"
-titre = sys.argv[3] if len(sys.argv) > 3 else "Démonstration Courtage"
+titre = sys.argv[3] if len(sys.argv) > 3 else "Démonstration Nitch"
 css = "".join(p.read_text("utf-8") for p in (dist / "assets").glob("*.css"))
 js = "".join(p.read_text("utf-8") for p in (dist / "assets").glob("*.js")).replace("</script", "<\\/script")
 page = f"""<title>{titre}</title>
