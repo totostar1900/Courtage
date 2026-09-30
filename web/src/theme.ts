@@ -12,7 +12,7 @@ export function lireTheme(): Theme {
 }
 
 /** Le fond de chaque thème (`--fond` dans styles.css) : la barre du navigateur sur téléphone prend sa couleur. */
-const FOND = { clair: "#f5f7f9", penombre: "#46515e", sombre: "#070b10" } as const;
+const FOND = { clair: "#f5f7f9", penombre: "#4b4d50", sombre: "#070b10" } as const;
 
 export function appliquerTheme(theme: Theme) {
   const racine = document.documentElement;
